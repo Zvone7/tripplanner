@@ -1,6 +1,14 @@
+using Domain.Settings;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Configuration.AddJsonFile("appsettings.json", optional: false);
+builder.Configuration.AddJsonFile("appsettings.Development.json", optional: true);
+var appSettings = new AppSettings();
+builder.Configuration.GetSection("AppSettings").Bind(appSettings);
+
+builder.Services.AddSingleton(appSettings);
+
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddCors(options =>
