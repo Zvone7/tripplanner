@@ -1,3 +1,4 @@
+using Application.Services;
 using Domain.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,6 +9,13 @@ var appSettings = new AppSettings();
 builder.Configuration.GetSection("AppSettings").Bind(appSettings);
 
 builder.Services.AddSingleton(appSettings);
+builder.Services.AddScoped<TripRepository>();
+builder.Services.AddScoped<OptionRepository>();
+builder.Services.AddScoped<SegmentRepository>();
+
+builder.Services.AddScoped<TripService>();
+builder.Services.AddScoped<OptionService>();
+builder.Services.AddScoped<SegmentService>();
 
 builder.Services.AddControllersWithViews();
 
