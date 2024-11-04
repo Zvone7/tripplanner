@@ -29,10 +29,10 @@ public class TripController{
     }
 
     [HttpPost]
-    [Route(nameof(AddTrip))]
-    public async Task AddTrip(TripDto trip, CancellationToken cancellationToken)
+    [Route(nameof(CreateTrip))]
+    public async Task CreateTrip(TripDto trip, CancellationToken cancellationToken)
     {
-        await _tripService.AddTripAsync(trip, cancellationToken);
+        await _tripService.CreateTripAsync(trip, cancellationToken);
     }
 
     [HttpPut]
@@ -40,5 +40,12 @@ public class TripController{
     public async Task UpdateTrip(TripDto trip, CancellationToken cancellationToken)
     {
         await _tripService.UpdateTripAsync(trip, cancellationToken);
+    }
+
+    [HttpDelete]
+    [Route(nameof(DeleteTrip))]
+    public async Task DeleteTrip(int id, CancellationToken cancellationToken)
+    {
+        await _tripService.DeleteTripAsync(id, cancellationToken);
     }
 }

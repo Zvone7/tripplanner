@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
+import { useEffect, useState, useCallback } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"
 import { Skeleton } from "../components/ui/skeleton"
 import { Badge } from "../components/ui/badge"
+import { Button } from "../components/ui/button"
+import { PencilIcon, PlusIcon, TrashIcon } from 'lucide-react'
+import TripModal from './TripModal'
 
 interface Trip {
   id: number;
@@ -17,31 +20,107 @@ export default function TripList() {
   const [trips, setTrips] = useState<Trip[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingTrip, setEditingTrip] = useState<Trip | null>(null)
+
+  const fetchTrips = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch('/api/trip/getalltrips')
+      if (!response.ok) {
+        throw new Error('Failed to fetch trips')
+      }
+      const data = await response.json()
+      setTrips(data)
+    } catch (err) {
+      setError('An error occurred while fetching trips')
+      console.error('Error fetching trips:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    const fetchTrips = async () => {
+    fetchTrips()
+  }, [fetchTrips])
+
+  const handleEditTrip = (trip: Trip) => {
+    setEditingTrip(trip)
+    setIsModalOpen(true)
+  }
+
+  const handleCreateTrip = () => {
+    setEditingTrip(null)
+    setIsModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setEditingTrip(null)
+  }
+
+  const handleSaveTrip = async (tripData: Omit<Trip, 'id'>) => {
+    try {
+      let response;
+
+      if (editingTrip) {
+        // Update existing trip
+        const updatedTripData = { ...tripData, id: editingTrip.id }
+        response = await fetch('/api/trip/updatetrip', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedTripData),
+        })
+      } else {
+        // Create new trip
+        response = await fetch('/api/trip/createtrip', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(tripData),
+        })
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to save trip')
+      }
+
+      handleCloseModal()
+      await fetchTrips()
+    } catch (err) {
+      console.error('Error saving trip:', err)
+      setError('An error occurred while saving the trip')
+    }
+  }
+
+  const handleDeleteTrip = async (tripId: number) => {
+    if (window.confirm('Are you sure you want to delete this trip?')) {
       try {
-        const response = await fetch('/api/trip/getalltrips')
+        const response = await fetch(`/api/trip/deletetrip?id=${tripId}`, {
+          method: 'DELETE',
+        })
+
         if (!response.ok) {
-          throw new Error('Failed to fetch trips')
+          throw new Error('Failed to delete trip')
         }
-        const data = await response.json()
-        setTrips(data)
+
+        await fetchTrips()
       } catch (err) {
-        setError('An error occurred while fetching trips')
-      } finally {
-        setIsLoading(false)
+        console.error('Error deleting trip:', err)
+        setError('An error occurred while deleting the trip')
       }
     }
-
-    fetchTrips()
-  }, [])
+  }
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle>My Trips</CardTitle>
-        <CardDescription>A list of all your trips</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>My Trips</CardTitle>
+          <CardDescription>A list of all your trips</CardDescription>
+        </div>
+        <Button onClick={handleCreateTrip}>
+          <PlusIcon className="mr-2 h-4 w-4" /> Add Trip
+        </Button>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -55,6 +134,7 @@ export default function TripList() {
                 <TableHead>Name</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -65,12 +145,28 @@ export default function TripList() {
                   <TableCell>
                     <StatusBadge isActive={trip.isActive} />
                   </TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleEditTrip(trip)}>
+                        <PencilIcon className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDeleteTrip(trip.id)}>
+                        <TrashIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
       </CardContent>
+      <TripModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSave={handleSaveTrip}
+        trip={editingTrip}
+      />
     </Card>
   )
 }

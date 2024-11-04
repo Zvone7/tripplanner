@@ -25,24 +25,29 @@ public class TripRepository
         return await db.QuerySingleOrDefaultAsync<TripDbm>("SELECT * FROM Trip WHERE Id = @Id", new { Id = id });
     }
 
-    public async Task AddTripAsync(TripDbm trip, CancellationToken cancellationToken)
+    public async Task<TripDbm> CreateTripAsync(TripDbm trip, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
         var sqlQuery = "INSERT INTO Trip (Name, Description, is_active) VALUES (@Name, @Description, @is_active)";
         await db.ExecuteAsync(sqlQuery, trip);
+        var createdTrip = await db.QuerySingleOrDefaultAsync<TripDbm>("SELECT * FROM Trip WHERE Name = @Name AND Description = @Description", trip);
+        return createdTrip;
     }
 
-    public async Task UpdateTripAsync(TripDbm trip, CancellationToken cancellationToken)
+    public async Task<TripDbm> UpdateTripAsync(TripDbm trip, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
         var sqlQuery = "UPDATE Trip SET Name = @Name, Description = @Description, is_active = @is_active WHERE Id = @Id";
         await db.ExecuteAsync(sqlQuery, trip);
+        var updatedTrip = await db.QuerySingleOrDefaultAsync<TripDbm>("SELECT * FROM Trip WHERE Id = @Id", new { Id = trip.Id });
+        return updatedTrip;
     }
 
     public async Task DeleteTripAsync(int id, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
-        var sqlQuery = "DELETE FROM Trip WHERE Id = @Id";
+        // instead of delete set as inactive
+        var sqlQuery = "UPDATE Trip SET is_active = 0 WHERE Id = @Id";
         await db.ExecuteAsync(sqlQuery, new { Id = id });
     }
 }

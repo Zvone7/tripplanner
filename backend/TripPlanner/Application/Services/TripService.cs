@@ -38,25 +38,40 @@ public class TripService
         };
     }
 
-    public async Task AddTripAsync(TripDto trip, CancellationToken cancellationToken)
+    public async Task<TripDto> CreateTripAsync(TripDto trip, CancellationToken cancellationToken)
     {
-        await _tripRepository.AddTripAsync(new TripDbm
+        var created = await _tripRepository.CreateTripAsync(new TripDbm
         {
             Name = trip.Name,
             Description = trip.Description,
             is_active = trip.IsActive
         }, cancellationToken);
+        return new TripDto
+        {
+            Id = created.Id,
+            Name = created.Name,
+            Description = created.Description,
+            IsActive = created.is_active
+        };
     }
 
-    public async Task UpdateTripAsync(TripDto trip, CancellationToken cancellationToken)
+    public async Task<TripDto> UpdateTripAsync(TripDto trip, CancellationToken cancellationToken)
     {
-        await _tripRepository.UpdateTripAsync(new TripDbm
+        var updated = await _tripRepository.UpdateTripAsync(new TripDbm
         {
             Id = trip.Id,
             Name = trip.Name,
             Description = trip.Description,
             is_active = trip.IsActive
         }, cancellationToken);
+        return new TripDto
+        {
+            Id = updated.Id,
+            Name = updated.Name,
+            Description = updated.Description,
+            IsActive = updated.is_active
+        };
+        
     }
 
     public async Task DeleteTripAsync(int id, CancellationToken cancellationToken)
