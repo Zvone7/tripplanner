@@ -38,7 +38,7 @@ public class OptionService{
         };
     }
 
-    public async Task AddOptionAsync(OptionDto option, CancellationToken cancellationToken)
+    public async Task CreateOptionAsync(OptionDto option, CancellationToken cancellationToken)
     {
         await _optionRepository.AddOptionAsync(new TripOptionDbm
         {

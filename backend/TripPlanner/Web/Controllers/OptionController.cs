@@ -29,10 +29,10 @@ public class OptionController{
     }
 
     [HttpPost]
-    [Route(nameof(AddOption))]
-    public async Task AddOption(OptionDto option, CancellationToken cancellationToken)
+    [Route(nameof(CreateOption))]
+    public async Task CreateOption(OptionDto option, CancellationToken cancellationToken)
     {
-        await _optionService.AddOptionAsync(option, cancellationToken);
+        await _optionService.CreateOptionAsync(option, cancellationToken);
     }
 
     [HttpPut]

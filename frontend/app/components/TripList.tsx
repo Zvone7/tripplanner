@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"
 import { Skeleton } from "../components/ui/skeleton"
@@ -22,6 +23,7 @@ export default function TripList() {
   const [error, setError] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null)
+  const router = useRouter()
 
   const fetchTrips = useCallback(async () => {
     setIsLoading(true)
@@ -44,7 +46,8 @@ export default function TripList() {
     fetchTrips()
   }, [fetchTrips])
 
-  const handleEditTrip = (trip: Trip) => {
+  const handleEditTrip = (e: React.MouseEvent, trip: Trip) => {
+    e.stopPropagation()
     setEditingTrip(trip)
     setIsModalOpen(true)
   }
@@ -92,10 +95,11 @@ export default function TripList() {
     }
   }
 
-  const handleDeleteTrip = async (tripId: number) => {
+  const handleDeleteTrip = async (e: React.MouseEvent, tripId: number) => {
+    e.stopPropagation()
     if (window.confirm('Are you sure you want to delete this trip?')) {
       try {
-        const response = await fetch(`/api/trip/deletetrip?id=${tripId}`, {
+        const response = await fetch(`/api/trip/deletetrip/${tripId}`, {
           method: 'DELETE',
         })
 
@@ -109,6 +113,10 @@ export default function TripList() {
         setError('An error occurred while deleting the trip')
       }
     }
+  }
+
+  const handleTripClick = (tripId: number) => {
+    router.push(`/options?tripId=${tripId}`)
   }
 
   return (
@@ -139,7 +147,7 @@ export default function TripList() {
             </TableHeader>
             <TableBody>
               {trips.map((trip) => (
-                <TableRow key={trip.id}>
+                <TableRow key={trip.id} onClick={() => handleTripClick(trip.id)} className="cursor-pointer hover:bg-gray-100">
                   <TableCell className="font-medium">{trip.name}</TableCell>
                   <TableCell>{trip.description}</TableCell>
                   <TableCell>
@@ -147,10 +155,10 @@ export default function TripList() {
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button variant="ghost" size="sm" onClick={() => handleEditTrip(trip)}>
+                      <Button variant="ghost" size="sm" onClick={(e) => handleEditTrip(e, trip)}>
                         <PencilIcon className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteTrip(trip.id)}>
+                      <Button variant="ghost" size="sm" onClick={(e) => handleDeleteTrip(e, trip.id)}>
                         <TrashIcon className="h-4 w-4" />
                       </Button>
                     </div>
