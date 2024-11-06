@@ -29,10 +29,10 @@ public class SegmentController{
     }
 
     [HttpPost]
-    [Route(nameof(AddSegment))]
-    public async Task AddSegment(SegmentDto segment, CancellationToken cancellationToken)
+    [Route(nameof(CreateSegment))]
+    public async Task CreateSegment(SegmentDto segment, CancellationToken cancellationToken)
     {
-        await _segmentService.AddSegmentAsync(segment, cancellationToken);
+        await _segmentService.CreateSegmentAsync(segment, cancellationToken);
     }
 
     [HttpPut]

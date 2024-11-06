@@ -4,10 +4,10 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"
-import { Skeleton } from "../components/ui/skeleton"
-import { Badge } from "../components/ui/badge"
-import { Button } from "../components/ui/button"
-import { PencilIcon, PlusIcon, TrashIcon } from 'lucide-react'
+import { Skeleton } from "./ui/skeleton"
+import { Badge } from "./ui/badge"
+import { Button } from "./ui/button"
+import { PencilIcon, PlusIcon, TrashIcon, LayoutIcon, ListIcon } from 'lucide-react'
 import TripModal from './TripModal'
 
 interface Trip {
@@ -115,8 +115,14 @@ export default function TripList() {
     }
   }
 
-  const handleTripClick = (tripId: number) => {
+  const handleViewOptions = (e: React.MouseEvent, tripId: number) => {
+    e.stopPropagation()
     router.push(`/options?tripId=${tripId}`)
+  }
+
+  const handleViewSegments = (e: React.MouseEvent, tripId: number) => {
+    e.stopPropagation()
+    router.push(`/segments?tripId=${tripId}`)
   }
 
   return (
@@ -147,7 +153,7 @@ export default function TripList() {
             </TableHeader>
             <TableBody>
               {trips.map((trip) => (
-                <TableRow key={trip.id} onClick={() => handleTripClick(trip.id)} className="cursor-pointer hover:bg-gray-100">
+                <TableRow key={trip.id}>
                   <TableCell className="font-medium">{trip.name}</TableCell>
                   <TableCell>{trip.description}</TableCell>
                   <TableCell>
@@ -160,6 +166,12 @@ export default function TripList() {
                       </Button>
                       <Button variant="ghost" size="sm" onClick={(e) => handleDeleteTrip(e, trip.id)}>
                         <TrashIcon className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={(e) => handleViewOptions(e, trip.id)}>
+                        <ListIcon className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={(e) => handleViewSegments(e, trip.id)}>
+                        <LayoutIcon className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>

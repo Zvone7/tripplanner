@@ -53,9 +53,9 @@ public class SegmentService{
         };
     }
 
-    public async Task AddSegmentAsync(SegmentDto segment, CancellationToken cancellationToken)
+    public async Task CreateSegmentAsync(SegmentDto segment, CancellationToken cancellationToken)
     {
-        await _segmentRepository.AddSegmentAsync(new SegmentDbm
+        await _segmentRepository.CreateSegmentAsync(new SegmentDbm
         {
             trip_id = segment.TripId,
             start_time = segment.StartTime.Value,

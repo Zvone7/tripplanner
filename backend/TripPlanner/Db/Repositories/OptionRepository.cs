@@ -24,7 +24,7 @@ public class OptionRepository{
         return await db.QuerySingleOrDefaultAsync<TripOptionDbm>("SELECT * FROM TripOption WHERE id = @id", new { id = id });
     }
 
-    public async Task AddOptionAsync(TripOptionDbm option, CancellationToken cancellationToken)
+    public async Task CreateOptionAsync(TripOptionDbm option, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
         var sqlQuery = "INSERT INTO TripOption (trip_id, nickname, start_date, end_date, total_cost) VALUES (@trip_id, @nickname, @start_date, @end_date, @total_cost)";

@@ -1,19 +1,19 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
 import { Skeleton } from "../components/ui/skeleton"
 import { Button } from "../components/ui/button"
-import { PencilIcon, PlusIcon, TrashIcon } from 'lucide-react'
-import OptionModal from '../options/OptionModal'
+import { PencilIcon, PlusIcon, TrashIcon, LayoutIcon, ArrowLeftIcon } from 'lucide-react'
+import OptionModal from './OptionModal'
 
 interface Option {
   id: number;
   name: string;
-  startDate: string;
-  endDate: string;
+  startDate: string | null;
+  endDate: string | null;
   tripId: number;
   totalCost: number;
 }
@@ -26,6 +26,7 @@ export default function OptionsPage() {
   const [editingOption, setEditingOption] = useState<Option | null>(null)
   const searchParams = useSearchParams()
   const tripId = searchParams.get('tripId')
+  const router = useRouter()
 
   const fetchOptions = useCallback(async () => {
     if (!tripId) return
@@ -77,8 +78,6 @@ export default function OptionsPage() {
         })
       } else {
         // Create new option
-        console.log("optionData:");
-        console.log(optionData);
         response = await fetch('/api/Option/CreateOption', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -128,9 +127,17 @@ export default function OptionsPage() {
           <CardTitle>Trip Options</CardTitle>
           <CardDescription>Options for Trip ID: {tripId}</CardDescription>
         </div>
-        <Button onClick={handleCreateOption}>
-          <PlusIcon className="mr-2 h-4 w-4" /> Add Option
-        </Button>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={() => router.push('/trips')}>
+            <ArrowLeftIcon className="mr-2 h-4 w-4" /> Back to Trips
+          </Button>
+          <Button variant="outline" onClick={() => router.push(`/segments?tripId=${tripId}`)}>
+            <LayoutIcon className="mr-2 h-4 w-4" /> View Segments
+          </Button>
+          <Button onClick={handleCreateOption}>
+            <PlusIcon className="mr-2 h-4 w-4" /> Add Option
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -152,8 +159,8 @@ export default function OptionsPage() {
               {options.map((option) => (
                 <TableRow key={option.id}>
                   <TableCell className="font-medium">{option.name}</TableCell>
-                  <TableCell>{new Date(option.startDate).toLocaleDateString()}</TableCell>
-                  <TableCell>{new Date(option.endDate).toLocaleDateString()}</TableCell>
+                  <TableCell>{option.startDate ? new Date(option.startDate).toLocaleDateString() : 'N/A'}</TableCell>
+                  <TableCell>{option.endDate ? new Date(option.endDate).toLocaleDateString() : 'N/A'}</TableCell>
                   <TableCell>${option.totalCost.toFixed(2)}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">

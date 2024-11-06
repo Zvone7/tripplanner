@@ -29,7 +29,7 @@ public class SegmentRepository{
         return (await db.QueryAsync<SegmentDbm>("SELECT * FROM Segment WHERE option_id = @option_id", new { option_id = optionId })).AsList();
     }
 
-    public async Task AddSegmentAsync(SegmentDbm segment, CancellationToken cancellationToken)
+    public async Task CreateSegmentAsync(SegmentDbm segment, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
         var sqlQuery = "INSERT INTO Segment (trip_id, start_time, end_time, nickname, cost) VALUES (@trip_id, @start_time, @end_time, @nickname, @cost)";

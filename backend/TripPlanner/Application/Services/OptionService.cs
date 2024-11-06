@@ -40,7 +40,7 @@ public class OptionService{
 
     public async Task CreateOptionAsync(OptionDto option, CancellationToken cancellationToken)
     {
-        await _optionRepository.AddOptionAsync(new TripOptionDbm
+        await _optionRepository.CreateOptionAsync(new TripOptionDbm
         {
             nickname = option.Name,
             start_date = option.StartDate,
