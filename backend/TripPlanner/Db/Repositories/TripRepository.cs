@@ -13,19 +13,19 @@ public class TripRepository
         _connectionString_ = appSettings.DbConnString;
     }
 
-    public async Task<List<TripDbm>> GetAllTripsAsync(CancellationToken cancellationToken)
+    public async Task<List<TripDbm>> GetAllActiveAsync(CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
         return (await db.QueryAsync<TripDbm>("SELECT * FROM Trip WHERE is_active = 1")).AsList();
     }
 
-    public async Task<TripDbm?> GetTripByIdAsync(int id, CancellationToken cancellationToken)
+    public async Task<TripDbm?> GetAsync(int tripId, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
-        return await db.QuerySingleOrDefaultAsync<TripDbm>("SELECT * FROM Trip WHERE Id = @Id", new { Id = id });
+        return await db.QuerySingleOrDefaultAsync<TripDbm>("SELECT * FROM Trip WHERE Id = @Id", new { Id = tripId });
     }
 
-    public async Task<TripDbm> CreateTripAsync(TripDbm trip, CancellationToken cancellationToken)
+    public async Task<TripDbm> CreateAsync(TripDbm trip, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
         var sqlQuery = "INSERT INTO Trip (Name, Description, is_active) VALUES (@Name, @Description, @is_active)";
@@ -34,7 +34,7 @@ public class TripRepository
         return createdTrip;
     }
 
-    public async Task<TripDbm> UpdateTripAsync(TripDbm trip, CancellationToken cancellationToken)
+    public async Task<TripDbm> UpdateAsync(TripDbm trip, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
         var sqlQuery = "UPDATE Trip SET Name = @Name, Description = @Description, is_active = @is_active WHERE Id = @Id";
@@ -43,11 +43,11 @@ public class TripRepository
         return updatedTrip;
     }
 
-    public async Task DeleteTripAsync(int id, CancellationToken cancellationToken)
+    public async Task DeleteAsync(int tripId, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
         // instead of delete set as inactive
         var sqlQuery = "UPDATE Trip SET is_active = 0 WHERE Id = @Id";
-        await db.ExecuteAsync(sqlQuery, new { Id = id });
+        await db.ExecuteAsync(sqlQuery, new { Id = tripId });
     }
 }

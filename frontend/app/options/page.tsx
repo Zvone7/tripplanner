@@ -159,8 +159,8 @@ export default function OptionsPage() {
               {options.map((option) => (
                 <TableRow key={option.id}>
                   <TableCell className="font-medium">{option.name}</TableCell>
-                  <TableCell>{option.startDate ? new Date(option.startDate).toLocaleDateString() : 'N/A'}</TableCell>
-                  <TableCell>{option.endDate ? new Date(option.endDate).toLocaleDateString() : 'N/A'}</TableCell>
+                  <TableCell>{option.startDate ? new Date(option.startDate).toLocaleString() : 'N/A'}</TableCell>
+                  <TableCell>{option.endDate ? new Date(option.endDate).toLocaleString() : 'N/A'}</TableCell>
                   <TableCell>${option.totalCost.toFixed(2)}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">

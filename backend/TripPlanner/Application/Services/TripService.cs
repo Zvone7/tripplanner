@@ -14,9 +14,9 @@ public class TripService
         _optionRepository = optionRepository;
     }
 
-    public async Task<List<TripDto>> GetAllTripsAsync(CancellationToken cancellationToken)
+    public async Task<List<TripDto>> GetAllAsync(CancellationToken cancellationToken)
     {
-        var trips = await _tripRepository.GetAllTripsAsync(cancellationToken);
+        var trips = await _tripRepository.GetAllActiveAsync(cancellationToken);
         return trips.Select(t => new TripDto
         {
             Id = t.Id,
@@ -26,9 +26,9 @@ public class TripService
         }).ToList();
     }
 
-    public async Task<TripDto?> GetTripByIdAsync(int id, CancellationToken cancellationToken)
+    public async Task<TripDto?> GetAsync(int tripId, CancellationToken cancellationToken)
     {
-        var trip = await _tripRepository.GetTripByIdAsync(id, cancellationToken);
+        var trip = await _tripRepository.GetAsync(tripId, cancellationToken);
         return trip == null ? null : new TripDto
         {
             Id = trip.Id,
@@ -38,9 +38,9 @@ public class TripService
         };
     }
 
-    public async Task<TripDto> CreateTripAsync(TripDto trip, CancellationToken cancellationToken)
+    public async Task<TripDto> CreateAsync(TripDto trip, CancellationToken cancellationToken)
     {
-        var created = await _tripRepository.CreateTripAsync(new TripDbm
+        var created = await _tripRepository.CreateAsync(new TripDbm
         {
             Name = trip.Name,
             Description = trip.Description,
@@ -55,9 +55,9 @@ public class TripService
         };
     }
 
-    public async Task<TripDto> UpdateTripAsync(TripDto trip, CancellationToken cancellationToken)
+    public async Task<TripDto> UpdateAsync(TripDto trip, CancellationToken cancellationToken)
     {
-        var updated = await _tripRepository.UpdateTripAsync(new TripDbm
+        var updated = await _tripRepository.UpdateAsync(new TripDbm
         {
             Id = trip.Id,
             Name = trip.Name,
@@ -74,9 +74,9 @@ public class TripService
         
     }
 
-    public async Task DeleteTripAsync(int id, CancellationToken cancellationToken)
+    public async Task DeleteTripAsync(int tripId, CancellationToken cancellationToken)
     {
-        await _tripRepository.DeleteTripAsync(id, cancellationToken);
+        await _tripRepository.DeleteAsync(tripId, cancellationToken);
     }
 
 }

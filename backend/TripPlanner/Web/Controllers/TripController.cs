@@ -18,28 +18,28 @@ public class TripController{
     [Route(nameof(GetAllTrips))]
     public async Task<List<TripDto>> GetAllTrips(CancellationToken cancellationToken)
     {
-        return await _tripService.GetAllTripsAsync(cancellationToken);
+        return await _tripService.GetAllAsync(cancellationToken);
     }
 
     [HttpGet]
     [Route(nameof(GetTripById))]
     public async Task<TripDto?> GetTripById(int id, CancellationToken cancellationToken)
     {
-        return await _tripService.GetTripByIdAsync(id, cancellationToken);
+        return await _tripService.GetAsync(id, cancellationToken);
     }
 
     [HttpPost]
     [Route(nameof(CreateTrip))]
     public async Task CreateTrip(TripDto trip, CancellationToken cancellationToken)
     {
-        await _tripService.CreateTripAsync(trip, cancellationToken);
+        await _tripService.CreateAsync(trip, cancellationToken);
     }
 
     [HttpPut]
     [Route(nameof(UpdateTrip))]
     public async Task UpdateTrip(TripDto trip, CancellationToken cancellationToken)
     {
-        await _tripService.UpdateTripAsync(trip, cancellationToken);
+        await _tripService.UpdateAsync(trip, cancellationToken);
     }
 
     [HttpDelete]
