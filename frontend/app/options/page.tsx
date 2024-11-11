@@ -12,8 +12,8 @@ import OptionModal from './OptionModal'
 interface Option {
   id: number;
   name: string;
-  startDate: string | null;
-  endDate: string | null;
+  startDateTimeUtc: string | null;
+  endDateTimeUtc: string | null;
   tripId: number;
   totalCost: number;
 }
@@ -159,8 +159,8 @@ export default function OptionsPage() {
               {options.map((option) => (
                 <TableRow key={option.id}>
                   <TableCell className="font-medium">{option.name}</TableCell>
-                  <TableCell>{option.startDate ? new Date(option.startDate).toLocaleString() : 'N/A'}</TableCell>
-                  <TableCell>{option.endDate ? new Date(option.endDate).toLocaleString() : 'N/A'}</TableCell>
+                  <TableCell>{option.startDateTimeUtc ? new Date(option.startDateTimeUtc).toLocaleString() : 'N/A'}</TableCell>
+                  <TableCell>{option.endDateTimeUtc ? new Date(option.endDateTimeUtc).toLocaleString() : 'N/A'}</TableCell>
                   <TableCell>${option.totalCost.toFixed(2)}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">

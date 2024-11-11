@@ -37,14 +37,14 @@ public class SegmentRepository
     public async Task CreateAsync(SegmentDbm segment, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
-        var sqlQuery = "INSERT INTO Segment (trip_id, start_time, end_time, nickname, cost) VALUES (@trip_id, @start_time, @end_time, @nickname, @cost)";
+        var sqlQuery = "INSERT INTO Segment (trip_id, start_datetime_utc, end_datetime_utc, name, cost) VALUES (@trip_id, @start_datetime_utc, @end_datetime_utc, @name, @cost)";
         await db.ExecuteAsync(sqlQuery, segment);
     }
 
     public async Task UpdateAsync(SegmentDbm segment, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
-        var sqlQuery = "UPDATE Segment SET trip_id = @trip_id, start_time = @start_time, end_time = @end_time, nickname = @nickname, cost = @cost WHERE id = @id";
+        var sqlQuery = "UPDATE Segment SET trip_id = @trip_id, start_datetime_utc = @start_datetime_utc, end_datetime_utc = @end_datetime_utc, name = @name, cost = @cost WHERE id = @id";
         await db.ExecuteAsync(sqlQuery, segment);
     }
 

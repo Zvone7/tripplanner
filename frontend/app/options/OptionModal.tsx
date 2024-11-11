@@ -11,14 +11,14 @@ import { Checkbox } from "../components/ui/checkbox"
 
 interface Segment {
   id: number;
-  nickname: string;
+  name: string;
 }
 
 interface Option {
   id: number;
   name: string;
-  startDate: string | null;
-  endDate: string | null;
+  startDateTimeUtc: string | null;
+  endDateTimeUtc: string | null;
   tripId: number;
   totalCost: number;
 }
@@ -86,8 +86,8 @@ export default function OptionModal({ isOpen, onClose, onSave, option, tripId, r
     e.preventDefault()
     onSave({
       name,
-      startDate: null,
-      endDate: null,
+      startDateTimeUtc: null,
+      endDateTimeUtc: null,
       tripId,
       totalCost: 0
     })
@@ -173,7 +173,7 @@ export default function OptionModal({ isOpen, onClose, onSave, option, tripId, r
                         checked={selectedSegments.includes(segment.id)}
                         onCheckedChange={() => handleSegmentToggle(segment.id)}
                       />
-                      <Label htmlFor={`segment-${segment.id}`}>{segment.nickname}</Label>
+                      <Label htmlFor={`segment-${segment.id}`}>{segment.name}</Label>
                     </div>
                   ))}
                 </ScrollArea>

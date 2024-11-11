@@ -12,9 +12,9 @@ import SegmentModal from '../segments/SegmentModal'
 interface Segment {
   id: number;
   tripId: number;
-  startTime: string | null;
-  endTime: string | null;
-  nickname: string;
+  startDateTimeUtc: string | null;
+  endDateTimeUtc: string | null;
+  name: string;
   cost: number;
 }
 
@@ -148,7 +148,7 @@ export default function SegmentsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nickname</TableHead>
+                <TableHead>Name</TableHead>
                 <TableHead>Start Time</TableHead>
                 <TableHead>End Time</TableHead>
                 <TableHead>Cost</TableHead>
@@ -158,9 +158,9 @@ export default function SegmentsPage() {
             <TableBody>
               {segments.map((segment) => (
                 <TableRow key={segment.id}>
-                  <TableCell className="font-medium">{segment.nickname}</TableCell>
-                  <TableCell>{segment.startTime ? new Date(segment.startTime).toLocaleString() : 'N/A'}</TableCell>
-                  <TableCell>{segment.endTime ? new Date(segment.endTime).toLocaleString() : 'N/A'}</TableCell>
+                  <TableCell className="font-medium">{segment.name}</TableCell>
+                  <TableCell>{segment.startDateTimeUtc ? new Date(segment.startDateTimeUtc).toLocaleString() : 'N/A'}</TableCell>
+                  <TableCell>{segment.endDateTimeUtc ? new Date(segment.endDateTimeUtc).toLocaleString() : 'N/A'}</TableCell>
                   <TableCell>${segment.cost.toFixed(2)}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">

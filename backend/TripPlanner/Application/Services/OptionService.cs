@@ -19,40 +19,42 @@ public class OptionService
     public async Task<List<OptionDto>> GetAllByTripIdAsync(int tripId, CancellationToken cancellationToken)
     {
         var options = await _optionRepository.GetOptionsByTripIdAsync(tripId, cancellationToken);
-        return options.Select(o => new OptionDto
+        var result = options.Select(o => new OptionDto
             {
                 Id = o.id,
-                Name = o.nickname,
-                StartDate = o.start_date,
-                EndDate = o.end_date,
+                Name = o.name,
+                StartDateTimeUtc = o.start_datetime_utc,
+                EndDateTimeUtc = o.end_datetime_utc,
                 TripId = o.trip_id,
                 TotalCost = o.total_cost
             })
-            .OrderBy(s => s.StartDate)
+            .OrderBy(s => s.StartDateTimeUtc)
             .ToList();
+        return result;
     }
 
     public async Task<OptionDto?> GetAsync(int optionId, CancellationToken cancellationToken)
     {
         var option = await _optionRepository.GetAsync(optionId, cancellationToken);
-        return option == null ? null : new OptionDto
+        var result = option == null ? null : new OptionDto
         {
             Id = option.id,
-            Name = option.nickname,
-            StartDate = option.start_date,
-            EndDate = option.end_date,
+            Name = option.name,
+            StartDateTimeUtc = option.start_datetime_utc,
+            EndDateTimeUtc = option.end_datetime_utc,
             TripId = option.trip_id,
             TotalCost = option.total_cost
         };
+        return result;
     }
 
     public async Task CreateAsync(OptionDto option, CancellationToken cancellationToken)
     {
         await _optionRepository.CreateAsync(new TripOptionDbm
         {
-            nickname = option.Name,
-            start_date = null,
-            end_date = null,
+            name = option.Name,
+            start_datetime_utc = null,
+            end_datetime_utc = null,
             trip_id = option.TripId,
             total_cost = 0
         }, cancellationToken);
@@ -62,9 +64,9 @@ public class OptionService
         await _optionRepository.UpdateAsync(new TripOptionDbm
         {
             id = option.Id,
-            nickname = option.Name,
-            start_date = option.StartDate,
-            end_date = option.EndDate,
+            name = option.Name,
+            start_datetime_utc = option.StartDateTimeUtc,
+            end_datetime_utc = option.EndDateTimeUtc,
             trip_id = option.TripId,
             total_cost = option.TotalCost
         }, cancellationToken);
@@ -75,7 +77,7 @@ public class OptionService
         await _optionRepository.UpdateAsync(new TripOptionDbm
         {
             id = option.Id,
-            nickname = option.Name
+            name = option.Name
         }, cancellationToken);
     }
 
@@ -93,8 +95,8 @@ public class OptionService
             throw new InvalidDataException($"Option with id {optionId} not found.");
 
         option.TotalCost = segmentsForOption.Sum(s => s.cost);
-        option.StartDate = segmentsForOption.Min(s => s.start_time);
-        option.EndDate = segmentsForOption.Max(s => s.start_time);
+        option.StartDateTimeUtc = segmentsForOption.Min(s => s.start_datetime_utc);
+        option.EndDateTimeUtc = segmentsForOption.Max(s => s.start_datetime_utc);
 
         await UpdateAsync(option, cancellationToken);
     }
@@ -102,15 +104,16 @@ public class OptionService
     public async Task<List<OptionDto>> GetAllBySegmentIdAsync(int segmentId, CancellationToken cancellationToken)
     {
         var options = await _optionRepository.GetOptionsBySegmentIdAsync(segmentId, cancellationToken);
-        return options.Select(o => new OptionDto
+        var result = options.Select(o => new OptionDto
         {
             Id = o.id,
-            Name = o.nickname,
-            StartDate = o.start_date,
-            EndDate = o.end_date,
+            Name = o.name,
+            StartDateTimeUtc = o.start_datetime_utc,
+            EndDateTimeUtc = o.end_datetime_utc,
             TripId = o.trip_id,
             TotalCost = o.total_cost
         }).ToList();
+        return result;
     }
 
     public async Task ConnectOptionWithSegmentsAsync(UpdateConnectedSegmentsAm am, CancellationToken cancellationToken)
@@ -122,14 +125,15 @@ public class OptionService
     public async Task<List<SegmentDto>> GetConnectedSegmentsAsync(int optionId, CancellationToken cancellationToken)
     {
         var segments = await _segmentRepository_.GetAllByOptionIdAsync(optionId, cancellationToken);
-        return segments.Select(s => new SegmentDto
+        var result = segments.Select(s => new SegmentDto
         {
             Id = s.id,
             TripId = s.trip_id,
-            StartTime = s.start_time,
-            EndTime = s.end_time,
-            Nickname = s.nickname,
+            StartDateTimeUtc = s.start_datetime_utc,
+            EndDateTimeUtc = s.end_datetime_utc,
+            Name = s.name,
             Cost = s.cost
         }).ToList();
+        return result;
     }
 }

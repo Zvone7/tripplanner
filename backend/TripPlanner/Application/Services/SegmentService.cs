@@ -23,45 +23,48 @@ public class SegmentService
     public async Task<List<SegmentDto>> GetAllByOptionIdAsync(int optionId, CancellationToken cancellationToken)
     {
         var segments = await _segmentRepository.GetAllByOptionIdAsync(optionId, cancellationToken);
-        return segments.Select(s => new SegmentDto
+        var result = segments.Select(s => new SegmentDto
         {
             Id = s.id,
             Cost = s.cost,
-            EndTime = s.end_time,
-            Nickname = s.nickname,
-            StartTime = s.start_time,
+            EndDateTimeUtc = s.end_datetime_utc,
+            Name = s.name,
+            StartDateTimeUtc = s.start_datetime_utc,
             TripId = s.trip_id
         }).ToList();
+        return result;
     }
 
     public async Task<List<SegmentDto>> GetAllByTripIdAsync(int tripId, CancellationToken cancellationToken)
     {
         var segments = await _segmentRepository.GetAllByTripIdAsync(tripId, cancellationToken);
-        return segments.Select(s => new SegmentDto
+        var result = segments.Select(s => new SegmentDto
             {
                 Id = s.id,
                 Cost = s.cost,
-                EndTime = s.end_time,
-                Nickname = s.nickname,
-                StartTime = s.start_time,
+                EndDateTimeUtc = s.end_datetime_utc,
+                Name = s.name,
+                StartDateTimeUtc = s.start_datetime_utc,
                 TripId = s.trip_id
             })
-            .OrderBy(s => s.StartTime)
+            .OrderBy(s => s.StartDateTimeUtc)
             .ToList();
+        return result;
     }
 
     public async Task<SegmentDto?> GetAsync(int segmentId, CancellationToken cancellationToken)
     {
         var segment = await _segmentRepository.GetAsync(segmentId, cancellationToken);
-        return segment == null ? null : new SegmentDto
+        var result = segment == null ? null : new SegmentDto
         {
             Id = segment.id,
             Cost = segment.cost,
-            EndTime = segment.end_time,
-            Nickname = segment.nickname,
-            StartTime = segment.start_time,
+            EndDateTimeUtc = segment.end_datetime_utc,
+            Name = segment.name,
+            StartDateTimeUtc = segment.start_datetime_utc,
             TripId = segment.trip_id
         };
+        return result;
     }
 
     public async Task CreateAsync(SegmentDto segment, CancellationToken cancellationToken)
@@ -69,9 +72,9 @@ public class SegmentService
         await _segmentRepository.CreateAsync(new SegmentDbm
         {
             trip_id = segment.TripId,
-            start_time = segment.StartTime.Value,
-            end_time = segment.EndTime.Value,
-            nickname = segment.Nickname,
+            start_datetime_utc = segment.StartDateTimeUtc.Value,
+            end_datetime_utc = segment.EndDateTimeUtc.Value,
+            name = segment.Name,
             cost = segment.Cost
         }, cancellationToken);
     }
@@ -82,9 +85,9 @@ public class SegmentService
         {
             id = segment.Id,
             trip_id = segment.TripId,
-            start_time = segment.StartTime.Value,
-            end_time = segment.EndTime.Value,
-            nickname = segment.Nickname,
+            start_datetime_utc = segment.StartDateTimeUtc.Value,
+            end_datetime_utc = segment.EndDateTimeUtc.Value,
+            name = segment.Name,
             cost = segment.Cost
         }, cancellationToken);
 
@@ -115,11 +118,12 @@ public class SegmentService
     public async Task<List<OptionDto>> GetConnectedOptionsAsync(int segmentId, CancellationToken cancellationToken)
     {
         var options = await _optionRepository_.GetAllConnectedToSegmentIdAsync(segmentId, cancellationToken);
-        return options.Select(o => new OptionDto
+        var result = options.Select(o => new OptionDto
         {
             Id = o.id,
-            Name = o.nickname,
+            Name = o.name,
             TripId = o.trip_id
         }).ToList();
+        return result;
     }
 }

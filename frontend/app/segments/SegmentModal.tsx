@@ -12,9 +12,9 @@ import { Checkbox } from "../components/ui/checkbox"
 interface Segment {
   id: number;
   tripId: number;
-  startTime: string | null;
-  endTime: string | null;
-  nickname: string;
+  startDateTimeUtc: string | null;
+  endDateTimeUtc: string | null;
+  name: string;
   cost: number;
 }
 
@@ -32,28 +32,28 @@ interface SegmentModalProps {
 }
 
 export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId }: SegmentModalProps) {
-  const [nickname, setNickname] = useState('')
+  const [name, setName] = useState('')
   const [startDate, setStartDate] = useState('')
-  const [startTime, setStartTime] = useState('')
+  const [startDateTimeUtc, setStartTime] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [endTime, setEndTime] = useState('')
+  const [endDateTimeUtc, setEndTime] = useState('')
   const [cost, setCost] = useState('')
   const [options, setOptions] = useState<Option[]>([])
   const [selectedOptions, setSelectedOptions] = useState<number[]>([])
 
   useEffect(() => {
     if (segment) {
-      setNickname(segment.nickname)
-      if (segment.startTime) {
-        const start = new Date(segment.startTime)
+      setName(segment.name)
+      if (segment.startDateTimeUtc) {
+        const start = new Date(segment.startDateTimeUtc)
         setStartDate(start.toISOString().split('T')[0])
         setStartTime(start.toTimeString().slice(0, 5))
       } else {
         setStartDate('')
         setStartTime('')
       }
-      if (segment.endTime) {
-        const end = new Date(segment.endTime)
+      if (segment.endDateTimeUtc) {
+        const end = new Date(segment.endDateTimeUtc)
         setEndDate(end.toISOString().split('T')[0])
         setEndTime(end.toTimeString().slice(0, 5))
       } else {
@@ -63,7 +63,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId 
       setCost(segment.cost.toString())
       fetchConnectedOptions(segment.id)
     } else {
-      setNickname('')
+      setName('')
       setStartDate('')
       setStartTime('')
       setEndDate('')
@@ -110,17 +110,17 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const startDateTime = startDate && startTime
-      ? new Date(`${startDate}T${startTime}`).toISOString()
+    const startDateTime = startDate && startDateTimeUtc
+      ? new Date(`${startDate}T${startDateTimeUtc}`).toISOString()
       : null
-    const endDateTime = endDate && endTime
-      ? new Date(`${endDate}T${endTime}`).toISOString()
+    const endDateTime = endDate && endDateTimeUtc
+      ? new Date(`${endDate}T${endDateTimeUtc}`).toISOString()
       : null
     onSave({
       tripId,
-      nickname,
-      startTime: startDateTime,
-      endTime: endDateTime,
+      name,
+      startDateTimeUtc: startDateTime,
+      endDateTimeUtc: endDateTime,
       cost: parseFloat(cost),
     })
   }
@@ -174,13 +174,13 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId 
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="nickname" className="text-right">
+              <Label htmlFor="name" className="text-right">
                 Nickname
               </Label>
               <Input
-                id="nickname"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 className="col-span-3"
                 required
               />
@@ -198,13 +198,13 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId 
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="startTime" className="text-right">
+              <Label htmlFor="startDateTimeUtc" className="text-right">
                 Start Time
               </Label>
               <Input
-                id="startTime"
+                id="startDateTimeUtc"
                 type="time"
-                value={startTime}
+                value={startDateTimeUtc}
                 onChange={(e) => setStartTime(e.target.value)}
                 className="col-span-3"
               />
@@ -222,13 +222,13 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId 
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="endTime" className="text-right">
+              <Label htmlFor="endDateTimeUtc" className="text-right">
                 End Time
               </Label>
               <Input
-                id="endTime"
+                id="endDateTimeUtc"
                 type="time"
-                value={endTime}
+                value={endDateTimeUtc}
                 onChange={(e) => setEndTime(e.target.value)}
                 className="col-span-3"
               />

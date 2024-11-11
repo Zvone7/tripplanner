@@ -29,14 +29,14 @@ public class OptionRepository
     public async Task CreateAsync(TripOptionDbm option, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
-        var sqlQuery = "INSERT INTO TripOption (trip_id, nickname, start_date, end_date, total_cost) VALUES (@trip_id, @nickname, @start_date, @end_date, @total_cost)";
+        var sqlQuery = "INSERT INTO TripOption (trip_id, name, start_datetime_utc, end_datetime_utc, total_cost) VALUES (@trip_id, @name, @start_datetime_utc, @end_datetime_utc, @total_cost)";
         await db.ExecuteAsync(sqlQuery, option);
     }
 
     public async Task UpdateAsync(TripOptionDbm option, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
-        var sqlQuery = "UPDATE TripOption SET trip_id = @trip_id, nickname = @nickname, start_date = @start_date, end_date = @end_date, total_cost = @total_cost WHERE id = @id";
+        var sqlQuery = "UPDATE TripOption SET trip_id = @trip_id, name = @name, start_datetime_utc = @start_datetime_utc, end_datetime_utc = @end_datetime_utc, total_cost = @total_cost WHERE id = @id";
         await db.ExecuteAsync(sqlQuery, option);
     }
 

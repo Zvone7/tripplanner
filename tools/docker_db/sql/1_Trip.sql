@@ -1,4 +1,3 @@
-
 CREATE TABLE trip (
     id INT PRIMARY KEY IDENTITY,
     name NVARCHAR(255),

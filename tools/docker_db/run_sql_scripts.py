@@ -14,8 +14,10 @@ cursor = conn.cursor()
 sql_files = [
     "/sql/1_Trip.sql",
     "/sql/2_TripOption.sql",
-    "/sql/3_Segment.sql",
-    "/sql/4_OptionToSegment.sql"
+    "/sql/3_SegmentType.sql",
+    "/sql/4_Segment.sql",
+    "/sql/5_OptionToSegment.sql",
+    "/sql/99_setup.sql"
 ]
 
 for sql_file in sql_files:

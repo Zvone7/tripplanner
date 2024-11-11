@@ -17,25 +17,27 @@ public class TripService
     public async Task<List<TripDto>> GetAllAsync(CancellationToken cancellationToken)
     {
         var trips = await _tripRepository.GetAllActiveAsync(cancellationToken);
-        return trips.Select(t => new TripDto
+        var result = trips.Select(t => new TripDto
         {
             Id = t.Id,
             Name = t.Name,
             Description = t.Description,
             IsActive = t.is_active
         }).ToList();
+        return result;
     }
 
     public async Task<TripDto?> GetAsync(int tripId, CancellationToken cancellationToken)
     {
         var trip = await _tripRepository.GetAsync(tripId, cancellationToken);
-        return trip == null ? null : new TripDto
+        var result = trip == null ? null : new TripDto
         {
             Id = trip.Id,
             Name = trip.Name,
             Description = trip.Description,
             IsActive = trip.is_active
         };
+        return result;
     }
 
     public async Task<TripDto> CreateAsync(TripDto trip, CancellationToken cancellationToken)
@@ -46,13 +48,16 @@ public class TripService
             Description = trip.Description,
             is_active = trip.IsActive
         }, cancellationToken);
-        return new TripDto
+        
+        var result = new TripDto
         {
             Id = created.Id,
             Name = created.Name,
             Description = created.Description,
             IsActive = created.is_active
         };
+        
+        return result;
     }
 
     public async Task<TripDto> UpdateAsync(TripDto trip, CancellationToken cancellationToken)
@@ -64,7 +69,8 @@ public class TripService
             Description = trip.Description,
             is_active = trip.IsActive
         }, cancellationToken);
-        return new TripDto
+        
+        var result = new TripDto
         {
             Id = updated.Id,
             Name = updated.Name,
@@ -72,6 +78,7 @@ public class TripService
             IsActive = updated.is_active
         };
         
+        return result;
     }
 
     public async Task DeleteTripAsync(int tripId, CancellationToken cancellationToken)
