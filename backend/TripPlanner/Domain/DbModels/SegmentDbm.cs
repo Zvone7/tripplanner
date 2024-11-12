@@ -7,4 +7,5 @@ public class SegmentDbm{
     public DateTime end_datetime_utc { get; set; }
     public string name { get; set; }
     public decimal cost { get; set; }
+    public int segment_type_id { get; set; }
 }

@@ -1,5 +1,6 @@
 using Application.Services;
 using Domain.ActionModels;
+using Domain.DbModels;
 using Domain.Dtos;
 using Microsoft.AspNetCore.Mvc;
 
@@ -62,5 +63,12 @@ public class SegmentController{
     public async Task UpdateConnectedOptions(UpdateConnectedOptionsAm am, CancellationToken cancellationToken)
     {
         await _segmentService.ConnectSegmentWithOptionsAsync(am, cancellationToken);
+    }
+
+    [HttpGet]
+    [Route(nameof(GetSegmentTypes))]
+    public async Task<List<SegmentTypeDto>> GetSegmentTypes(CancellationToken cancellationToken)
+    {
+        return await _segmentService.GetAllSegmentTypesAsync(cancellationToken);
     }
 }

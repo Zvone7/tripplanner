@@ -37,14 +37,14 @@ public class SegmentRepository
     public async Task CreateAsync(SegmentDbm segment, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
-        var sqlQuery = "INSERT INTO Segment (trip_id, start_datetime_utc, end_datetime_utc, name, cost) VALUES (@trip_id, @start_datetime_utc, @end_datetime_utc, @name, @cost)";
+        var sqlQuery = "INSERT INTO Segment (trip_id, start_datetime_utc, end_datetime_utc, name, cost, segment_type_id) VALUES (@trip_id, @start_datetime_utc, @end_datetime_utc, @name, @cost, @segment_type_id)";
         await db.ExecuteAsync(sqlQuery, segment);
     }
 
     public async Task UpdateAsync(SegmentDbm segment, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
-        var sqlQuery = "UPDATE Segment SET trip_id = @trip_id, start_datetime_utc = @start_datetime_utc, end_datetime_utc = @end_datetime_utc, name = @name, cost = @cost WHERE id = @id";
+        var sqlQuery = "UPDATE Segment SET trip_id = @trip_id, start_datetime_utc = @start_datetime_utc, end_datetime_utc = @end_datetime_utc, name = @name, cost = @cost, segment_type_id = @segment_type_id WHERE id = @id";
         await db.ExecuteAsync(sqlQuery, segment);
     }
 
@@ -78,5 +78,11 @@ public class SegmentRepository
         return (await db.QueryAsync<SegmentDbm>("select * from segment where id in (" +
                                                 "SELECT segment_id FROM option_to_segment WHERE option_id = @option_id" +
                                                 ")", new { option_id = optionId })).AsList();
+    }
+
+    public async Task<List<SegmentTypeDbm>> GetAllSegmentTypesAsync(CancellationToken cancellationToken)
+    {
+        using IDbConnection db = new SqlConnection(_connectionString_);
+        return (await db.QueryAsync<SegmentTypeDbm>("SELECT * FROM segment_type")).AsList();
     }
 }

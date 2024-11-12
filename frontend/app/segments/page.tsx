@@ -16,10 +16,21 @@ interface Segment {
   endDateTimeUtc: string | null;
   name: string;
   cost: number;
+  segmentTypeId: number;
+}
+
+interface SegmentType {
+  id: number;
+  shortName: string;
+  name: string;
+  description: string;
+  color: string;
+  iconSvg: string;
 }
 
 export default function SegmentsPage() {
   const [segments, setSegments] = useState<Segment[]>([])
+  const [segmentTypes, setSegmentTypes] = useState<SegmentType[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -27,6 +38,20 @@ export default function SegmentsPage() {
   const searchParams = useSearchParams()
   const tripId = searchParams.get('tripId')
   const router = useRouter()
+
+  const fetchSegmentTypes = useCallback(async () => {
+    try {
+      const response = await fetch('/api/Segment/GetSegmentTypes')
+      if (!response.ok) {
+        throw new Error('Failed to fetch segment types')
+      }
+      const data = await response.json()
+      setSegmentTypes(data)
+    } catch (err) {
+      console.error('Error fetching segment types:', err)
+      setError('An error occurred while fetching segment types')
+    }
+  }, [])
 
   const fetchSegments = useCallback(async () => {
     if (!tripId) return
@@ -47,8 +72,9 @@ export default function SegmentsPage() {
   }, [tripId])
 
   useEffect(() => {
+    fetchSegmentTypes()
     fetchSegments()
-  }, [fetchSegments])
+  }, [fetchSegmentTypes, fetchSegments])
 
   const handleEditSegment = (segment: Segment) => {
     setEditingSegment(segment)
@@ -148,6 +174,7 @@ export default function SegmentsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Type</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Start Time</TableHead>
                 <TableHead>End Time</TableHead>
@@ -156,24 +183,35 @@ export default function SegmentsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {segments.map((segment) => (
-                <TableRow key={segment.id}>
-                  <TableCell className="font-medium">{segment.name}</TableCell>
-                  <TableCell>{segment.startDateTimeUtc ? new Date(segment.startDateTimeUtc).toLocaleString() : 'N/A'}</TableCell>
-                  <TableCell>{segment.endDateTimeUtc ? new Date(segment.endDateTimeUtc).toLocaleString() : 'N/A'}</TableCell>
-                  <TableCell>${segment.cost.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button variant="ghost" size="sm" onClick={() => handleEditSegment(segment)}>
-                        <PencilIcon className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteSegment(segment.id)}>
-                        <TrashIcon className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {segments.map((segment) => {
+                const segmentType = segmentTypes.find(st => st.id === segment.segmentTypeId)
+                return (
+                  <TableRow key={segment.id}>
+                    <TableCell>
+                      {segmentType && (
+                        <div className="flex items-center space-x-2">
+                          <div dangerouslySetInnerHTML={{ __html: segmentType.iconSvg }} className="w-6 h-6" />
+                          <span>{segmentType.name}</span>
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">{segment.name}</TableCell>
+                    <TableCell>{segment.startDateTimeUtc ? new Date(segment.startDateTimeUtc).toLocaleString() : 'N/A'}</TableCell>
+                    <TableCell>{segment.endDateTimeUtc ? new Date(segment.endDateTimeUtc).toLocaleString() : 'N/A'}</TableCell>
+                    <TableCell>${segment.cost.toFixed(2)}</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditSegment(segment)}>
+                          <PencilIcon className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteSegment(segment.id)}>
+                          <TrashIcon className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         )}
@@ -184,6 +222,7 @@ export default function SegmentsPage() {
         onSave={handleSaveSegment}
         segment={editingSegment}
         tripId={Number(tripId)}
+        segmentTypes={segmentTypes}
       />
     </Card>
   )

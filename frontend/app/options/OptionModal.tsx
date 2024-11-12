@@ -9,9 +9,16 @@ import { ScrollArea } from "../components/ui/scroll-area"
 import { toast } from "../components/ui/use-toast"
 import { Checkbox } from "../components/ui/checkbox"
 
+interface SegmentType {
+  id: number;
+  name: string;
+  iconSvg: string;
+}
+
 interface Segment {
   id: number;
   name: string;
+  segmentTypeId: number;
 }
 
 interface Option {
@@ -35,6 +42,7 @@ interface OptionModalProps {
 export default function OptionModal({ isOpen, onClose, onSave, option, tripId, refreshOptions }: OptionModalProps) {
   const [name, setName] = useState('')
   const [segments, setSegments] = useState<Segment[]>([])
+  const [segmentTypes, setSegmentTypes] = useState<SegmentType[]>([])
   const [selectedSegments, setSelectedSegments] = useState<number[]>([])
 
   useEffect(() => {
@@ -46,6 +54,7 @@ export default function OptionModal({ isOpen, onClose, onSave, option, tripId, r
       setSelectedSegments([])
     }
     fetchSegments()
+    fetchSegmentTypes()
   }, [option])
 
   const fetchSegments = async () => {
@@ -61,6 +70,23 @@ export default function OptionModal({ isOpen, onClose, onSave, option, tripId, r
       toast({
         title: "Error",
         description: "Failed to fetch segments. Please try again.",
+      })
+    }
+  }
+
+  const fetchSegmentTypes = async () => {
+    try {
+      const response = await fetch('/api/Segment/GetSegmentTypes')
+      if (!response.ok) {
+        throw new Error('Failed to fetch segment types')
+      }
+      const data = await response.json()
+      setSegmentTypes(data)
+    } catch (error) {
+      console.error('Error fetching segment types:', error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch segment types. Please try again.",
       })
     }
   }
@@ -166,22 +192,34 @@ export default function OptionModal({ isOpen, onClose, onSave, option, tripId, r
                   Connected Segments
                 </Label>
                 <ScrollArea className="h-[200px] col-span-3 border rounded-md p-4">
-                  {segments.map((segment) => (
-                    <div key={segment.id} className="flex items-center space-x-2 mb-2">
-                      <Checkbox
-                        id={`option-${segment.id}`}
-                        checked={selectedSegments.includes(segment.id)}
-                        onCheckedChange={() => handleSegmentToggle(segment.id)}
-                      />
-                      <Label htmlFor={`segment-${segment.id}`}>{segment.name}</Label>
-                    </div>
-                  ))}
+                  {segments.map((segment) => {
+                    const segmentType = segmentTypes.find(st => st.id === segment.segmentTypeId)
+                    return (
+                      <div key={segment.id} className="flex items-center space-x-2 mb-2">
+                        <Checkbox
+                          id={`option-${segment.id}`}
+                          checked={selectedSegments.includes(segment.id)}
+                          onCheckedChange={() => handleSegmentToggle(segment.id)}
+                        />
+                        <div className="flex items-center space-x-2">
+                          {segmentType && (
+                            <>
+                              <div dangerouslySetInnerHTML={{ __html: segmentType.iconSvg }} className="w-4 h-4" />
+                              <span className="text-sm font-medium">{segmentType.name}</span>
+                            </>
+                          )}
+                          <span className="text-sm text-muted-foreground">-</span>
+                          <span className="text-sm">{segment.name}</span>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </ScrollArea>
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button type="submit">Save changes</Button>
+            {!option && <Button type="submit">Create Option</Button>}
             {option && (
               <Button type="button" onClick={handleUpdateConnectedSegments}>
                 Update Connected Segments

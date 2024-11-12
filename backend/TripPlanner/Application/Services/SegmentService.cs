@@ -30,7 +30,8 @@ public class SegmentService
             EndDateTimeUtc = s.end_datetime_utc,
             Name = s.name,
             StartDateTimeUtc = s.start_datetime_utc,
-            TripId = s.trip_id
+            TripId = s.trip_id,
+            SegmentTypeId = s.segment_type_id
         }).ToList();
         return result;
     }
@@ -45,7 +46,8 @@ public class SegmentService
                 EndDateTimeUtc = s.end_datetime_utc,
                 Name = s.name,
                 StartDateTimeUtc = s.start_datetime_utc,
-                TripId = s.trip_id
+                TripId = s.trip_id,
+                SegmentTypeId = s.segment_type_id
             })
             .OrderBy(s => s.StartDateTimeUtc)
             .ToList();
@@ -62,7 +64,8 @@ public class SegmentService
             EndDateTimeUtc = segment.end_datetime_utc,
             Name = segment.name,
             StartDateTimeUtc = segment.start_datetime_utc,
-            TripId = segment.trip_id
+            TripId = segment.trip_id,
+            SegmentTypeId = segment.segment_type_id
         };
         return result;
     }
@@ -75,7 +78,8 @@ public class SegmentService
             start_datetime_utc = segment.StartDateTimeUtc.Value,
             end_datetime_utc = segment.EndDateTimeUtc.Value,
             name = segment.Name,
-            cost = segment.Cost
+            cost = segment.Cost,
+            segment_type_id = segment.SegmentTypeId
         }, cancellationToken);
     }
 
@@ -88,7 +92,8 @@ public class SegmentService
             start_datetime_utc = segment.StartDateTimeUtc.Value,
             end_datetime_utc = segment.EndDateTimeUtc.Value,
             name = segment.Name,
-            cost = segment.Cost
+            cost = segment.Cost,
+            segment_type_id = segment.SegmentTypeId
         }, cancellationToken);
 
         await UpdateOptionsRelatedBySegmentIdAsync(segment.Id, cancellationToken);
@@ -123,6 +128,21 @@ public class SegmentService
             Id = o.id,
             Name = o.name,
             TripId = o.trip_id
+        }).ToList();
+        return result;
+    }
+
+    public async Task<List<SegmentTypeDto>> GetAllSegmentTypesAsync(CancellationToken cancellationToken)
+    {
+        var segmentTypes = await _segmentRepository.GetAllSegmentTypesAsync(cancellationToken);
+        var result = segmentTypes.Select(st => new SegmentTypeDto
+        {
+            Id = st.id,
+            ShortName = st.short_name,
+            Name = st.name,
+            Description = st.description,
+            Color = st.color,
+            IconSvg = st.icon_svg
         }).ToList();
         return result;
     }

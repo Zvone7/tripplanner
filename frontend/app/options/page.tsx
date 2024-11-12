@@ -184,6 +184,7 @@ export default function OptionsPage() {
         onSave={handleSaveOption}
         option={editingOption}
         tripId={Number(tripId)}
+        refreshOptions={fetchOptions}
       />
     </Card>
   )

@@ -8,6 +8,7 @@ import { Label } from "../components/ui/label"
 import { ScrollArea } from "../components/ui/scroll-area"
 import { toast } from "../components/ui/use-toast"
 import { Checkbox } from "../components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
 
 interface Segment {
   id: number;
@@ -16,11 +17,21 @@ interface Segment {
   endDateTimeUtc: string | null;
   name: string;
   cost: number;
+  segmentTypeId: number;
 }
 
 interface Option {
   id: number;
   name: string;
+}
+
+interface SegmentType {
+  id: number;
+  shortName: string;
+  name: string;
+  description: string;
+  color: string;
+  iconSvg: string;
 }
 
 interface SegmentModalProps {
@@ -29,15 +40,17 @@ interface SegmentModalProps {
   onSave: (segment: Omit<Segment, 'id'>) => void;
   segment?: Segment | null;
   tripId: number;
+  segmentTypes: SegmentType[];
 }
 
-export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId }: SegmentModalProps) {
+export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId, segmentTypes }: SegmentModalProps) {
   const [name, setName] = useState('')
   const [startDate, setStartDate] = useState('')
   const [startDateTimeUtc, setStartTime] = useState('')
   const [endDate, setEndDate] = useState('')
   const [endDateTimeUtc, setEndTime] = useState('')
   const [cost, setCost] = useState('')
+  const [segmentTypeId, setSegmentTypeId] = useState<number | null>(null)
   const [options, setOptions] = useState<Option[]>([])
   const [selectedOptions, setSelectedOptions] = useState<number[]>([])
 
@@ -61,6 +74,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId 
         setEndTime('')
       }
       setCost(segment.cost.toString())
+      setSegmentTypeId(segment.segmentTypeId)
       fetchConnectedOptions(segment.id)
     } else {
       setName('')
@@ -69,6 +83,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId 
       setEndDate('')
       setEndTime('')
       setCost('')
+      setSegmentTypeId(null)
       setSelectedOptions([])
     }
     fetchOptions()
@@ -110,6 +125,13 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (segmentTypeId === null) {
+      toast({
+        title: "Error",
+        description: "Please select a segment type.",
+      })
+      return
+    }
     const startDateTime = startDate && startDateTimeUtc
       ? new Date(`${startDate}T${startDateTimeUtc}`).toISOString()
       : null
@@ -122,6 +144,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId 
       startDateTimeUtc: startDateTime,
       endDateTimeUtc: endDateTime,
       cost: parseFloat(cost),
+      segmentTypeId,
     })
   }
 
@@ -175,7 +198,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId 
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
-                Nickname
+                Name
               </Label>
               <Input
                 id="name"
@@ -184,6 +207,30 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId 
                 className="col-span-3"
                 required
               />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="segmentType" className="text-right">
+                Segment Type
+              </Label>
+              <Select
+                value={segmentTypeId?.toString() || ''}
+                onValueChange={(value: string) => setSegmentTypeId(parseInt(value))}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select a segment type" />
+                </SelectTrigger>
+                <SelectContent>
+                  { 
+                  segmentTypes.map((type) => (
+                    <SelectItem key={type.id} value={type.id.toString()}>
+                      <div className="flex items-center">
+                        <div dangerouslySetInnerHTML={{ __html: type.iconSvg }} className="w-4 h-4 mr-2" />
+                        {type.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="startDate" className="text-right">
