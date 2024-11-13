@@ -1,5 +1,6 @@
 'use client'
 
+import React, { Fragment } from 'react'
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
@@ -18,8 +19,73 @@ interface Option {
   totalCost: number;
 }
 
+interface Segment {
+  id: number;
+  tripId: number;
+  startDateTimeUtc: string | null;
+  endDateTimeUtc: string | null;
+  name: string;
+  cost: number;
+  segmentTypeId: number;
+}
+
+interface SegmentType {
+  id: number;
+  shortName: string;
+  name: string;
+  description: string;
+  color: string;
+  iconSvg: string;
+}
+
+interface ConnectedSegment extends Segment {
+  segmentType: SegmentType;
+}
+
+
+function SegmentDiagram({ segments }: { segments: ConnectedSegment[] }) {
+  const sortedSegments = segments.sort((a, b) => {
+    if (a.startDateTimeUtc && b.startDateTimeUtc) {
+      return new Date(a.startDateTimeUtc).getTime() - new Date(b.startDateTimeUtc).getTime();
+    }
+    return 0;
+  });
+
+  return (
+    <div className="flex w-full space-x-1 overflow-x-auto py-2">
+      {sortedSegments.map((segment, index) => (
+        <div
+          key={segment.id}
+          className="flex-grow relative"
+          style={{
+            minWidth: `${100 / sortedSegments.length}%`,
+            maxWidth: `${100 / sortedSegments.length}%`,
+          }}
+        >
+          <div
+            className="h-12 flex items-center justify-center relative overflow-hidden"
+            style={{
+              backgroundColor: segment.segmentType.color,
+              clipPath: 'polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%)',
+            }}
+            title={`${segment.segmentType.name} - ${segment.name}`}
+          >
+            {/* Icon in the Center */}
+            <div className="relative z-10 flex items-center justify-center w-8 h-8">
+              <div dangerouslySetInnerHTML={{ __html: segment.segmentType.iconSvg }} className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function OptionsPage() {
   const [options, setOptions] = useState<Option[]>([])
+  const [segments, setSegments] = useState<Segment[]>([])
+  const [segmentTypes, setSegmentTypes] = useState<SegmentType[]>([])
+  const [connectedSegments, setConnectedSegments] = useState<{ [optionId: number]: ConnectedSegment[] }>({})
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -46,9 +112,76 @@ export default function OptionsPage() {
     }
   }, [tripId])
 
+  const fetchSegments = useCallback(async () => {
+    if (!tripId) return
+    try {
+      const response = await fetch(`/api/Segment/GetSegmentsByTripId?tripId=${tripId}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch segments')
+      }
+      const data = await response.json()
+      setSegments(data)
+    } catch (err) {
+      console.error('Error fetching segments:', err)
+    }
+  }, [tripId])
+
+  const fetchSegmentTypes = useCallback(async () => {
+    try {
+      const response = await fetch('/api/Segment/GetSegmentTypes')
+      if (!response.ok) {
+        throw new Error('Failed to fetch segment types')
+      }
+      const data = await response.json()
+      setSegmentTypes(data)
+    } catch (err) {
+      console.error('Error fetching segment types:', err)
+    }
+  }, [])
+
+  const getConnectedSegments = useCallback(async (optionId: number): Promise<ConnectedSegment[]> => {
+    try {
+      const response = await fetch(`/api/Option/GetConnectedSegments?optionId=${optionId}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch connected segments')
+      }
+      const connectedSegments = await response.json()
+      return connectedSegments.map((segment: Segment) => ({
+        ...segment,
+        segmentType: segmentTypes.find(st => st.id === segment.segmentTypeId) || {
+          id: 0,
+          shortName: 'Unknown',
+          name: 'Unknown',
+          description: 'Unknown segment type',
+          color: '#CCCCCC',
+          iconSvg: '<svg></svg>'
+        }
+      }))
+    } catch (error) {
+      console.error('Error fetching connected segments:', error)
+      return []
+    }
+  }, [segmentTypes])
+
   useEffect(() => {
     fetchOptions()
-  }, [fetchOptions])
+    fetchSegments()
+    fetchSegmentTypes()
+  }, [fetchOptions, fetchSegments, fetchSegmentTypes])
+
+  useEffect(() => {
+    const fetchAllConnectedSegments = async () => {
+      const connectedSegmentsMap: { [optionId: number]: ConnectedSegment[] } = {}
+      for (const option of options) {
+        connectedSegmentsMap[option.id] = await getConnectedSegments(option.id)
+      }
+      setConnectedSegments(connectedSegmentsMap)
+    }
+
+    if (options.length > 0 && segmentTypes.length > 0) {
+      fetchAllConnectedSegments()
+    }
+  }, [options, segmentTypes, getConnectedSegments])
 
   const handleEditOption = (option: Option) => {
     setEditingOption(option)
@@ -157,22 +290,29 @@ export default function OptionsPage() {
             </TableHeader>
             <TableBody>
               {options.map((option) => (
-                <TableRow key={option.id}>
-                  <TableCell className="font-medium">{option.name}</TableCell>
-                  <TableCell>{option.startDateTimeUtc ? new Date(option.startDateTimeUtc).toLocaleString() : 'N/A'}</TableCell>
-                  <TableCell>{option.endDateTimeUtc ? new Date(option.endDateTimeUtc).toLocaleString() : 'N/A'}</TableCell>
-                  <TableCell>${option.totalCost.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button variant="ghost" size="sm" onClick={() => handleEditOption(option)}>
-                        <PencilIcon className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteOption(option.id)}>
-                        <TrashIcon className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                <Fragment key={option.id}>
+                  <TableRow>
+                    <TableCell className="font-medium">{option.name}</TableCell>
+                    <TableCell>{option.startDateTimeUtc ? new Date(option.startDateTimeUtc).toLocaleString() : 'N/A'}</TableCell>
+                    <TableCell>{option.endDateTimeUtc ? new Date(option.endDateTimeUtc).toLocaleString() : 'N/A'}</TableCell>
+                    <TableCell>${option.totalCost.toFixed(2)}</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditOption(option)}>
+                          <PencilIcon className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteOption(option.id)}>
+                          <TrashIcon className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell colSpan={5}>
+                      <SegmentDiagram segments={connectedSegments[option.id] || []} />
+                    </TableCell>
+                  </TableRow>
+                </Fragment>
               ))}
             </TableBody>
           </Table>

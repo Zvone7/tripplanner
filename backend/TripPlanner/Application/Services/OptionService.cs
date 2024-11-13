@@ -132,7 +132,8 @@ public class OptionService
             StartDateTimeUtc = s.start_datetime_utc,
             EndDateTimeUtc = s.end_datetime_utc,
             Name = s.name,
-            Cost = s.cost
+            Cost = s.cost,
+            SegmentTypeId = s.segment_type_id
         }).ToList();
         return result;
     }
