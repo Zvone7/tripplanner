@@ -42,7 +42,6 @@ interface ConnectedSegment extends Segment {
   segmentType: SegmentType;
 }
 
-
 function SegmentDiagram({ segments }: { segments: ConnectedSegment[] }) {
   const sortedSegments = segments.sort((a, b) => {
     if (a.startDateTimeUtc && b.startDateTimeUtc) {
@@ -51,32 +50,54 @@ function SegmentDiagram({ segments }: { segments: ConnectedSegment[] }) {
     return 0;
   });
 
+  const totalDuration = sortedSegments.reduce((total, segment) => {
+    if (segment.startDateTimeUtc && segment.endDateTimeUtc) {
+      const start = new Date(segment.startDateTimeUtc).getTime();
+      const end = new Date(segment.endDateTimeUtc).getTime();
+      return total + (end - start);
+    }
+    return total;
+  }, 0);
+
+  const minWidth = 100 / sortedSegments.length / 2;
+
   return (
     <div className="flex w-full space-x-1 overflow-x-auto py-2">
-      {sortedSegments.map((segment, index) => (
-        <div
-          key={segment.id}
-          className="flex-grow relative"
-          style={{
-            minWidth: `${100 / sortedSegments.length}%`,
-            maxWidth: `${100 / sortedSegments.length}%`,
-          }}
-        >
+      {sortedSegments.map((segment, index) => {
+        let width = minWidth;
+        if (segment.startDateTimeUtc && segment.endDateTimeUtc) {
+          const start = new Date(segment.startDateTimeUtc).getTime();
+          const end = new Date(segment.endDateTimeUtc).getTime();
+          const duration = end - start;
+          const calculatedWidth = (duration / totalDuration) * 100;
+          width = Math.max(calculatedWidth, minWidth);
+        }
+
+        return (
           <div
-            className="h-12 flex items-center justify-center relative overflow-hidden"
+            key={segment.id}
+            className="flex-grow relative"
             style={{
-              backgroundColor: segment.segmentType.color,
-              clipPath: 'polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%)',
+              width: `${width}%`,
+              minWidth: `${minWidth}%`,
             }}
-            title={`${segment.segmentType.name} - ${segment.name}`}
           >
-            {/* Icon in the Center */}
-            <div className="relative z-10 flex items-center justify-center w-8 h-8">
-              <div dangerouslySetInnerHTML={{ __html: segment.segmentType.iconSvg }} className="w-6 h-6" />
+            <div
+              className="h-12 flex items-center justify-center relative overflow-hidden"
+              style={{
+                backgroundColor: segment.segmentType.color,
+                clipPath: 'polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%)',
+              }}
+              title={`${segment.segmentType.name} - ${segment.name}`}
+            >
+              {/* Icon in the Center */}
+              <div className="relative z-10 flex items-center justify-center w-8 h-8">
+                <div dangerouslySetInnerHTML={{ __html: segment.segmentType.iconSvg }} className="w-6 h-6" />
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
