@@ -46,9 +46,9 @@ interface SegmentModalProps {
 export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId, segmentTypes }: SegmentModalProps) {
   const [name, setName] = useState('')
   const [startDate, setStartDate] = useState('')
-  const [startDateTimeUtc, setStartTime] = useState('')
+  const [startTime, setStartTime] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [endDateTimeUtc, setEndTime] = useState('')
+  const [endTime, setEndTime] = useState('')
   const [cost, setCost] = useState('')
   const [segmentTypeId, setSegmentTypeId] = useState<number | null>(null)
   const [options, setOptions] = useState<Option[]>([])
@@ -132,11 +132,11 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       })
       return
     }
-    const startDateTime = startDate && startDateTimeUtc
-      ? new Date(`${startDate}T${startDateTimeUtc}`).toISOString()
+    const startDateTime = startDate && startTime
+      ? new Date(`${startDate}T${startTime}`).toISOString()
       : null
-    const endDateTime = endDate && endDateTimeUtc
-      ? new Date(`${endDate}T${endDateTimeUtc}`).toISOString()
+    const endDateTime = endDate && endTime
+      ? new Date(`${endDate}T${endTime}`).toISOString()
       : null
     onSave({
       tripId,
@@ -194,126 +194,113 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
         <DialogHeader>
           <DialogTitle>{segment ? 'Edit Segment' : 'Create Segment'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="segmentType" className="text-right">
-                Segment Type
-              </Label>
-              <Select
-                value={segmentTypeId?.toString() || ''}
-                onValueChange={(value: string) => setSegmentTypeId(parseInt(value))}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select a segment type" />
-                </SelectTrigger>
-                <SelectContent>
-                  { 
-                  segmentTypes.map((type) => (
-                    <SelectItem key={type.id} value={type.id.toString()}>
-                      <div className="flex items-center">
-                        <div dangerouslySetInnerHTML={{ __html: type.iconSvg }} className="w-4 h-4 mr-2" />
-                        {type.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="startDate" className="text-right">
-                Start Date
-              </Label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="name" className="text-right">
+              Name
+            </Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="col-span-3"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="segmentType" className="text-right">
+              Segment Type
+            </Label>
+            <Select
+              value={segmentTypeId?.toString() || ''}
+              onValueChange={(value) => setSegmentTypeId(parseInt(value))}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select a segment type" />
+              </SelectTrigger>
+              <SelectContent>
+                {segmentTypes.map((type) => (
+                  <SelectItem key={type.id} value={type.id.toString()}>
+                    <div className="flex items-center">
+                      <div dangerouslySetInnerHTML={{ __html: type.iconSvg }} className="w-4 h-4 mr-2" />
+                      {type.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="startDate" className="text-right">
+              Start
+            </Label>
+            <div className="col-span-3 grid grid-cols-2 gap-2">
               <Input
                 id="startDate"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="col-span-3"
               />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="startDateTimeUtc" className="text-right">
-                Start Time
-              </Label>
               <Input
-                id="startDateTimeUtc"
+                id="startTime"
                 type="time"
-                value={startDateTimeUtc}
+                value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="col-span-3"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="endDate" className="text-right">
-                End Date
-              </Label>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="endDate" className="text-right">
+              End
+            </Label>
+            <div className="col-span-3 grid grid-cols-2 gap-2">
               <Input
                 id="endDate"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="col-span-3"
               />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="endDateTimeUtc" className="text-right">
-                End Time
-              </Label>
               <Input
-                id="endDateTimeUtc"
+                id="endTime"
                 type="time"
-                value={endDateTimeUtc}
+                value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="col-span-3"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="cost" className="text-right">
-                Cost
-              </Label>
-              <Input
-                id="cost"
-                type="number"
-                value={cost}
-                onChange={(e) => setCost(e.target.value)}
-                className="col-span-3"
-                required
-                step="0.01"
-              />
-            </div>
-            {segment && (
-              <div className="grid grid-cols-4 items-start gap-4">
-                <Label className="text-right pt-2">
-                  Connected Options
-                </Label>
-                <ScrollArea className="h-[200px] col-span-3 border rounded-md p-4">
-                  {options.map((option) => (
-                    <div key={option.id} className="flex items-center space-x-2 mb-2">
-                      <Checkbox
-                        id={`option-${option.id}`}
-                        checked={selectedOptions.includes(option.id)}
-                        onCheckedChange={() => handleOptionToggle(option.id)}
-                      />
-                      <Label htmlFor={`option-${option.id}`}>{option.name}</Label>
-                    </div>
-                  ))}
-                </ScrollArea>
-              </div>
-            )}
           </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="cost" className="text-right">
+              Cost
+            </Label>
+            <Input
+              id="cost"
+              type="number"
+              value={cost}
+              onChange={(e) => setCost(e.target.value)}
+              className="col-span-3"
+              required
+              step="0.01"
+            />
+          </div>
+          {segment && (
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label className="text-right pt-2">
+                Connected Options
+              </Label>
+              <ScrollArea className="h-[200px] col-span-3 border rounded-md p-4">
+                {options.map((option) => (
+                  <div key={option.id} className="flex items-center space-x-2 mb-2">
+                    <Checkbox
+                      id={`option-${option.id}`}
+                      checked={selectedOptions.includes(option.id)}
+                      onCheckedChange={() => handleOptionToggle(option.id)}
+                    />
+                    <Label htmlFor={`option-${option.id}`}>{option.name}</Label>
+                  </div>
+                ))}
+              </ScrollArea>
+            </div>
+          )}
           <DialogFooter>
             <Button type="submit">Save changes</Button>
             {segment && (
