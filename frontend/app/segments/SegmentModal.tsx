@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
@@ -9,12 +9,15 @@ import { ScrollArea } from "../components/ui/scroll-area"
 import { toast } from "../components/ui/use-toast"
 import { Checkbox } from "../components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
+import { DateTimePicker } from "../components/DateTimePicker"
 
 interface Segment {
   id: number;
   tripId: number;
-  startDateTimeUtc: string | null;
-  endDateTimeUtc: string | null;
+  startDateTimeUtc: string;
+  startDateTimeUtcOffset: number;
+  endDateTimeUtc: string;
+  endDateTimeUtcOffset: number;
   name: string;
   cost: number;
   segmentTypeId: number;
@@ -49,30 +52,42 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
   const [startTime, setStartTime] = useState('')
   const [endDate, setEndDate] = useState('')
   const [endTime, setEndTime] = useState('')
+  const [startDateTimeUtcOffset, setStartDateTimeUtcOffset] = useState(0)
+  const [endDateTimeUtcOffset, setEndDateTimeUtcOffset] = useState(0)
   const [cost, setCost] = useState('')
   const [segmentTypeId, setSegmentTypeId] = useState<number | null>(null)
   const [options, setOptions] = useState<Option[]>([])
   const [selectedOptions, setSelectedOptions] = useState<number[]>([])
 
+  // extract dateValue from a date in format 2024-12-31
+  const getDateValue = (date: Date, offset: number) => {
+    var tempDate = new Date(date);
+    if(offset!==0){
+      tempDate.setHours(tempDate.getHours() + offset)
+    }
+    return date.getFullYear() + '-' + (tempDate.getMonth() + 1).toString().padStart(2, '0') + '-' + tempDate.getDate().toString().padStart(2, '0')
+  }
+  const getTimeValie = (date: Date, offset: number) =>{ 
+    var tempDate = new Date(date);
+    if(offset!==0){
+      tempDate.setHours(tempDate.getHours() + offset)
+    }
+    return String(tempDate.getHours()).padStart(2, '0') + ':' + String(tempDate.getMinutes()).padStart(2, '0')
+  }
+
   useEffect(() => {
     if (segment) {
       setName(segment.name)
-      if (segment.startDateTimeUtc) {
-        const start = new Date(segment.startDateTimeUtc)
-        setStartDate(start.toISOString().split('T')[0])
-        setStartTime(start.toTimeString().slice(0, 5))
-      } else {
-        setStartDate('')
-        setStartTime('')
-      }
-      if (segment.endDateTimeUtc) {
-        const end = new Date(segment.endDateTimeUtc)
-        setEndDate(end.toISOString().split('T')[0])
-        setEndTime(end.toTimeString().slice(0, 5))
-      } else {
-        setEndDate('')
-        setEndTime('')
-      }
+      const startDateTime = new Date(segment.startDateTimeUtc)
+      setStartDate(getDateValue(startDateTime, segment.startDateTimeUtcOffset))
+      setStartTime(getTimeValie(startDateTime, segment.startDateTimeUtcOffset))
+      setStartDateTimeUtcOffset(segment.startDateTimeUtcOffset)
+      
+      const endDateTime = new Date(segment.endDateTimeUtc)
+      setEndDate(getDateValue(endDateTime, segment.endDateTimeUtcOffset))
+      setEndTime(getTimeValie(endDateTime, segment.endDateTimeUtcOffset))
+      setEndDateTimeUtcOffset(segment.endDateTimeUtcOffset)
+      
       setCost(segment.cost.toString())
       setSegmentTypeId(segment.segmentTypeId)
       fetchConnectedOptions(segment.id)
@@ -82,12 +97,17 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       setStartTime('')
       setEndDate('')
       setEndTime('')
+      setStartDateTimeUtcOffset(0)
+      setEndDateTimeUtcOffset(0)
       setCost('')
       setSegmentTypeId(null)
       setSelectedOptions([])
     }
-    fetchOptions()
   }, [segment])
+
+  useEffect(() => {
+    fetchOptions()
+  }, [tripId])
 
   const fetchOptions = async () => {
     try {
@@ -123,7 +143,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
     if (segmentTypeId === null) {
       toast({
@@ -132,21 +152,17 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       })
       return
     }
-    const startDateTime = startDate && startTime
-      ? new Date(`${startDate}T${startTime}`).toISOString()
-      : null
-    const endDateTime = endDate && endTime
-      ? new Date(`${endDate}T${endTime}`).toISOString()
-      : null
     onSave({
       tripId,
       name,
-      startDateTimeUtc: startDateTime,
-      endDateTimeUtc: endDateTime,
+      startDateTimeUtc: `${startDate}T${startTime}:00.000Z`,
+      endDateTimeUtc: `${endDate}T${endTime}:00.000Z`,
+      startDateTimeUtcOffset,
+      endDateTimeUtcOffset,
       cost: parseFloat(cost),
       segmentTypeId,
     })
-  }
+  }, [tripId, name, startDate, startTime, endDate, endTime, startDateTimeUtcOffset, endDateTimeUtcOffset, cost, segmentTypeId, onSave])
 
   const handleUpdateConnectedOptions = async () => {
     if (!segment) return
@@ -230,44 +246,26 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="startDate" className="text-right">
-              Start
-            </Label>
-            <div className="col-span-3 grid grid-cols-2 gap-2">
-              <Input
-                id="startDate"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-              <Input
-                id="startTime"
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="endDate" className="text-right">
-              End
-            </Label>
-            <div className="col-span-3 grid grid-cols-2 gap-2">
-              <Input
-                id="endDate"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-              <Input
-                id="endTime"
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-              />
-            </div>
-          </div>
+          <DateTimePicker
+            label="Start"
+            dateValue={startDate}
+            timeValue={startTime}
+            onDateChange={setStartDate}
+            onTimeChange={setStartTime}
+            onUtcOffsetChange={setStartDateTimeUtcOffset}
+            id="start"
+            initialUtcOffset={startDateTimeUtcOffset}
+          />
+          <DateTimePicker
+            label="End"
+            dateValue={endDate}
+            timeValue={endTime}
+            onDateChange={setEndDate}
+            onTimeChange={setEndTime}
+            onUtcOffsetChange={setEndDateTimeUtcOffset}
+            id="end"
+            initialUtcOffset={endDateTimeUtcOffset}
+          />
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="cost" className="text-right">
               Cost

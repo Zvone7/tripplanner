@@ -28,8 +28,10 @@ public class SegmentService
             Id = s.id,
             Cost = s.cost,
             EndDateTimeUtc = s.end_datetime_utc,
+            EndDateTimeUtcOffset = s.end_datetime_utc_offset,
             Name = s.name,
             StartDateTimeUtc = s.start_datetime_utc,
+            StartDateTimeUtcOffset = s.start_datetime_utc_offset,
             TripId = s.trip_id,
             SegmentTypeId = s.segment_type_id
         }).ToList();
@@ -44,8 +46,10 @@ public class SegmentService
                 Id = s.id,
                 Cost = s.cost,
                 EndDateTimeUtc = s.end_datetime_utc,
+                EndDateTimeUtcOffset = s.end_datetime_utc_offset,
                 Name = s.name,
                 StartDateTimeUtc = s.start_datetime_utc,
+                StartDateTimeUtcOffset = s.start_datetime_utc_offset,
                 TripId = s.trip_id,
                 SegmentTypeId = s.segment_type_id
             })
@@ -56,27 +60,33 @@ public class SegmentService
 
     public async Task<SegmentDto?> GetAsync(int segmentId, CancellationToken cancellationToken)
     {
-        var segment = await _segmentRepository.GetAsync(segmentId, cancellationToken);
-        var result = segment == null ? null : new SegmentDto
+        var s = await _segmentRepository.GetAsync(segmentId, cancellationToken);
+        var result = s == null ? null : new SegmentDto
         {
-            Id = segment.id,
-            Cost = segment.cost,
-            EndDateTimeUtc = segment.end_datetime_utc,
-            Name = segment.name,
-            StartDateTimeUtc = segment.start_datetime_utc,
-            TripId = segment.trip_id,
-            SegmentTypeId = segment.segment_type_id
+            Id = s.id,
+            Cost = s.cost,
+            EndDateTimeUtc = s.end_datetime_utc,
+            EndDateTimeUtcOffset = s.end_datetime_utc_offset,
+            Name = s.name,
+            StartDateTimeUtc = s.start_datetime_utc,
+            StartDateTimeUtcOffset = s.start_datetime_utc_offset,
+            TripId = s.trip_id,
+            SegmentTypeId = s.segment_type_id
         };
         return result;
     }
 
     public async Task CreateAsync(SegmentDto segment, CancellationToken cancellationToken)
     {
+        var utcStart = ConvertWithOffset(segment.StartDateTimeUtc, segment.StartDateTimeUtcOffset);
+        var utcEnd = ConvertWithOffset(segment.EndDateTimeUtc, segment.EndDateTimeUtcOffset);
         await _segmentRepository.CreateAsync(new SegmentDbm
         {
             trip_id = segment.TripId,
-            start_datetime_utc = segment.StartDateTimeUtc.Value,
-            end_datetime_utc = segment.EndDateTimeUtc.Value,
+            start_datetime_utc = utcStart,
+            start_datetime_utc_offset = segment.StartDateTimeUtcOffset,
+            end_datetime_utc = utcEnd,
+            end_datetime_utc_offset = segment.EndDateTimeUtcOffset,
             name = segment.Name,
             cost = segment.Cost,
             segment_type_id = segment.SegmentTypeId
@@ -85,12 +95,16 @@ public class SegmentService
 
     public async Task UpdateAsync(SegmentDto segment, CancellationToken cancellationToken)
     {
+        var utcStart = ConvertWithOffset(segment.StartDateTimeUtc, segment.StartDateTimeUtcOffset);
+        var utcEnd = ConvertWithOffset(segment.EndDateTimeUtc, segment.EndDateTimeUtcOffset);
         await _segmentRepository.UpdateAsync(new SegmentDbm
         {
             id = segment.Id,
             trip_id = segment.TripId,
-            start_datetime_utc = segment.StartDateTimeUtc.Value,
-            end_datetime_utc = segment.EndDateTimeUtc.Value,
+            start_datetime_utc = utcStart,
+            start_datetime_utc_offset = segment.StartDateTimeUtcOffset,
+            end_datetime_utc = utcEnd,
+            end_datetime_utc_offset = segment.EndDateTimeUtcOffset,
             name = segment.Name,
             cost = segment.Cost,
             segment_type_id = segment.SegmentTypeId
@@ -145,5 +159,14 @@ public class SegmentService
             IconSvg = st.icon_svg
         }).ToList();
         return result;
+    }
+
+    private DateTime ConvertWithOffset(DateTime dateOriginal, int offset)
+    {
+        var converted = dateOriginal.AddHours(-1 * offset); 
+        // -1 because people set the time in selected timezone, 
+        // but we need to convert it to utc
+        var utc = new DateTime(converted.Ticks, DateTimeKind.Utc);
+        return utc;
     }
 }

@@ -12,8 +12,10 @@ import SegmentModal from '../segments/SegmentModal'
 interface Segment {
   id: number;
   tripId: number;
-  startDateTimeUtc: string | null;
-  endDateTimeUtc: string | null;
+  startDateTimeUtc: string;
+  startDateTimeUtcOffset: number;
+  endDateTimeUtc: string;
+  endDateTimeUtcOffset: number;
   name: string;
   cost: number;
   segmentTypeId: number;
@@ -34,7 +36,7 @@ export default function SegmentsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingSegment, setEditingSegment] = useState<Segment | null>(null)
+  const [editingSegment, setEditingSegment] = useState<Segment | null | undefined>(null)
   const searchParams = useSearchParams()
   const tripId = searchParams.get('tripId')
   const router = useRouter()
@@ -97,6 +99,8 @@ export default function SegmentsPage() {
 
       if (editingSegment) {
         // Update existing segment
+        console.log("updating segment with id:", editingSegment.id)
+        console.log("segmentData:", segmentData)
         response = await fetch('/api/Segment/UpdateSegment', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -146,6 +150,16 @@ export default function SegmentsPage() {
     return <div>No trip ID provided</div>
   }
 
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+  
+    return `${year}/${month}/${day} ${hours}:${minutes}`;
+  };
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -176,8 +190,8 @@ export default function SegmentsPage() {
               <TableRow>
                 <TableHead>Type</TableHead>
                 <TableHead>Name</TableHead>
-                <TableHead>Start Time</TableHead>
-                <TableHead>End Time</TableHead>
+                <TableHead>Start Time (utc)</TableHead>
+                <TableHead>End Time (utc)</TableHead>
                 <TableHead>Cost</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -196,8 +210,8 @@ export default function SegmentsPage() {
                       )}
                     </TableCell>
                     <TableCell className="font-medium">{segment.name}</TableCell>
-                    <TableCell>{segment.startDateTimeUtc ? new Date(segment.startDateTimeUtc).toLocaleString() : 'N/A'}</TableCell>
-                    <TableCell>{segment.endDateTimeUtc ? new Date(segment.endDateTimeUtc).toLocaleString() : 'N/A'}</TableCell>
+                    <TableCell>{segment.startDateTimeUtc ? formatDate(new Date(segment.startDateTimeUtc)) : 'N/A'}</TableCell>
+                    <TableCell>{segment.endDateTimeUtc ? formatDate(new Date(segment.endDateTimeUtc)) : 'N/A'}</TableCell>
                     <TableCell>${segment.cost.toFixed(2)}</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">

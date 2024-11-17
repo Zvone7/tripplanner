@@ -37,14 +37,41 @@ public class SegmentRepository
     public async Task CreateAsync(SegmentDbm segment, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
-        var sqlQuery = "INSERT INTO Segment (trip_id, start_datetime_utc, end_datetime_utc, name, cost, segment_type_id) VALUES (@trip_id, @start_datetime_utc, @end_datetime_utc, @name, @cost, @segment_type_id)";
+        var sqlQuery = "INSERT INTO Segment (" +
+                       "trip_id, " +
+                       "start_datetime_utc, " +
+                       "start_datetime_utc_offset, "+
+                       "end_datetime_utc, " +
+                       "end_datetime_utc_offset, "+
+                       "name, " +
+                       "cost, " +
+                       "segment_type_id" +
+                       ") VALUES (" +
+                       "@trip_id, " +
+                       "@start_datetime_utc, " +
+                       "@start_datetime_utc_offset, " +
+                       "@end_datetime_utc, " +
+                       "@end_datetime_utc_offset, " +
+                       "@name, " +
+                       "@cost, " +
+                       "@segment_type_id" +
+                       ")";
         await db.ExecuteAsync(sqlQuery, segment);
     }
 
     public async Task UpdateAsync(SegmentDbm segment, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
-        var sqlQuery = "UPDATE Segment SET trip_id = @trip_id, start_datetime_utc = @start_datetime_utc, end_datetime_utc = @end_datetime_utc, name = @name, cost = @cost, segment_type_id = @segment_type_id WHERE id = @id";
+        var sqlQuery = "UPDATE Segment SET " +
+                       "trip_id = @trip_id, " +
+                       "start_datetime_utc = @start_datetime_utc, " +
+                       "start_datetime_utc_offset = @start_datetime_utc_offset, " +
+                       "end_datetime_utc = @end_datetime_utc, " +
+                       "end_datetime_utc_offset = @end_datetime_utc_offset, " +
+                       "name = @name, " +
+                       "cost = @cost, " +
+                       "segment_type_id = @segment_type_id " +
+                       "WHERE id = @id";
         await db.ExecuteAsync(sqlQuery, segment);
     }
 
