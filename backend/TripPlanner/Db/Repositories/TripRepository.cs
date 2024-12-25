@@ -56,7 +56,7 @@ public class TripRepository
         await db.ExecuteAsync(sqlQuery, new { Id = tripId });
     }
 
-    public async Task<bool> ThrowIfUserDoesntHaveAccessToTripAsync(int userId, int tripId, CancellationToken cancellationToken)
+    public async Task<bool> CheckUserHasAccessToTripAsync(int userId, int tripId, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
         var isUSerOwnedTrip = await db.QuerySingleOrDefaultAsync<int>("SELECT top 1 * FROM app_user_to_trip WHERE app_user_id = @userId AND trip_id = @Id", new { userId = userId, Id = tripId });

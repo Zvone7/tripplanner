@@ -32,7 +32,6 @@ public class TripController : ControllerBase
     [Route(nameof(GetTripById))]
     public async Task<ActionResult<TripDto?>> GetTripById(int tripId, CancellationToken cancellationToken)
     {
-        var userId = HttpContextExtensions.GetUserId(HttpContext);
         return await _tripService_.GetAsync(tripId, cancellationToken);
     }
 
@@ -51,8 +50,6 @@ public class TripController : ControllerBase
     [Route(nameof(UpdateTrip))]
     public async Task<ActionResult> UpdateTrip(int tripId, TripDto trip, CancellationToken cancellationToken)
     {
-        var userId = HttpContextExtensions.GetUserId(HttpContext);
-        if (userId == null) return Unauthorized("User not found");
         await _tripService_.UpdateAsync(trip, cancellationToken);
         return Ok();
     }
@@ -62,8 +59,6 @@ public class TripController : ControllerBase
     [Route(nameof(DeleteTrip))]
     public async Task<ActionResult> DeleteTrip(int tripId, CancellationToken cancellationToken)
     {
-        var userId = HttpContextExtensions.GetUserId(HttpContext);
-        if (userId == null) return Unauthorized("User not found");
         await _tripService_.DeleteTripAsync(tripId, cancellationToken);
         return Ok();
     }

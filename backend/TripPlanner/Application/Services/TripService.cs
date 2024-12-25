@@ -85,9 +85,9 @@ public class TripService
         await _tripRepository_.DeleteAsync(tripId, cancellationToken);
     }
 
-    public async Task<bool> CheckUserHasAccessToTrip(int userId, int tripId, CancellationToken cancellationToken)
+    public async Task<bool> CheckUserHasAccessToTripAsync(int userId, int tripId, CancellationToken cancellationToken)
     {
-       var res = await _tripRepository_.ThrowIfUserDoesntHaveAccessToTripAsync(userId, tripId, cancellationToken);
+       var res = await _tripRepository_.CheckUserHasAccessToTripAsync(userId, tripId, cancellationToken);
        return res;
     }
 

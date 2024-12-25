@@ -11,9 +11,4 @@ public static class HttpContextExtensions
         }
         return null;
     }
-
-    public static string Test(this string a)
-    {
-        return a;
-    }
 }

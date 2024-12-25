@@ -34,7 +34,7 @@ public class TripAccessFilterAttribute : Attribute, IAsyncActionFilter
 
         try
         {
-            var hasAccess = await tripRepository.CheckUserHasAccessToTrip(userId.Value, int.Parse(tripId.ToString()), httpContext.RequestAborted);
+            var hasAccess = await tripRepository.CheckUserHasAccessToTripAsync(userId.Value, int.Parse(tripId.ToString()), httpContext.RequestAborted);
             if (!hasAccess)
             {
                 context.Result = new ForbidResult($"Access denied. User {userId} doesn't have access to {tripId}");
