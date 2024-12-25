@@ -128,7 +128,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
 
   const fetchConnectedOptions = async (segmentId: number) => {
     try {
-      const response = await fetch(`/api/Segment/GetConnectedOptions?segmentId=${segmentId}`)
+      const response = await fetch(`/api/Segment/GetConnectedOptions?tripId=${tripId}&segmentId=${segmentId}`)
       if (!response.ok) {
         throw new Error('Failed to fetch connected options')
       }
@@ -168,7 +168,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     if (!segment) return
 
     try {
-      const response = await fetch('/api/Segment/UpdateConnectedOptions', {
+      const response = await fetch(`/api/Segment/UpdateConnectedOptions?tripId=${tripId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

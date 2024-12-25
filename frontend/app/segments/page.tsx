@@ -101,14 +101,14 @@ export default function SegmentsPage() {
         // Update existing segment
         console.log("updating segment with id:", editingSegment.id)
         console.log("segmentData:", segmentData)
-        response = await fetch('/api/Segment/UpdateSegment', {
+        response = await fetch(`/api/Segment/UpdateSegment?tripId=${tripId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...segmentData, id: editingSegment.id }),
         })
       } else {
         // Create new segment
-        response = await fetch('/api/Segment/CreateSegment', {
+        response = await fetch(`/api/Segment/CreateSegment?tripId=${tripId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(segmentData),
@@ -130,7 +130,7 @@ export default function SegmentsPage() {
   const handleDeleteSegment = async (segmentId: number) => {
     if (window.confirm('Are you sure you want to delete this segment?')) {
       try {
-        const response = await fetch(`/api/Segment/DeleteSegment?id=${segmentId}`, {
+        const response = await fetch(`/api/Segment/DeleteSegment?tripId=${tripId}&segmentId=${segmentId}`, {
           method: 'DELETE',
         })
 

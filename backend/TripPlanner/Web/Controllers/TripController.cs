@@ -2,6 +2,7 @@ using Application.Services;
 using Domain.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Web.Helpers;
 
 namespace Web.Controllers;
 
@@ -27,12 +28,12 @@ public class TripController : ControllerBase
     }
 
     [HttpGet]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(GetTripById))]
-    public async Task<ActionResult<TripDto?>> GetTripById(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult<TripDto?>> GetTripById(int tripId, CancellationToken cancellationToken)
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
-        if (userId == null) return Unauthorized("User not found");
-        return await _tripService_.GetAsync(userId.Value, id, cancellationToken);
+        return await _tripService_.GetAsync(tripId, cancellationToken);
     }
 
     [HttpPost]
@@ -46,22 +47,24 @@ public class TripController : ControllerBase
     }
 
     [HttpPut]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(UpdateTrip))]
-    public async Task<ActionResult> UpdateTrip(TripDto trip, CancellationToken cancellationToken)
+    public async Task<ActionResult> UpdateTrip(int tripId, TripDto trip, CancellationToken cancellationToken)
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        await _tripService_.UpdateAsync(userId.Value, trip, cancellationToken);
+        await _tripService_.UpdateAsync(trip, cancellationToken);
         return Ok();
     }
 
     [HttpDelete]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(DeleteTrip))]
-    public async Task<ActionResult> DeleteTrip(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult> DeleteTrip(int tripId, CancellationToken cancellationToken)
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        await _tripService_.DeleteTripAsync(userId.Value, id, cancellationToken);
+        await _tripService_.DeleteTripAsync(tripId, cancellationToken);
         return Ok();
     }
 }

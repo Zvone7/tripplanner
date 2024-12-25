@@ -1,4 +1,4 @@
-namespace Web.Controllers;
+namespace Web.Helpers;
 
 public static class HttpContextExtensions
 {

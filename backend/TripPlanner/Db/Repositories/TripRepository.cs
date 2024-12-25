@@ -22,10 +22,9 @@ public class TripRepository
                                              "and aut.app_user_id=@userId", new { userId = userId })).AsList();
     }
 
-    public async Task<TripDbm?> GetAsync(int userId, int tripId, CancellationToken cancellationToken)
+    public async Task<TripDbm?> GetAsync(int tripId, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
-        await ThrowIfUserDoesntHaveAccessToTripAsync(userId, tripId, cancellationToken);
         return await db.QuerySingleOrDefaultAsync<TripDbm>("SELECT * FROM Trip WHERE id = @Id ", new { Id = tripId });
     }
 
@@ -40,32 +39,27 @@ public class TripRepository
         return createdTrip;
     }
 
-    public async Task<TripDbm> UpdateAsync(int userId, TripDbm trip, CancellationToken cancellationToken)
+    public async Task<TripDbm> UpdateAsync(TripDbm trip, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
-        await ThrowIfUserDoesntHaveAccessToTripAsync(userId, trip.Id, cancellationToken);
         var sqlQuery = "UPDATE Trip SET Name = @Name, Description = @Description, is_active = @is_active WHERE Id = @Id";
         await db.ExecuteAsync(sqlQuery, trip);
         var updatedTrip = await db.QuerySingleOrDefaultAsync<TripDbm>("SELECT * FROM Trip WHERE Id = @Id", new { Id = trip.Id });
         return updatedTrip;
     }
 
-    public async Task DeleteAsync(int userId, int tripId, CancellationToken cancellationToken)
+    public async Task DeleteAsync(int tripId, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
-        await ThrowIfUserDoesntHaveAccessToTripAsync(userId, tripId, cancellationToken);
         // instead of delete set as inactive
         var sqlQuery = "UPDATE Trip SET is_active = 0 WHERE Id = @Id";
         await db.ExecuteAsync(sqlQuery, new { Id = tripId });
     }
 
-    public async Task ThrowIfUserDoesntHaveAccessToTripAsync(int userId, int tripId, CancellationToken cancellationToken)
+    public async Task<bool> ThrowIfUserDoesntHaveAccessToTripAsync(int userId, int tripId, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
         var isUSerOwnedTrip = await db.QuerySingleOrDefaultAsync<int>("SELECT top 1 * FROM app_user_to_trip WHERE app_user_id = @userId AND trip_id = @Id", new { userId = userId, Id = tripId });
-        if (isUSerOwnedTrip != 1)
-        {
-            throw new Exception("User does not own the trip");
-        }
+        return isUSerOwnedTrip == 1;
     }
 }

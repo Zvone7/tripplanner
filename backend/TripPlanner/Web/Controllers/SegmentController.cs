@@ -4,6 +4,7 @@ using Domain.DbModels;
 using Domain.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Web.Helpers;
 
 namespace Web.Controllers;
 
@@ -20,69 +21,62 @@ public class SegmentController : ControllerBase
     }
 
     [HttpGet]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(GetSegmentsByTripId))]
     public async Task<ActionResult<List<SegmentDto>>> GetSegmentsByTripId(int tripId, CancellationToken cancellationToken)
     {
-        var userId = HttpContextExtensions.GetUserId(HttpContext);
-        if (userId == null) return Unauthorized("User not found");
-        return await _segmentService_.GetAllByTripIdAsync(userId.Value, tripId, cancellationToken);
+        return await _segmentService_.GetAllByTripIdAsync(tripId, cancellationToken);
     }
 
     [HttpGet]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(GetSegmentById))]
-    public async Task<ActionResult<SegmentDto?>> GetSegmentById(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult<SegmentDto?>> GetSegmentById([FromQuery]int tripId, int segmentId, CancellationToken cancellationToken)
     {
-        var userId = HttpContextExtensions.GetUserId(HttpContext);
-        if (userId == null) return Unauthorized("User not found");
-        return await _segmentService_.GetAsync(userId.Value, id, cancellationToken);
+        return await _segmentService_.GetAsync(segmentId, cancellationToken);
     }
 
     [HttpPost]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(CreateSegment))]
-    public async Task<ActionResult> CreateSegment(SegmentDto segment, CancellationToken cancellationToken)
+    public async Task<ActionResult> CreateSegment([FromQuery]int tripId, SegmentDto segment, CancellationToken cancellationToken)
     {
-        var userId = HttpContextExtensions.GetUserId(HttpContext);
-        if (userId == null) return Unauthorized("User not found");
-        await _segmentService_.CreateAsync(userId.Value, segment, cancellationToken);
+        await _segmentService_.CreateAsync(segment, cancellationToken);
         return Ok();
     }
 
     [HttpPut]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(UpdateSegment))]
-    public async Task<ActionResult> UpdateSegment(SegmentDto segment, CancellationToken cancellationToken)
+    public async Task<ActionResult> UpdateSegment([FromQuery]int tripId, SegmentDto segment, CancellationToken cancellationToken)
     {
-        var userId = HttpContextExtensions.GetUserId(HttpContext);
-        if (userId == null) return Unauthorized("User not found");
-        await _segmentService_.UpdateAsync(userId.Value, segment, cancellationToken);
+        await _segmentService_.UpdateAsync(segment, cancellationToken);
         return Ok();
     }
 
     [HttpDelete]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(DeleteSegment))]
-    public async Task<ActionResult> DeleteSegment(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult> DeleteSegment(int tripId, int segmentId, CancellationToken cancellationToken)
     {
-        var userId = HttpContextExtensions.GetUserId(HttpContext);
-        if (userId == null) return Unauthorized("User not found");
-        await _segmentService_.DeleteAsync(userId.Value, id, cancellationToken);
+        await _segmentService_.DeleteAsync(segmentId, cancellationToken);
         return Ok();
     }
 
     [HttpGet]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(GetConnectedOptions))]
-    public async Task<ActionResult<List<OptionDto>>> GetConnectedOptions(int segmentId, CancellationToken cancellationToken)
+    public async Task<ActionResult<List<OptionDto>>> GetConnectedOptions(int tripId, int segmentId, CancellationToken cancellationToken)
     {
-        var userId = HttpContextExtensions.GetUserId(HttpContext);
-        if (userId == null) return Unauthorized("User not found");
-        return await _segmentService_.GetConnectedOptionsAsync(userId.Value, segmentId, cancellationToken);
+        return await _segmentService_.GetConnectedOptionsAsync(segmentId, cancellationToken);
     }
     
     [HttpPut]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(UpdateConnectedOptions))]
-    public async Task<ActionResult> UpdateConnectedOptions(UpdateConnectedOptionsAm am, CancellationToken cancellationToken)
+    public async Task<ActionResult> UpdateConnectedOptions([FromQuery]int tripId, UpdateConnectedOptionsAm am, CancellationToken cancellationToken)
     {
-        var userId = HttpContextExtensions.GetUserId(HttpContext);
-        if (userId == null) return Unauthorized("User not found");
-        await _segmentService_.ConnectSegmentWithOptionsAsync(userId.Value, am, cancellationToken);
+        await _segmentService_.ConnectSegmentWithOptionsAsync(am, cancellationToken);
         return Ok();
     }
 

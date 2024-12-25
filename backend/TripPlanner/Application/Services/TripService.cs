@@ -25,9 +25,9 @@ public class TripService
         return result;
     }
 
-    public async Task<TripDto?> GetAsync(int userId, int tripId, CancellationToken cancellationToken)
+    public async Task<TripDto?> GetAsync(int tripId, CancellationToken cancellationToken)
     {
-        var trip = await _tripRepository_.GetAsync(userId, tripId, cancellationToken);
+        var trip = await _tripRepository_.GetAsync(tripId, cancellationToken);
         var result = trip == null ? null : new TripDto
         {
             Id = trip.Id,
@@ -59,9 +59,9 @@ public class TripService
         return result;
     }
 
-    public async Task<TripDto> UpdateAsync(int userId, TripDto trip, CancellationToken cancellationToken)
+    public async Task<TripDto> UpdateAsync(TripDto trip, CancellationToken cancellationToken)
     {
-        var updated = await _tripRepository_.UpdateAsync(userId, new TripDbm
+        var updated = await _tripRepository_.UpdateAsync(new TripDbm
         {
             Id = trip.Id,
             Name = trip.Name,
@@ -80,9 +80,15 @@ public class TripService
         return result;
     }
 
-    public async Task DeleteTripAsync(int userId, int tripId, CancellationToken cancellationToken)
+    public async Task DeleteTripAsync(int tripId, CancellationToken cancellationToken)
     {
-        await _tripRepository_.DeleteAsync(userId, tripId, cancellationToken);
+        await _tripRepository_.DeleteAsync(tripId, cancellationToken);
+    }
+
+    public async Task<bool> CheckUserHasAccessToTrip(int userId, int tripId, CancellationToken cancellationToken)
+    {
+       var res = await _tripRepository_.ThrowIfUserDoesntHaveAccessToTripAsync(userId, tripId, cancellationToken);
+       return res;
     }
 
 }

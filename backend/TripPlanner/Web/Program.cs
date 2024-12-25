@@ -3,6 +3,7 @@ using Db.Repositories;
 using Domain.Settings;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Web.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +26,7 @@ builder.Services.AddScoped<TripService>();
 builder.Services.AddScoped<OptionService>();
 builder.Services.AddScoped<SegmentService>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<TripAccessFilterAttribute>();
 
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
