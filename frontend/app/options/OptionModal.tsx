@@ -219,7 +219,7 @@ export default function OptionModal({ isOpen, onClose, onSave, option, tripId, r
             )}
           </div>
           <DialogFooter>
-            {!option && <Button type="submit">Create Option</Button>}
+            <Button type="submit">Save changes</Button>
             {option && (
               <Button type="button" onClick={handleUpdateConnectedSegments}>
                 Update Connected Segments

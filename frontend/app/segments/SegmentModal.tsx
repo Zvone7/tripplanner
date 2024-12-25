@@ -176,6 +176,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
         body: JSON.stringify({
           SegmentId: segment.id,
           OptionIds: selectedOptions,
+          TripId: tripId,
         }),
       })
 
