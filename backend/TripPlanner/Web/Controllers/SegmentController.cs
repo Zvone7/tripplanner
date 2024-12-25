@@ -12,11 +12,11 @@ namespace Web.Controllers;
 [ApiController]
 public class SegmentController : ControllerBase
 {
-    private readonly SegmentService _segmentService;
+    private readonly SegmentService _segmentService_;
 
     public SegmentController(SegmentService segmentService)
     {
-        _segmentService = segmentService;
+        _segmentService_ = segmentService;
     }
 
     [HttpGet]
@@ -25,7 +25,7 @@ public class SegmentController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        return await _segmentService.GetAllByTripIdAsync(userId.Value, tripId, cancellationToken);
+        return await _segmentService_.GetAllByTripIdAsync(userId.Value, tripId, cancellationToken);
     }
 
     [HttpGet]
@@ -34,7 +34,7 @@ public class SegmentController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        return await _segmentService.GetAsync(userId.Value, id, cancellationToken);
+        return await _segmentService_.GetAsync(userId.Value, id, cancellationToken);
     }
 
     [HttpPost]
@@ -43,7 +43,7 @@ public class SegmentController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        await _segmentService.CreateAsync(userId.Value, segment, cancellationToken);
+        await _segmentService_.CreateAsync(userId.Value, segment, cancellationToken);
         return Ok();
     }
 
@@ -53,7 +53,7 @@ public class SegmentController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        await _segmentService.UpdateAsync(userId.Value, segment, cancellationToken);
+        await _segmentService_.UpdateAsync(userId.Value, segment, cancellationToken);
         return Ok();
     }
 
@@ -63,7 +63,7 @@ public class SegmentController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        await _segmentService.DeleteAsync(userId.Value, id, cancellationToken);
+        await _segmentService_.DeleteAsync(userId.Value, id, cancellationToken);
         return Ok();
     }
 
@@ -73,7 +73,7 @@ public class SegmentController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        return await _segmentService.GetConnectedOptionsAsync(userId.Value, segmentId, cancellationToken);
+        return await _segmentService_.GetConnectedOptionsAsync(userId.Value, segmentId, cancellationToken);
     }
     
     [HttpPut]
@@ -82,7 +82,7 @@ public class SegmentController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        await _segmentService.ConnectSegmentWithOptionsAsync(userId.Value, am, cancellationToken);
+        await _segmentService_.ConnectSegmentWithOptionsAsync(userId.Value, am, cancellationToken);
         return Ok();
     }
 
@@ -90,6 +90,6 @@ public class SegmentController : ControllerBase
     [Route(nameof(GetSegmentTypes))]
     public async Task<ActionResult<List<SegmentTypeDto>>> GetSegmentTypes(CancellationToken cancellationToken)
     {
-        return await _segmentService.GetAllSegmentTypesAsync(cancellationToken);
+        return await _segmentService_.GetAllSegmentTypesAsync(cancellationToken);
     }
 }

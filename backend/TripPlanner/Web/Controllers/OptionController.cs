@@ -11,11 +11,11 @@ namespace Web.Controllers;
 [ApiController]
 public class OptionController : ControllerBase
 {
-    private readonly OptionService _optionService;
+    private readonly OptionService _optionService_;
 
     public OptionController(OptionService optionService)
     {
-        _optionService = optionService;
+        _optionService_ = optionService;
     }
 
     [HttpGet]
@@ -24,7 +24,7 @@ public class OptionController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        var options = await _optionService.GetAllByTripIdAsync(userId.Value, tripId, cancellationToken);
+        var options = await _optionService_.GetAllByTripIdAsync(userId.Value, tripId, cancellationToken);
         return Ok(options);
     }
 
@@ -34,7 +34,7 @@ public class OptionController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        var option = await _optionService.GetAsync(userId.Value, id, cancellationToken);
+        var option = await _optionService_.GetAsync(userId.Value, id, cancellationToken);
         return Ok(option);
     }
 
@@ -44,7 +44,7 @@ public class OptionController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        await _optionService.CreateAsync(userId.Value, option, cancellationToken);
+        await _optionService_.CreateAsync(userId.Value, option, cancellationToken);
         return Ok();
     }
 
@@ -54,7 +54,7 @@ public class OptionController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        await _optionService.UpdateAsync(userId.Value, option, cancellationToken);
+        await _optionService_.UpdateAsync(userId.Value, option, cancellationToken);
         return Ok();
     }
 
@@ -64,7 +64,7 @@ public class OptionController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        await _optionService.DeleteAsync(userId.Value, id, cancellationToken);
+        await _optionService_.DeleteAsync(userId.Value, id, cancellationToken);
         return Ok();
     }
 
@@ -74,7 +74,7 @@ public class OptionController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        var segments = await _optionService.GetConnectedSegmentsAsync(userId.Value, optionId, cancellationToken);
+        var segments = await _optionService_.GetConnectedSegmentsAsync(userId.Value, optionId, cancellationToken);
         return Ok(segments);
     }
 
@@ -84,7 +84,7 @@ public class OptionController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        await _optionService.ConnectOptionWithSegmentsAsync(userId.Value, am, cancellationToken);
+        await _optionService_.ConnectOptionWithSegmentsAsync(userId.Value, am, cancellationToken);
         return Ok();
     }
 }

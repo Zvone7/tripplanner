@@ -5,16 +5,16 @@ namespace Application.Services;
 
 public class UserService
 {
-    private readonly UserRepository _userRepository;
+    private readonly UserRepository _userRepository_;
 
     public UserService(UserRepository userRepository)
     {
-        _userRepository = userRepository;
+        _userRepository_ = userRepository;
     }
 
     public async Task<UserDto> CreateUserAsync(string email, string name, CancellationToken cancellationToken)
     {
-        var created = await _userRepository.CreateAsync(new AppUser
+        var created = await _userRepository_.CreateAsync(new AppUser
         {
             name = name,
             email = email,
@@ -35,7 +35,7 @@ public class UserService
 
     public async Task<UserDto?> GetAsync(int userId, CancellationToken cancellationToken)
     {
-        var user = await _userRepository.GetAsync(userId, cancellationToken);
+        var user = await _userRepository_.GetAsync(userId, cancellationToken);
         var result = user == null ? null : new UserDto
         {
             Id = user.Id,
@@ -49,7 +49,7 @@ public class UserService
 
     public async Task<UserDto?> GetAsync(string email, CancellationToken cancellationToken)
     {
-        var user = await _userRepository.GetAsync(email, cancellationToken);
+        var user = await _userRepository_.GetAsync(email, cancellationToken);
         var result = user == null ? null : new UserDto
         {
             Id = user.Id,

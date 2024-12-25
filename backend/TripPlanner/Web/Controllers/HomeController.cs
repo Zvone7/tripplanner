@@ -8,11 +8,11 @@ namespace Web.Controllers;
 [ApiController]
 public class HomeController : Controller
 {
-    private readonly ILogger<HomeController> _logger;
+    private readonly ILogger<HomeController> _logger_;
 
     public HomeController(ILogger<HomeController> logger)
     {
-        _logger = logger;
+        _logger_ = logger;
     }
 
     public IActionResult Index()

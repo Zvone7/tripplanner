@@ -10,11 +10,11 @@ namespace Web.Controllers;
 [ApiController]
 public class TripController : ControllerBase
 {
-    private readonly TripService _tripService;
+    private readonly TripService _tripService_;
 
     public TripController(TripService tripService)
     {
-        _tripService = tripService;
+        _tripService_ = tripService;
     }
 
     [HttpGet]
@@ -23,7 +23,7 @@ public class TripController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        return await _tripService.GetAllAsync(userId.Value, cancellationToken);
+        return await _tripService_.GetAllAsync(userId.Value, cancellationToken);
     }
 
     [HttpGet]
@@ -32,7 +32,7 @@ public class TripController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        return await _tripService.GetAsync(userId.Value, id, cancellationToken);
+        return await _tripService_.GetAsync(userId.Value, id, cancellationToken);
     }
 
     [HttpPost]
@@ -41,7 +41,7 @@ public class TripController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        await _tripService.CreateAsync(userId.Value, trip, cancellationToken);
+        await _tripService_.CreateAsync(userId.Value, trip, cancellationToken);
         return Ok();
     }
 
@@ -51,7 +51,7 @@ public class TripController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        await _tripService.UpdateAsync(userId.Value, trip, cancellationToken);
+        await _tripService_.UpdateAsync(userId.Value, trip, cancellationToken);
         return Ok();
     }
 
@@ -61,7 +61,7 @@ public class TripController : ControllerBase
     {
         var userId = HttpContextExtensions.GetUserId(HttpContext);
         if (userId == null) return Unauthorized("User not found");
-        await _tripService.DeleteTripAsync(userId.Value, id, cancellationToken);
+        await _tripService_.DeleteTripAsync(userId.Value, id, cancellationToken);
         return Ok();
     }
 }

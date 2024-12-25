@@ -3,8 +3,6 @@ using Db.Repositories;
 using Domain.Settings;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.Google;
-using Microsoft.AspNetCore.CookiePolicy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,8 +18,7 @@ builder.Services.AddScoped<SegmentRepository>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.Configure<AntiforgeryOptions>(config =>
 {
-    // config.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    config.Cookie.SecurePolicy = CookieSecurePolicy.None;
+    config.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
 
 builder.Services.AddScoped<TripService>();
@@ -33,10 +30,6 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
 {
     options.MinimumSameSitePolicy = SameSiteMode.Lax;
     options.Secure = CookieSecurePolicy.Always;
-#if DEBUG
-    options.Secure = CookieSecurePolicy.None;
-    options.HttpOnly = HttpOnlyPolicy.Always;
-#endif
 });
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -47,12 +40,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.SlidingExpiration = true;
         options.CookieManager = new ChunkingCookieManager();
         options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;// Use only with HTTPS
-#if DEBUG
-        options.Cookie.HttpOnly = true;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.None;
-#else
-#endif
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     })
     .AddGoogle(options =>
     {
