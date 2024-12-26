@@ -4,15 +4,31 @@ using Domain.Settings;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Web.Helpers;
+#if !DEBUG
+using Azure.Identity;
+#endif
 
+Console.WriteLine($"{DateTime.UtcNow}|AppStarted");
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Configuration.AddEnvironmentVariables();
 builder.Configuration.AddJsonFile("appsettings.json", optional: false);
+Console.WriteLine($"{DateTime.UtcNow}|appsettings loaded");
+#if DEBUG
 builder.Configuration.AddJsonFile("appsettings.Development.json", optional: true);
+Console.WriteLine($"{DateTime.UtcNow}|appsettings.dev loaded");
+#else
+var keyVaultName = builder.Configuration["KeyVaultName"];
+var keyvaultUri = new Uri($"https://{keyVaultName}.vault.azure.net/");
+Console.WriteLine($"{DateTime.UtcNow}|Using keyvault {keyVaultName}");
+builder.Configuration.AddAzureKeyVault(keyvaultUri, new DefaultAzureCredential());
+Console.WriteLine($"{DateTime.UtcNow}|Keyvault loaded");
+#endif
 var appSettings = new AppSettings();
 builder.Configuration.GetSection("AppSettings").Bind(appSettings);
 
 builder.Services.AddSingleton(appSettings);
+Console.WriteLine($"{DateTime.UtcNow}|DI Started");
 builder.Services.AddScoped<TripRepository>();
 builder.Services.AddScoped<OptionRepository>();
 builder.Services.AddScoped<SegmentRepository>();
@@ -89,4 +105,5 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+Console.WriteLine($"{DateTime.UtcNow}|Final app start");
 app.Run();
