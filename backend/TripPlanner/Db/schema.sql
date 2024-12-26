@@ -4,6 +4,8 @@ drop table [dbo].[segment]
 drop table [dbo].[segment_type]
 drop table [dbo].[tripoption]
 drop table [dbo].[trip]
+drop table [dbo].[app_user_to_trip]
+drop table [dbo].[app_user]
 */
 
 CREATE TABLE trip (
@@ -81,8 +83,18 @@ insert into segment_type (short_name, name, description, color, icon_svg) values
 
 insert into segment_type (short_name, name, description, color, icon_svg) values ('accomodation_other', 'Other', 'A stay at another type of accomodation', 'purple', '<?xml version="1.0" ?><svg enable-background="new 0 0 32 32" id="Glyph" version="1.1" viewBox="0 0 32 32" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M30.854,16.548C30.523,17.43,29.703,18,28.764,18H28v11c0,0.552-0.448,1-1,1h-6v-7c0-2.757-2.243-5-5-5  s-5,2.243-5,5v7H5c-0.552,0-1-0.448-1-1V18H3.235c-0.939,0-1.759-0.569-2.09-1.451c-0.331-0.882-0.088-1.852,0.62-2.47L13.444,3.019  c1.434-1.357,3.679-1.357,5.112,0l11.707,11.086C30.941,14.696,31.185,15.666,30.854,16.548z" id="XMLID_219_"/></svg>')
 
--- alter segment table to add start_datetime_utc_offset, nullable int with default value 0
-alter table segment add start_datetime_utc_offset int default 0;
+CREATE TABLE app_user (
+    id INT PRIMARY KEY IDENTITY,
+    email NVARCHAR(255),
+    name NVARCHAR(255),
+    role NVARCHAR(255),
+    created_at_utc DATETIME2
+);
 
--- now make that column no longer nullable
-alter table segment alter column start_datetime_utc_offset int not null;
+CREATE TABLE app_user_to_trip (
+    id INT PRIMARY KEY IDENTITY,
+    app_user_id INT,
+    trip_id INT,
+    FOREIGN KEY (app_user_id) REFERENCES app_user(id),
+    FOREIGN KEY (trip_id) REFERENCES trip(id)
+)

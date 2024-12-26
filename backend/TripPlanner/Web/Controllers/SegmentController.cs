@@ -2,73 +2,88 @@ using Application.Services;
 using Domain.ActionModels;
 using Domain.DbModels;
 using Domain.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Web.Helpers;
 
 namespace Web.Controllers;
 
 [Route($"api/[controller]")]
+[Authorize]
 [ApiController]
-public class SegmentController{
-    private readonly SegmentService _segmentService;
+public class SegmentController : ControllerBase
+{
+    private readonly SegmentService _segmentService_;
 
     public SegmentController(SegmentService segmentService)
     {
-        _segmentService = segmentService;
+        _segmentService_ = segmentService;
     }
 
     [HttpGet]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(GetSegmentsByTripId))]
-    public async Task<List<SegmentDto>> GetSegmentsByTripId(int tripId, CancellationToken cancellationToken)
+    public async Task<ActionResult<List<SegmentDto>>> GetSegmentsByTripId(int tripId, CancellationToken cancellationToken)
     {
-        return await _segmentService.GetAllByTripIdAsync(tripId, cancellationToken);
+        return await _segmentService_.GetAllByTripIdAsync(tripId, cancellationToken);
     }
 
     [HttpGet]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(GetSegmentById))]
-    public async Task<SegmentDto?> GetSegmentById(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult<SegmentDto?>> GetSegmentById([FromQuery]int tripId, int segmentId, CancellationToken cancellationToken)
     {
-        return await _segmentService.GetAsync(id, cancellationToken);
+        return await _segmentService_.GetAsync(segmentId, cancellationToken);
     }
 
     [HttpPost]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(CreateSegment))]
-    public async Task CreateSegment(SegmentDto segment, CancellationToken cancellationToken)
+    public async Task<ActionResult> CreateSegment([FromQuery]int tripId, SegmentDto segment, CancellationToken cancellationToken)
     {
-        await _segmentService.CreateAsync(segment, cancellationToken);
+        await _segmentService_.CreateAsync(segment, cancellationToken);
+        return Ok();
     }
 
     [HttpPut]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(UpdateSegment))]
-    public async Task UpdateSegment(SegmentDto segment, CancellationToken cancellationToken)
+    public async Task<ActionResult> UpdateSegment([FromQuery]int tripId, SegmentDto segment, CancellationToken cancellationToken)
     {
-        await _segmentService.UpdateAsync(segment, cancellationToken);
+        await _segmentService_.UpdateAsync(segment, cancellationToken);
+        return Ok();
     }
 
     [HttpDelete]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(DeleteSegment))]
-    public async Task DeleteSegment(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult> DeleteSegment(int tripId, int segmentId, CancellationToken cancellationToken)
     {
-        await _segmentService.DeleteAsync(id, cancellationToken);
+        await _segmentService_.DeleteAsync(segmentId, cancellationToken);
+        return Ok();
     }
 
     [HttpGet]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(GetConnectedOptions))]
-    public async Task<List<OptionDto>> GetConnectedOptions(int segmentId, CancellationToken cancellationToken)
+    public async Task<ActionResult<List<OptionDto>>> GetConnectedOptions(int tripId, int segmentId, CancellationToken cancellationToken)
     {
-        return await _segmentService.GetConnectedOptionsAsync(segmentId, cancellationToken);
+        return await _segmentService_.GetConnectedOptionsAsync(segmentId, cancellationToken);
     }
     
     [HttpPut]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(UpdateConnectedOptions))]
-    public async Task UpdateConnectedOptions(UpdateConnectedOptionsAm am, CancellationToken cancellationToken)
+    public async Task<ActionResult> UpdateConnectedOptions([FromQuery]int tripId, UpdateConnectedOptionsAm am, CancellationToken cancellationToken)
     {
-        await _segmentService.ConnectSegmentWithOptionsAsync(am, cancellationToken);
+        await _segmentService_.ConnectSegmentWithOptionsAsync(am, cancellationToken);
+        return Ok();
     }
 
     [HttpGet]
     [Route(nameof(GetSegmentTypes))]
-    public async Task<List<SegmentTypeDto>> GetSegmentTypes(CancellationToken cancellationToken)
+    public async Task<ActionResult<List<SegmentTypeDto>>> GetSegmentTypes(CancellationToken cancellationToken)
     {
-        return await _segmentService.GetAllSegmentTypesAsync(cancellationToken);
+        return await _segmentService_.GetAllSegmentTypesAsync(cancellationToken);
     }
 }

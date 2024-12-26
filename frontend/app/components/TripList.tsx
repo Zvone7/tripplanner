@@ -69,7 +69,7 @@ export default function TripList() {
       if (editingTrip) {
         // Update existing trip
         const updatedTripData = { ...tripData, id: editingTrip.id }
-        response = await fetch('/api/trip/updatetrip', {
+        response = await fetch(`/api/trip/updatetrip?tripId=${editingTrip.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedTripData),
@@ -99,7 +99,7 @@ export default function TripList() {
     e.stopPropagation()
     if (window.confirm('Are you sure you want to delete this trip?')) {
       try {
-        const response = await fetch(`/api/trip/deletetrip/${tripId}`, {
+        const response = await fetch(`/api/trip/deletetrip?tripId=${tripId}`, {
           method: 'DELETE',
         })
 

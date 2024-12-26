@@ -162,7 +162,7 @@ export default function OptionsPage() {
 
   const getConnectedSegments = useCallback(async (optionId: number): Promise<ConnectedSegment[]> => {
     try {
-      const response = await fetch(`/api/Option/GetConnectedSegments?optionId=${optionId}`)
+      const response = await fetch(`/api/Option/GetConnectedSegments?tripId=${tripId}&optionId=${optionId}`)
       if (!response.ok) {
         throw new Error('Failed to fetch connected segments')
       }
@@ -225,14 +225,14 @@ export default function OptionsPage() {
 
       if (editingOption) {
         // Update existing option
-        response = await fetch('/api/Option/UpdateOption', {
+        response = await fetch(`/api/Option/UpdateOption?tripId=${tripId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...optionData, id: editingOption.id }),
         })
       } else {
         // Create new option
-        response = await fetch('/api/Option/CreateOption', {
+        response = await fetch(`/api/Option/CreateOption?tripId=${tripId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(optionData),
@@ -254,7 +254,7 @@ export default function OptionsPage() {
   const handleDeleteOption = async (optionId: number) => {
     if (window.confirm('Are you sure you want to delete this option?')) {
       try {
-        const response = await fetch(`/api/Option/DeleteOption?id=${optionId}`, {
+        const response = await fetch(`/api/Option/DeleteOption?tripId=${tripId}&optionId=${optionId}`, {
           method: 'DELETE',
         })
 

@@ -1,51 +1,65 @@
 using Application.Services;
 using Domain.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Web.Helpers;
 
 namespace Web.Controllers;
 
 [Route($"api/[controller]")]
+[Authorize]
 [ApiController]
-public class TripController{
-    private readonly TripService _tripService;
+public class TripController : ControllerBase
+{
+    private readonly TripService _tripService_;
 
     public TripController(TripService tripService)
     {
-        _tripService = tripService;
+        _tripService_ = tripService;
     }
 
     [HttpGet]
     [Route(nameof(GetAllTrips))]
-    public async Task<List<TripDto>> GetAllTrips(CancellationToken cancellationToken)
+    public async Task<ActionResult<List<TripDto>>> GetAllTrips(CancellationToken cancellationToken)
     {
-        return await _tripService.GetAllAsync(cancellationToken);
+        var userId = HttpContextExtensions.GetUserId(HttpContext);
+        if (userId == null) return Unauthorized("User not found");
+        return await _tripService_.GetAllAsync(userId.Value, cancellationToken);
     }
 
     [HttpGet]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(GetTripById))]
-    public async Task<TripDto?> GetTripById(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult<TripDto?>> GetTripById(int tripId, CancellationToken cancellationToken)
     {
-        return await _tripService.GetAsync(id, cancellationToken);
+        return await _tripService_.GetAsync(tripId, cancellationToken);
     }
 
     [HttpPost]
     [Route(nameof(CreateTrip))]
-    public async Task CreateTrip(TripDto trip, CancellationToken cancellationToken)
+    public async Task<ActionResult> CreateTrip(TripDto trip, CancellationToken cancellationToken)
     {
-        await _tripService.CreateAsync(trip, cancellationToken);
+        var userId = HttpContextExtensions.GetUserId(HttpContext);
+        if (userId == null) return Unauthorized("User not found");
+        await _tripService_.CreateAsync(userId.Value, trip, cancellationToken);
+        return Ok();
     }
 
     [HttpPut]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(UpdateTrip))]
-    public async Task UpdateTrip(TripDto trip, CancellationToken cancellationToken)
+    public async Task<ActionResult> UpdateTrip(int tripId, TripDto trip, CancellationToken cancellationToken)
     {
-        await _tripService.UpdateAsync(trip, cancellationToken);
+        await _tripService_.UpdateAsync(trip, cancellationToken);
+        return Ok();
     }
 
     [HttpDelete]
+    [ServiceFilter(typeof(TripAccessFilterAttribute))]
     [Route(nameof(DeleteTrip))]
-    public async Task DeleteTrip(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult> DeleteTrip(int tripId, CancellationToken cancellationToken)
     {
-        await _tripService.DeleteTripAsync(id, cancellationToken);
+        await _tripService_.DeleteTripAsync(tripId, cancellationToken);
+        return Ok();
     }
 }

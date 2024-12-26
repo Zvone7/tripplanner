@@ -33,10 +33,17 @@ public class OptionRepository
         await db.ExecuteAsync(sqlQuery, option);
     }
 
+    public async Task UpdateLightAsync(TripOptionDbm option, CancellationToken cancellationToken)
+    {
+        using IDbConnection db = new SqlConnection(_connectionString_);
+        var sqlQuery = "UPDATE TripOption SET name = @name WHERE id = @id";
+        await db.ExecuteAsync(sqlQuery, option);
+    }
+    
     public async Task UpdateAsync(TripOptionDbm option, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
-        var sqlQuery = "UPDATE TripOption SET trip_id = @trip_id, name = @name, start_datetime_utc = @start_datetime_utc, end_datetime_utc = @end_datetime_utc, total_cost = @total_cost WHERE id = @id";
+        var sqlQuery = "UPDATE TripOption SET name = @name, start_datetime_utc = @start_datetime_utc, end_datetime_utc = @end_datetime_utc, total_cost = @total_cost WHERE id = @id";
         await db.ExecuteAsync(sqlQuery, option);
     }
 

@@ -1,5 +1,9 @@
 using Application.Services;
+using Db.Repositories;
 using Domain.Settings;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Web.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,10 +16,40 @@ builder.Services.AddSingleton(appSettings);
 builder.Services.AddScoped<TripRepository>();
 builder.Services.AddScoped<OptionRepository>();
 builder.Services.AddScoped<SegmentRepository>();
+builder.Services.AddScoped<UserRepository>();
+builder.Services.Configure<AntiforgeryOptions>(config =>
+{
+    config.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+});
 
 builder.Services.AddScoped<TripService>();
 builder.Services.AddScoped<OptionService>();
 builder.Services.AddScoped<SegmentService>();
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<TripAccessFilterAttribute>();
+
+builder.Services.Configure<CookiePolicyOptions>(options =>
+{
+    options.MinimumSameSitePolicy = SameSiteMode.Lax;
+    options.Secure = CookieSecurePolicy.Always;
+});
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/";
+        options.LogoutPath = "/api/Account/Logout";
+        options.ExpireTimeSpan = TimeSpan.FromDays(7);
+        options.SlidingExpiration = true;
+        options.CookieManager = new ChunkingCookieManager();
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    })
+    .AddGoogle(options =>
+    {
+        options.ClientId = appSettings.GoogleAuthSettings.ClientId;
+        options.ClientSecret = appSettings.GoogleAuthSettings.ClientSecret;
+        options.CallbackPath = "/signin-google";
+    });
 
 builder.Services.AddControllersWithViews();
 
@@ -23,9 +57,11 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
         builder => builder
-            .WithOrigins("http://localhost:3000")
+            .WithOrigins("http://localhost:3000", "https://localhost:7048", "http://localhost:5156")
+            .AllowCredentials()
             .AllowAnyMethod()
-            .AllowAnyHeader());
+            .AllowAnyHeader()
+    );
 });
 
 var app = builder.Build();
@@ -39,11 +75,14 @@ if (!app.Environment.IsDevelopment())
 }
 app.UseCors("AllowFrontend");
 
+#if !DEBUG
 app.UseHttpsRedirection();
+#endif
 app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(
