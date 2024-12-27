@@ -21,5 +21,5 @@ RUN dotnet publish TripPlanner/Web/Web.csproj -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
-COPY --from=frontend-builder /app/out ./wwwroot
+COPY --from=frontend-builder /app/.next ./wwwroot
 ENTRYPOINT ["dotnet", "TripPlanner.dll"]
