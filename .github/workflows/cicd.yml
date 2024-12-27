@@ -26,16 +26,16 @@ jobs:
 
     - name: Log in to ACR
       run: |
-        az acr login --name <your-acr-name>
+        az acr login --name ${{ secrets.ACR_NAME }}
 
     - name: Build and Push Docker Image
       run: |
-        docker build -t <your-acr-name>.azurecr.io/myapp:latest .
-        docker push <your-acr-name>.azurecr.io/myapp:latest
+        docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/myapp:latest .
+        docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner:latest
 
     - name: Deploy to Azure Container Apps
       run: |
         az containerapp update \
-          --name myapp \
-          --resource-group <your-resource-group> \
-          --image <your-acr-name>.azurecr.io/myapp:latest
+          --name tripplanner \
+          --resource-group ${{ secrets.RESOURCE_GROUP_NAME }} \
+          --image ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner:latest
