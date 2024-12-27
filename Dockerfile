@@ -14,8 +14,8 @@ EXPOSE 80
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY backend/ .
-RUN dotnet restore
-RUN dotnet publish -c Release -o /app/publish
+RUN dotnet restore TripPlanner/Web/Web.csproj
+RUN dotnet publish TripPlanner/Web/Web.csproj -c Release -o /app/publish
 
 # Stage 3: Combine frontend and backend
 FROM base AS final
