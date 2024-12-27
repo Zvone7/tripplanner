@@ -30,7 +30,7 @@ jobs:
 
     - name: Build and Push Docker Image
       run: |
-        docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/myapp:latest .
+        docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner:latest .
         docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner:latest
 
     - name: Deploy to Azure Container Apps
