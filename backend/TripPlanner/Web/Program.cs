@@ -94,7 +94,11 @@ app.UseCors("AllowFrontend");
 #if !DEBUG
 app.UseHttpsRedirection();
 #endif
-app.UseStaticFiles();
+
+app.UseDefaultFiles();
+app.UseStaticFiles(); // Serves Next.js build files
+app.MapFallbackToFile("index.html"); // Fallback for SPA routes
+
 
 app.UseRouting();
 

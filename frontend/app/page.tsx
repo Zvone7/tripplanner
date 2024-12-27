@@ -6,7 +6,8 @@ export default async function Home() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gray-100">
       <h1 className="text-4xl font-bold mb-4">Trip Planner</h1>
-      <p className="text-xl mb-8">Page used for trip planning</p>
+      <p className="text-xl mb-8">Page used for trip planning.  </p>
+      <p>This site is using cookies. Site in development. Use at own responsibility.</p>
       <a
         href="/api/Account/Login"
         className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
