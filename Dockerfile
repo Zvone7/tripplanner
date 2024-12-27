@@ -16,7 +16,9 @@ WORKDIR /src
 COPY backend/ .
 RUN dotnet restore TripPlanner/Web/Web.csproj
 # ignore warning CS8618 - non nullable properties are not initialized
-RUN dotnet publish TripPlanner/Web/Web.csproj -c Release -o /app/publish /p:NoWarn=CS8618
+# ignore warning CS8602 - possible dereference of a null reference
+# ignore warning CS8604 - possible null reference argument
+RUN dotnet publish TripPlanner/Web/Web.csproj -c Release -o /app/publish /p:NoWarn=CS8618 /p:NoWarn=CS8602 /p:NoWarn=CS8604
 
 # Stage 3: Combine frontend and backend
 FROM base AS final
