@@ -15,7 +15,8 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY backend/ .
 RUN dotnet restore TripPlanner/Web/Web.csproj
-RUN dotnet publish TripPlanner/Web/Web.csproj -c Release -o /app/publish
+# ignore warning CS8618 - non nullable properties are not initialized
+RUN dotnet publish TripPlanner/Web/Web.csproj -c Release -o /app/publish /p:NoWarn=CS8618
 
 # Stage 3: Combine frontend and backend
 FROM base AS final

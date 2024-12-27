@@ -30,12 +30,17 @@ jobs:
 
     - name: Build and Push Docker Image
       run: |
-        docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner:latest .
+        BUILD_NUMBER=${{ github.run_number }}
+
+        docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner:latest \
+                     -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner:$BUILD_NUMBER .
+
         docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner:latest
+        docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner:$BUILD_NUMBER
 
     - name: Deploy to Azure Container Apps
       run: |
         az containerapp update \
-          --name tripplanner \
+          --name tripplanner-dev \
           --resource-group ${{ secrets.RESOURCE_GROUP_NAME }} \
           --image ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner:latest
