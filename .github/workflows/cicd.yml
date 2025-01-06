@@ -9,10 +9,10 @@ on:
 jobs:
   ci:
     name: Continuous Integration
-    uses: ./.github/workflows/templates/ci-template.yml
+    uses: ./.github/workflows/ci-template.yml
 
   cd:
     name: Continuous Deployment
     needs: ci
-    uses: ./.github/workflows/templates/cd-template.yml
+    uses: ./.github/workflows/cd-template.yml
     secrets: inherit
