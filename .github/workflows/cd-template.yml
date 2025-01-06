@@ -1,4 +1,4 @@
-name: CD Template
+name: CD
 
 on:
   workflow_call:

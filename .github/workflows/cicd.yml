@@ -8,11 +8,12 @@ on:
 
 jobs:
   ci:
-    name: Continuous Integration
+    name: Build
     uses: ./.github/workflows/ci-template.yml
+    secrets: inherit
 
   cd:
-    name: Continuous Deployment
+    name: Deploy
     needs: ci
     uses: ./.github/workflows/cd-template.yml
     secrets: inherit
