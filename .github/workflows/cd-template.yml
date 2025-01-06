@@ -2,6 +2,13 @@ name: CD
 
 on:
   workflow_call:
+    inputs:
+      BuildNumber:
+        type: string
+        description: 'Build number to deploy (e.g., latest or a specific tag)'
+        required: false
+        default: 'latest'
+
 
 jobs:
   deploy:
