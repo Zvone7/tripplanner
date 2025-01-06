@@ -22,5 +22,5 @@ jobs:
     needs: ci
     uses: ./.github/workflows/cd-template.yml
     with:
-      BuildNumber: ${{ github.event.inputs.BuildNumber || github.run_number }} 
+      BuildNumber: ${{ github.event.inputs.BuildNumber || github.run_number || 'latest' }} 
     secrets: inherit
