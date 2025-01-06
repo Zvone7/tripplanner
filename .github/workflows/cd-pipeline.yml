@@ -13,7 +13,7 @@ on:
 
 jobs:
   cd:
-    name: Continuous Deployment
+    name: Deploy
     uses: ./.github/workflows/cd-template.yml  # Use the cd-template.yml
     with:
       BuildNumber: ${{ github.event.inputs.BuildNumber }}  # Pass the BuildNumber input to the template
