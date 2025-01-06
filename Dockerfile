@@ -9,7 +9,7 @@ RUN npm run build
 # Stage 2: Build backend
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
-EXPOSE 80
+EXPOSE 5156
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
@@ -25,4 +25,10 @@ FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 COPY --from=frontend-builder /app/.next ./wwwroot
+
+
+# Expose Next.js frontend port
+# For the frontend
+EXPOSE 3000  
+
 ENTRYPOINT ["dotnet", "TripPlanner.dll"]

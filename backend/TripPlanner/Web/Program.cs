@@ -26,6 +26,7 @@ Console.WriteLine($"{DateTime.UtcNow}|Keyvault loaded");
 #endif
 var appSettings = new AppSettings();
 builder.Configuration.GetSection("AppSettings").Bind(appSettings);
+builder.WebHost.UseUrls("http://0.0.0.0:5156");
 
 builder.Services.AddSingleton(appSettings);
 Console.WriteLine($"{DateTime.UtcNow}|DI Started");
