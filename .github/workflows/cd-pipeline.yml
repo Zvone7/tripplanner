@@ -1,0 +1,17 @@
+name: Deploy workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      BuildNumber:
+        description: 'Build number to deploy (e.g., latest or a specific tag)'
+        required: false
+        default: 'latest'  # Default value
+
+jobs:
+  cd:
+    name: Continuous Deployment
+    uses: ./.github/workflows/templates/cd-template.yml  # Use the cd-template.yml
+    with:
+      BuildNumber: ${{ github.event.inputs.BuildNumber }}  # Pass the BuildNumber input to the template
+    secrets: inherit  # Inherit secrets from the parent workflow

@@ -29,7 +29,7 @@ jobs:
         az webapp config container set \
           --name ${{ secrets.DEV_WEB_APP_NAME }} \
           --resource-group ${{ secrets.RESOURCE_GROUP_NAME }} \
-          --container-image-name ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner:$BUILD_NUMBER \
+          --container-image-name ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner:${{ inputs.BuildNumber }} \
           --container-registry-url https://${{ secrets.ACR_NAME }}.azurecr.io
 
     - name: Restart Azure Web App
