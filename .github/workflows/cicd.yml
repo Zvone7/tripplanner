@@ -39,9 +39,10 @@ jobs:
         docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner:latest
         docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner:$BUILD_NUMBER
 
-    - name: Deploy to Azure Container Apps
+    - name: Deploy to Azure Web App (Docker)
       run: |
-        az containerapp update \
-          --name tripplanner-dev \
+        az webapp config container set \
+          --name ${{ secrets.DEV_WEB_APP_NAME }} \
           --resource-group ${{ secrets.RESOURCE_GROUP_NAME }} \
-          --image ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner:latest
+          --docker-custom-image-name ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner:latest \
+          --docker-registry-server-url https://${{ secrets.ACR_NAME }}.azurecr.io
