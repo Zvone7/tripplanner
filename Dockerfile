@@ -31,4 +31,4 @@ COPY --from=frontend-builder /app/.next ./wwwroot
 # For the frontend
 EXPOSE 3000  
 
-ENTRYPOINT ["dotnet", "TripPlanner.dll"]
+ENTRYPOINT ["dotnet", "Web.dll"]
