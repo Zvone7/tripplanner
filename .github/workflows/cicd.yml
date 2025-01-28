@@ -1,9 +1,9 @@
 name: Build and Deploy Workflow
 
 on:
-  # push:
-  #   branches:
-  #     - feature/cicd
+  push:
+    branches:
+      - feature/cicd
   workflow_dispatch:
     inputs:
       BuildNumber:
