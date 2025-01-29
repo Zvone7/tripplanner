@@ -27,8 +27,9 @@ public class AccountController : Controller
     [HttpGet("Login")]
     public IActionResult Login()
     {
-        var redirectUrl = Url.Action(nameof(GoogleResponse), "Account");
-        // var redirectUrl = $"{Request.Scheme}://{Request.Host}/api/account/googleresponse";
+        // var redirectUrl = Url.Action(nameof(GoogleResponse), "Account", Request.Scheme);
+        var redirectUrl = $"{_appSettings_.BackendRootUrl}api/account/googleresponse";
+        Console.WriteLine($"Will redirect google login to {redirectUrl}");
 
         var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
         properties.AllowRefresh = true;

@@ -21,7 +21,8 @@
         "CLIENT_ID": "",
         "CLIENT_SECRET": "",
         "TENANT_ID": "",
-        "FRONTEND_ROOT_URL": ""
+        "FRONTEND_ROOT_URL": "",
+        "BACKEND_ROOT_URL": ""
       }
     }
   }

@@ -4,6 +4,7 @@ public class AppSettings
 {
     public string DbConnString { get; set; }
     public string FrontendRootUrl { get; set; }
+    public string BackendRootUrl { get; set; }
     public string FrontendRouteTrips { get; set; }
     public GoogleAuthSettings GoogleAuthSettings { get; set; }
 }

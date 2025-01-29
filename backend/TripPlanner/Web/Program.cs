@@ -27,6 +27,7 @@ public class Program
         builder.Configuration.AddJsonFile("appsettings.json", optional: false);
         Console.WriteLine($"{DateTime.UtcNow}|appsettings loaded");
         var frontendRootUrl = "not_set";
+        var backendRootUrl = "not_set";
 
 #if DEBUG
         builder.Configuration.AddJsonFile("appsettings.Development.json", optional: true);
@@ -36,9 +37,12 @@ public class Program
 #endif
 
         frontendRootUrl = builder.Configuration["FRONTEND_ROOT_URL"];
+        backendRootUrl = builder.Configuration["BACKEND_ROOT_URL"];
         var appSettings = new AppSettings();
-        appSettings.FrontendRootUrl = frontendRootUrl;
         Console.WriteLine($"{DateTime.UtcNow}|Using frontendRootUrl: {frontendRootUrl}");
+        Console.WriteLine($"{DateTime.UtcNow}|Using backendRootUrl: {backendRootUrl}");
+        appSettings.FrontendRootUrl = frontendRootUrl;
+        appSettings.BackendRootUrl = backendRootUrl;
         builder.Configuration.GetSection("AppSettings").Bind(appSettings);
         builder.Services.AddSingleton(appSettings);
         Console.WriteLine($"{DateTime.UtcNow}|AppSettings singleton created");
