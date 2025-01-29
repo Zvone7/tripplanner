@@ -1,7 +1,10 @@
 import { TestApiButton } from './components/TestApiButton'
 import { Toaster } from "./components/ui/toaster"
+import { getServerStartTime } from './lib/serverTime'
 
 export default function Home() {
+  const serverStartTime = getServerStartTime()
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gray-100">
       <h1 className="text-4xl font-bold mb-4">Trip Planner</h1>
@@ -17,6 +20,9 @@ export default function Home() {
         View my trips
       </a>
       <TestApiButton />
+      <p className="mt-4 text-sm text-gray-500">
+        {serverStartTime} UTC
+      </p>
       <Toaster />
     </div>
   );
