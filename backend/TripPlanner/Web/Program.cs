@@ -1,4 +1,5 @@
 using Application.Services;
+using Azure.Security.KeyVault.Secrets;
 using Db.Repositories;
 using Domain.Settings;
 using Microsoft.AspNetCore.Antiforgery;
@@ -20,15 +21,21 @@ Console.WriteLine($"{DateTime.UtcNow}|appsettings.dev loaded");
 #else
 var keyVaultName = builder.Configuration["KeyVaultName"];
 var keyvaultUri = new Uri($"https://{keyVaultName}.vault.azure.net/");
+var tenantId = builder.Configuration["TENANT_ID"];
+var clientId = builder.Configuration["CLIENT_ID"];
+var clientSecret = builder.Configuration["CLIENT_SECRET"];
+var clientSecretCredential = new ClientSecretCredential(tenantId, clientId, clientSecret);
+
 Console.WriteLine($"{DateTime.UtcNow}|Using keyvault {keyVaultName}");
-builder.Configuration.AddAzureKeyVault(keyvaultUri, new DefaultAzureCredential());
+builder.Configuration.AddAzureKeyVault(keyvaultUri, clientSecretCredential);
 Console.WriteLine($"{DateTime.UtcNow}|Keyvault loaded");
 #endif
 var appSettings = new AppSettings();
 builder.Configuration.GetSection("AppSettings").Bind(appSettings);
+builder.Services.AddSingleton(appSettings);
+Console.WriteLine($"{DateTime.UtcNow}|AppSettings bound");
 builder.WebHost.UseUrls("http://0.0.0.0:5156");
 
-builder.Services.AddSingleton(appSettings);
 Console.WriteLine($"{DateTime.UtcNow}|DI Started");
 builder.Services.AddScoped<TripRepository>();
 builder.Services.AddScoped<OptionRepository>();
