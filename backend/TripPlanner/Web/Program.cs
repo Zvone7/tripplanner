@@ -34,7 +34,9 @@ var appSettings = new AppSettings();
 builder.Configuration.GetSection("AppSettings").Bind(appSettings);
 builder.Services.AddSingleton(appSettings);
 Console.WriteLine($"{DateTime.UtcNow}|AppSettings bound");
+#if !DEBUG
 builder.WebHost.UseUrls("http://0.0.0.0:5156");
+#endif
 
 Console.WriteLine($"{DateTime.UtcNow}|DI Started");
 builder.Services.AddScoped<TripRepository>();
@@ -81,7 +83,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
         builder => builder
-            .WithOrigins("http://localhost:3000", "https://localhost:7048", "http://localhost:5156")
+            .WithOrigins("http://localhost:3000", "https://localhost:7048", "http://localhost:5156", "http://localhost:80")
             .AllowCredentials()
             .AllowAnyMethod()
             .AllowAnyHeader()
@@ -100,7 +102,7 @@ if (!app.Environment.IsDevelopment())
 app.UseCors("AllowFrontend");
 
 #if !DEBUG
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 #endif
 
 app.UseDefaultFiles();
