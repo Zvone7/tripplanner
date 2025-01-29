@@ -35,7 +35,7 @@ public class Program
         LoadKeyVault(builder);
 #endif
 
-        frontendRootUrl = builder.Configuration["FRONTED_ROOT_URL"];
+        frontendRootUrl = builder.Configuration["FRONTEND_ROOT_URL"];
         var appSettings = new AppSettings();
         appSettings.FrontendRootUrl = frontendRootUrl;
         Console.WriteLine($"{DateTime.UtcNow}|Using frontendRootUrl: {frontendRootUrl}");
