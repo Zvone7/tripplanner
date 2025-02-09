@@ -10,6 +10,11 @@ RUN npm run build
 FROM node:18 AS final
 WORKDIR /app/frontend
 COPY --from=frontend-builder /app/frontend /app/frontend
+
+ENV NEXT_PUBLIC_BACKEND_ROOT_URL=${NEXT_PUBLIC_BACKEND_ROOT_URL}
+ENV NEXT_PUBLIC_FRONTEND_ROOT_URL=${NEXT_PUBLIC_FRONTEND_ROOT_URL}
+
+
 RUN npm install --omit=dev
 EXPOSE 3000
 

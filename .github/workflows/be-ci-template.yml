@@ -34,9 +34,9 @@ jobs:
       run: |
         BUILD_NUMBER=${{ inputs.BuildNumber }}
 
-        docker build -t ${{ env.ACR_NAME }}.azurecr.io/tripplanner/be:latest \
-                      -t ${{ env.ACR_NAME }}.azurecr.io/tripplanner/be:$BUILD_NUMBER \
+        docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:latest \
+                      -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:$BUILD_NUMBER \
                       -f Dockerfile.be .
 
-        docker push ${{ env.ACR_NAME }}.azurecr.io/tripplanner/be:latest
-        docker push ${{ env.ACR_NAME }}.azurecr.io/tripplanner/be:$BUILD_NUMBER
+        docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:latest
+        docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:$BUILD_NUMBER
