@@ -4,7 +4,8 @@ import { getServerStartTime } from './lib/serverTime'
 
 export default function Home() {
   const serverStartTime = getServerStartTime();
-  const apiBaseUrl = process.env.FRONTEND_ROOT_URL;
+  const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_ROOT_URL;
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_ROOT_URL;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gray-100">
@@ -25,7 +26,10 @@ export default function Home() {
         {serverStartTime} UTC
       </p>
       <p className="mt-4 text-sm text-gray-500">
-        FrontedUrL {apiBaseUrl}
+        FrontedUrL {frontendUrl}
+      </p>
+      <p className="mt-4 text-sm text-gray-500">
+        BackendUrL {backendUrl}
       </p>
       <Toaster />
     </div>

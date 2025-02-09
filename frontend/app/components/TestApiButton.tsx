@@ -10,7 +10,8 @@ export function TestApiButton() {
   const handleClick = async () => {
     setIsLoading(true)
     console.log(process.env);
-    console.log(process.env.NEXT_PUBLIC_BACKEND_ROOT_URL);
+    console.log("be_"+process.env.NEXT_PUBLIC_BACKEND_ROOT_URL);
+    console.log("fe_"+process.env.NEXT_PUBLIC_FRONTEND_ROOT_URL);
     try {
       const response = await fetch('/api/home/test1', {
         method: 'GET',
