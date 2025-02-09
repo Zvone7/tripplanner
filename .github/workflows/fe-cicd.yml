@@ -1,9 +1,10 @@
-name: Build and Deploy Workflow
+name: '[FE] Build and Deploy Workflow'
 
 on:
   push:
     branches:
-      - feature/cicd
+      # - feature/cicd
+      - release-fe
   workflow_dispatch:
     inputs:
       BuildNumber:

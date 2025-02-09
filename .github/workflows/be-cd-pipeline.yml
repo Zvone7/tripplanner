@@ -1,9 +1,10 @@
-name: Deploy workflow
+name: '[BE] Deploy workflow'
 
 on:
   push:
     branches:
-    - feature/cicd
+    # - feature/cicd
+    - test-be-deploy
   workflow_dispatch:
     inputs:
       BuildNumber:
