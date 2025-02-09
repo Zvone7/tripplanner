@@ -5,7 +5,7 @@ import { getServerStartTime } from './lib/serverTime'
 export default function Home() {
   const serverStartTime = getServerStartTime();
   const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_ROOT_URL;
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_ROOT_URL;
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_ROOT_URL || "https://dev-wapp-tripplanner-be-e9eyezate0caefes.northeurope-01.azurewebsites.net";
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gray-100">
