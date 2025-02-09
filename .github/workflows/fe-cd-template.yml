@@ -1,0 +1,44 @@
+name: CD
+
+on:
+  workflow_call:
+    inputs:
+      BuildNumber:
+        type: string
+        description: 'Build number to deploy (e.g., latest or a specific tag)'
+        required: false
+        default: 'latest'
+
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: |
+          {
+            "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+            "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+            "tenantId": "${{ secrets.AZURE_TENANT_ID }}",
+            "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          }
+
+    - name: Log in to ACR
+      run: |
+        az acr login --name ${{ secrets.ACR_NAME }}
+
+    - name: Deploy to Azure Web App (Docker)
+      run: |
+        az webapp config container set \
+          --name ${{ secrets.DEV_WEB_APP_FE_NAME }} \
+          --resource-group ${{ secrets.RESOURCE_GROUP_NAME }} \
+          --container-image-name ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/fe:${{ inputs.BuildNumber }} \
+          --container-registry-url https://${{ secrets.ACR_NAME }}.azurecr.io
+
+    - name: Restart Azure Web App
+      run: |
+        az webapp restart --name ${{ secrets.DEV_WEB_APP_FE_NAME }} --resource-group ${{ secrets.RESOURCE_GROUP_NAME }}

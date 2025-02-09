@@ -34,11 +34,11 @@ jobs:
     - name: Deploy to Azure Web App (Docker)
       run: |
         az webapp config container set \
-          --name ${{ secrets.DEV_WEB_APP_NAME }} \
+          --name ${{ secrets.DEV_WEB_APP_BE_NAME }} \
           --resource-group ${{ secrets.RESOURCE_GROUP_NAME }} \
-          --container-image-name ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner:${{ inputs.BuildNumber }} \
+          --container-image-name ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:${{ inputs.BuildNumber }} \
           --container-registry-url https://${{ secrets.ACR_NAME }}.azurecr.io
 
     - name: Restart Azure Web App
       run: |
-        az webapp restart --name ${{ secrets.DEV_WEB_APP_NAME }} --resource-group ${{ secrets.RESOURCE_GROUP_NAME }}
+        az webapp restart --name ${{ secrets.DEV_WEB_APP_BE_NAME }} --resource-group ${{ secrets.RESOURCE_GROUP_NAME }}

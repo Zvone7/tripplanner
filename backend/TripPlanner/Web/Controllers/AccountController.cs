@@ -40,10 +40,15 @@ public class AccountController : Controller
     [HttpGet("GoogleResponse")]
     public async Task<IActionResult> GoogleResponse(CancellationToken cancellationToken = default)
     {
+        Console.WriteLine($"Received google response!");
         var authenticateResult = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
         if (!authenticateResult.Succeeded)
+        {
+            Console.WriteLine($"Unsucesful auth tho.");
             return Redirect(_redirectUrl_);
+        }
+        Console.WriteLine($"Successfull auth.");
 
         // Extract user information from claims
         var claims = authenticateResult.Principal.Identities

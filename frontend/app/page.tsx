@@ -3,7 +3,8 @@ import { Toaster } from "./components/ui/toaster"
 import { getServerStartTime } from './lib/serverTime'
 
 export default function Home() {
-  const serverStartTime = getServerStartTime()
+  const serverStartTime = getServerStartTime();
+  const apiBaseUrl = process.env.FRONTEND_ROOT_URL;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gray-100">
@@ -22,6 +23,9 @@ export default function Home() {
       <TestApiButton />
       <p className="mt-4 text-sm text-gray-500">
         {serverStartTime} UTC
+      </p>
+      <p className="mt-4 text-sm text-gray-500">
+        FrontedUrL {apiBaseUrl}
       </p>
       <Toaster />
     </div>

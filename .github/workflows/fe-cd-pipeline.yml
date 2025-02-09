@@ -1,0 +1,21 @@
+name: Deploy workflow
+
+on:
+  push:
+    branches:
+    - feature/cicd
+  workflow_dispatch:
+    inputs:
+      BuildNumber:
+        type: string
+        description: 'Build number to deploy (e.g., latest or a specific tag)'
+        required: false
+        default: 'latest'
+
+jobs:
+  cd:
+    name: Deploy
+    uses: ./.github/workflows/cd-template.yml  # Use the cd-template.yml
+    with:
+      BuildNumber: ${{ github.event.inputs.BuildNumber || 'latest' }} 
+    secrets: inherit

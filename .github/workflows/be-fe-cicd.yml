@@ -1,0 +1,26 @@
+name: Build and Deploy Workflow
+
+on:
+  push:
+    branches:
+      - feature/cicd
+  workflow_dispatch:
+    inputs:
+      BuildNumber:
+        description: 'Build number to deploy (e.g., latest or a specific tag). Default is GitHub build number.'
+        required: false
+        default: 'latest'
+
+jobs:
+  ci:
+    name: Build
+    uses: ./.github/workflows/be-ci-template.yml
+    secrets: inherit
+
+  cd:
+    name: Deploy
+    needs: ci
+    uses: ./.github/workflows/be-cd-template.yml
+    with:
+      BuildNumber: ${{ github.event.inputs.BuildNumber || github.run_number || 'latest' }} 
+    secrets: inherit
