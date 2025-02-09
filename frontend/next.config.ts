@@ -1,14 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async rewrites() {
+    const backendUrl = process.env.BACKEND_URL || "http://localhost:5156";
+
     return [
       {
-        source: '/api/account/googleresponse', 
-        destination: `${process.env.BACKEND_ROOT_URL}/api/account/googleresponse`,
+        source: "/api/account/googleresponse",
+        destination: `${backendUrl}/api/account/googleresponse`,
       },
       {
-        source: '/api/:path*',
-        destination: `${process.env.BACKEND_ROOT_URL}/api/:path*`, // Proxy to backend
+        source: "/api/:path*",
+        destination: `${backendUrl}/api/:path*`, // Proxy to backend
       },
     ];
   },
