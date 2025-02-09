@@ -11,11 +11,18 @@ on:
         description: 'Build number to deploy (e.g., latest or a specific tag). Default is GitHub build number.'
         required: false
         default: 'latest'
+      Environment:
+        description: 'Deployment environment (dev, prod)'
+        required: false
+        default: 'dev'
 
 jobs:
   ci:
     name: Build
     uses: ./.github/workflows/be-ci-template.yml
+    with:
+      BuildNumber: ${{ github.event.inputs.BuildNumber || github.run_number || 'latest' }}
+      Environment: ${{ github.event.inputs.Environment || 'dev' }}
     secrets: inherit
 
   cd:
@@ -23,5 +30,6 @@ jobs:
     needs: ci
     uses: ./.github/workflows/be-cd-template.yml
     with:
-      BuildNumber: ${{ github.event.inputs.BuildNumber || github.run_number || 'latest' }} 
+      BuildNumber: ${{ github.event.inputs.BuildNumber || github.run_number || 'latest' }}
+      Environment: ${{ github.event.inputs.Environment || 'dev' }}  # ✅ Pass the environment to CD workflow
     secrets: inherit
