@@ -31,5 +31,5 @@ jobs:
     uses: ./.github/workflows/be-cd-template.yml
     with:
       BuildNumber: ${{ github.event.inputs.BuildNumber || github.run_number || 'latest' }}
-      Environment: ${{ github.event.inputs.Environment || 'dev' }}  # ✅ Pass the environment to CD workflow
+      Environment: ${{ github.event.inputs.Environment || 'dev' }} 
     secrets: inherit
