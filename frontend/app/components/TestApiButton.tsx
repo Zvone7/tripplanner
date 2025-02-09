@@ -10,7 +10,8 @@ export function TestApiButton() {
   const handleClick = async () => {
     setIsLoading(true)
     console.log(process.env);
-    console.log("be_"+process.env.NEXT_PUBLIC_BACKEND_ROOT_URL);
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_ROOT_URL || "https://dev-wapp-tripplanner-be-e9eyezate0caefes.northeurope-01.azurewebsites.net";
+    console.log("be_"+backendUrl);
     console.log("fe_"+process.env.NEXT_PUBLIC_FRONTEND_ROOT_URL);
     try {
       const response = await fetch('/api/home/test1', {
