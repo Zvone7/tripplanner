@@ -26,13 +26,13 @@ jobs:
       run: |
         az acr login --name ${{ secrets.ACR_NAME }}
 
-        - name: Build and Push Frontend Docker Image
-        run: |
-          BUILD_NUMBER=${{ github.run_number }}
-  
-          docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/fe:latest \
-                       -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/fe:$BUILD_NUMBER \
-                       -f Dockerfile.fe .
-  
-          docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/fe:latest
-          docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/fe:$BUILD_NUMBER
+    - name: Build and Push Frontend Docker Image
+      run: |
+        BUILD_NUMBER=${{ github.run_number }}
+
+        docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/fe:latest \
+                      -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/fe:$BUILD_NUMBER \
+                      -f Dockerfile.fe .
+
+        docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/fe:latest
+        docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/fe:$BUILD_NUMBER
