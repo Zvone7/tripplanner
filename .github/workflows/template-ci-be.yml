@@ -30,13 +30,22 @@ jobs:
             "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           }
 
+    - name: Set Environment Variables
+      run: |
+        echo "ACR_NAME=${{ vars.ACR_NAME }}" >> $GITHUB_ENV
+        echo "NEXT_PUBLIC_BACKEND_ROOT_URL=${{ vars.NEXT_PUBLIC_BACKEND_ROOT_URL }}" >> $GITHUB_ENV
+        echo "NEXT_PUBLIC_FRONTEND_ROOT_URL=${{ vars.NEXT_PUBLIC_FRONTEND_ROOT_URL }}" >> $GITHUB_ENV
+        echo "API_URL=${{ vars.API_URL }}" >> $GITHUB_ENV
+
     - name: Build and Push Backend Docker Image
       run: |
         BUILD_NUMBER=${{ inputs.BuildNumber }}
-
-        docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:latest \
-                      -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:$BUILD_NUMBER \
+        
+        echo "Using ACR_NAME: $ACR_NAME"
+        
+        docker build -t $ACR_NAME.azurecr.io/tripplanner/be:latest \
+                      -t $ACR_NAME.azurecr.io/tripplanner/be:$BUILD_NUMBER \
                       -f Dockerfile.be .
 
-        docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:latest
-        docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:$BUILD_NUMBER
+        docker push $ACR_NAME.azurecr.io/tripplanner/be:latest
+        docker push $ACR_NAME.azurecr.io/tripplanner/be:$BUILD_NUMBER

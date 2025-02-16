@@ -3,7 +3,7 @@ name: '[BE] Build and Deploy Workflow'
 on:
   push:
     branches:
-      # - feature/cicd
+      - feature/cicd
       - release-be-dev
   workflow_dispatch:
     inputs:
@@ -31,5 +31,5 @@ jobs:
     uses: ./.github/workflows/template-cd-be.yml
     with:
       BuildNumber: ${{ github.event.inputs.BuildNumber || github.run_number || 'latest' }}
-      Environment: ${{ github.event.inputs.Environment || 'dev' }} 
+      Environment: ${{ github.event.inputs.Environment || 'dev' }}
     secrets: inherit
