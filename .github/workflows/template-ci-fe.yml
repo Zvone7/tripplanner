@@ -38,8 +38,6 @@ jobs:
 
     - name: Build and Push Frontend Docker Image
       run: |
-        BUILD_NUMBER=${{ github.run_number }}
-
         docker build -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:latest \
                       -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:${{ inputs.buildNumber }} \
                       --build-arg NEXT_PUBLIC_FRONTEND_ROOT_URL=https://your-frontend.com \

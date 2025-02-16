@@ -26,8 +26,6 @@ public class Program
         builder.Configuration.AddEnvironmentVariables();
         builder.Configuration.AddJsonFile("appsettings.json", optional: false);
         Console.WriteLine($"{DateTime.UtcNow}|appsettings loaded");
-        var frontendRootUrl = "not_set";
-        var backendRootUrl = "not_set";
 
 #if DEBUG
         builder.Configuration.AddJsonFile("appsettings.Development.json", optional: true);
@@ -35,24 +33,28 @@ public class Program
 #else
         LoadKeyVault(builder);
 #endif
-
-        frontendRootUrl = builder.Configuration["FRONTEND_ROOT_URL"];
-        backendRootUrl = builder.Configuration["BACKEND_ROOT_URL"];
-        var appSettings = new AppSettings();
-        Console.WriteLine($"{DateTime.UtcNow}|Using frontendRootUrl: {frontendRootUrl}");
-        Console.WriteLine($"{DateTime.UtcNow}|Using backendRootUrl: {backendRootUrl}");
-        appSettings.FrontendRootUrl = frontendRootUrl;
-        appSettings.BackendRootUrl = backendRootUrl;
-        appSettings.AppStartedUtc = DateTime.UtcNow;
-        appSettings.EnvCode = builder.Configuration["ENV_CODE"];
-        appSettings.BuildNumber = builder.Configuration["BUILD_NUMBER"];
-        builder.Configuration.GetSection("AppSettings").Bind(appSettings);
-        builder.Services.AddSingleton(appSettings);
-        Console.WriteLine($"{DateTime.UtcNow}|AppSettings singleton created");
+        var appSettings = InitializeAppSettings(builder);
 
 #if !DEBUG
         builder.WebHost.UseUrls("http://0.0.0.0:5156");
 #endif
+        return appSettings;
+    }
+    
+    private static AppSettings InitializeAppSettings(WebApplicationBuilder builder)
+    {
+        var appSettings = new AppSettings();
+        appSettings.FrontendRootUrl = builder.Configuration["FRONTEND_ROOT_URL"];
+        appSettings.BackendRootUrl = builder.Configuration["BACKEND_ROOT_URL"];
+        appSettings.AppStartedUtc = DateTime.UtcNow;
+        appSettings.EnvCode = builder.Configuration["ENV_CODE"];
+        appSettings.BuildNumber = builder.Configuration["BUILD_NUMBER"];
+        Console.WriteLine($"{DateTime.UtcNow}|env: {appSettings.EnvCode}, buildNumber: {appSettings.BuildNumber}");
+        Console.WriteLine($"{DateTime.UtcNow}|Using frontendRootUrl: {appSettings.FrontendRootUrl}");
+        Console.WriteLine($"{DateTime.UtcNow}|Using backendRootUrl: {appSettings.BackendRootUrl}");
+        builder.Configuration.GetSection("AppSettings").Bind(appSettings);
+        builder.Services.AddSingleton(appSettings);
+        Console.WriteLine($"{DateTime.UtcNow}|AppSettings singleton created");
         return appSettings;
     }
 
@@ -156,8 +158,8 @@ public class Program
 #endif
 
         app.UseDefaultFiles();
-        app.UseStaticFiles(); // Serves Next.js build files
-        app.MapFallbackToFile("index.html"); // Fallback for SPA routes
+        app.UseStaticFiles();// Serves Next.js build files
+        app.MapFallbackToFile("index.html");// Fallback for SPA routes
 
         app.UseRouting();
 
