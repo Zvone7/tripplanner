@@ -35,15 +35,12 @@ jobs:
     - name: Log in to ACR
       run: |
         az acr login --name ${{ vars.ACR_NAME }}
-        - name: Set Build Number
-        id: build_number
-        run: |
-          DATE=$(date +%Y%m%d)
-          echo "BUILD_NUMBER=${DATE}.${{ inputs.buildNumber }}" >> $GITHUB_ENV
-  
-    - name: Debug Build Number
+
+    - name: Set Build Number
+      id: build_number
       run: |
-        echo "Generated Build Number: $BUILD_NUMBER"
+        DATE=$(date +%Y%m%d)
+        echo "BUILD_NUMBER=${DATE}.${{ inputs.buildNumber }}" >> $GITHUB_ENV
 
     - name: Build and Push Backend Docker Image
       run: |

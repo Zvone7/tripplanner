@@ -34,12 +34,18 @@ jobs:
       run: |
         az acr login --name ${{ vars.ACR_NAME }}
 
+    - name: Set Build Number
+      id: build_number
+      run: |
+        DATE=$(date +%Y%m%d)
+        echo "BUILD_NUMBER=${DATE}.${{ inputs.buildNumber }}" >> $GITHUB_ENV
+
     - name: Deploy to Azure Web App (Docker)
       run: |
         az webapp config container set \
           --name ${{ vars.WEB_APP_FE_NAME }} \
           --resource-group ${{ vars.RESOURCE_GROUP_NAME }} \
-          --container-image-name ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:${{ inputs.buildNumber }} \
+          --container-image-name ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:$BUILD_NUMBER \
           --container-registry-url https://${{ vars.ACR_NAME }}.azurecr.io
 
     - name: Restart Azure Web App
