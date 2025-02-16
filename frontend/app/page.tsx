@@ -6,6 +6,8 @@ export default function Home() {
   const serverStartTime = getServerStartTime();
   const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_ROOT_URL;
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_ROOT_URL || "https://dev-wapp-tripplanner-be-e9eyezate0caefes.northeurope-01.azurewebsites.net";
+  const envCode = process.env.NEXT_PUBLIC_ENV_CODE;
+  const buildNumber = process.env.NEXT_PUBLIC_BUILD_NUMBER;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gray-100">
@@ -23,7 +25,7 @@ export default function Home() {
       </a>
       <TestApiButton />
       <p className="mt-4 text-sm text-gray-500">
-        {serverStartTime} UTC
+        started {serverStartTime} utc (env {envCode}, build {buildNumber})
       </p>
       <p className="mt-4 text-sm text-gray-500">
         FrontedUrL {frontendUrl}
