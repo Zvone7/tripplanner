@@ -30,5 +30,6 @@ jobs:
     needs: ci
     uses: ./.github/workflows/template-cd-fe.yml
     with:
-      BuildNumber: ${{ github.event.inputs.BuildNumber || github.run_number || 'latest' }} 
+      BuildNumber: ${{ github.event.inputs.BuildNumber || github.run_number || 'latest' }}
+      Environment: ${{ github.event.inputs.Environment || 'dev' }}
     secrets: inherit

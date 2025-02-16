@@ -2,18 +2,18 @@ name: '[BE] CI Template'
 
 on:
   workflow_call:
-    # inputs:
-    #   BuildNumber:
-    #     required: false
-    #     type: string
-    #   Environment:
-    #     required: false
-    #     type: string
+    inputs:
+      BuildNumber:
+        required: false
+        type: string
+      Environment:
+        required: false
+        type: string
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    # environment: ${{ inputs.Environment }}
+    environment: ${{ inputs.Environment }}
 
     steps:
     - name: Checkout Code
@@ -30,20 +30,20 @@ jobs:
             "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           }
 
-    # - name: Set Environment Variables
-    #   run: |
-    #     echo "ACR_NAME=${{ vars.ACR_NAME }}" >> $GITHUB_ENV
-    #     echo "NEXT_PUBLIC_BACKEND_ROOT_URL=${{ vars.NEXT_PUBLIC_BACKEND_ROOT_URL }}" >> $GITHUB_ENV
-    #     echo "NEXT_PUBLIC_FRONTEND_ROOT_URL=${{ vars.NEXT_PUBLIC_FRONTEND_ROOT_URL }}" >> $GITHUB_ENV
-    #     echo "API_URL=${{ vars.API_URL }}" >> $GITHUB_ENV
+    - name: Set Environment Variables
+      run: |
+        echo "ACR_NAME=${{ vars.ACR_NAME }}" >> $GITHUB_ENV
+        echo "NEXT_PUBLIC_BACKEND_ROOT_URL=${{ vars.NEXT_PUBLIC_BACKEND_ROOT_URL }}" >> $GITHUB_ENV
+        echo "NEXT_PUBLIC_FRONTEND_ROOT_URL=${{ vars.NEXT_PUBLIC_FRONTEND_ROOT_URL }}" >> $GITHUB_ENV
+        echo "API_URL=${{ vars.API_URL }}" >> $GITHUB_ENV
 
     - name: Build and Push Backend Docker Image
       run: |
         BUILD_NUMBER=${{ github.run_number }}
         
-        docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:latest \
-                      -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:$BUILD_NUMBER \
+        docker build -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/be:latest \
+                      -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/be:$BUILD_NUMBER \
                       -f Dockerfile.be .
 
-        docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:latest
-        docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:$BUILD_NUMBER
+        docker push ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/be:latest
+        docker push ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/be:$BUILD_NUMBER

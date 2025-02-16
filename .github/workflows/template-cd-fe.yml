@@ -1,18 +1,21 @@
-name: CD
+name: '[FE] CD Template'
 
 on:
   workflow_call:
     inputs:
       BuildNumber:
-        type: string
-        description: 'Build number to deploy (e.g., latest or a specific tag)'
         required: false
+        type: string
         default: 'latest'
-
+      Environment:
+        required: false
+        type: string
+        default: 'dev'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: ${{ inputs.Environment }}
 
     steps:
 
@@ -27,18 +30,25 @@ jobs:
             "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           }
 
+    - name: Set Environment Variables
+      run: |
+        echo "ACR_NAME=${{ vars.ACR_NAME }}" >> $GITHUB_ENV
+        echo "NEXT_PUBLIC_BACKEND_ROOT_URL=${{ vars.NEXT_PUBLIC_BACKEND_ROOT_URL }}" >> $GITHUB_ENV
+        echo "NEXT_PUBLIC_FRONTEND_ROOT_URL=${{ vars.NEXT_PUBLIC_FRONTEND_ROOT_URL }}" >> $GITHUB_ENV
+        echo "API_URL=${{ vars.API_URL }}" >> $GITHUB_ENV
+
     - name: Log in to ACR
       run: |
-        az acr login --name ${{ secrets.ACR_NAME }}
+        az acr login --name ${{ vars.ACR_NAME }}
 
     - name: Deploy to Azure Web App (Docker)
       run: |
         az webapp config container set \
-          --name ${{ secrets.DEV_WEB_APP_FE_NAME }} \
-          --resource-group ${{ secrets.RESOURCE_GROUP_NAME }} \
-          --container-image-name ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/fe:${{ inputs.BuildNumber }} \
-          --container-registry-url https://${{ secrets.ACR_NAME }}.azurecr.io
+          --name ${{ vars.WEB_APP_FE_NAME }} \
+          --resource-group ${{ vars.RESOURCE_GROUP_NAME }} \
+          --container-image-name ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:${{ inputs.BuildNumber }} \
+          --container-registry-url https://${{ vars.ACR_NAME }}.azurecr.io
 
     - name: Restart Azure Web App
       run: |
-        az webapp restart --name ${{ secrets.DEV_WEB_APP_FE_NAME }} --resource-group ${{ secrets.RESOURCE_GROUP_NAME }}
+        az webapp restart --name ${{ vars.WEB_APP_FE_NAME }} --resource-group ${{ secrets.RESOURCE_GROUP_NAME }}

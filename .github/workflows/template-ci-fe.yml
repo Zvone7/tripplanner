@@ -6,9 +6,11 @@ on:
       BuildNumber:
         required: false
         type: string
+        default: 'latest'
       Environment:
         required: false
         type: string
+        default: 'dev'
 
 jobs:
   build:
@@ -39,16 +41,16 @@ jobs:
 
     - name: Log in to ACR
       run: |
-        az acr login --name ${{ secrets.ACR_NAME }}
+        az acr login --name ${{ vars.ACR_NAME }}
 
     - name: Build and Push Frontend Docker Image
       run: |
         BUILD_NUMBER=${{ github.run_number }}
 
-        docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/fe:latest \
-                      -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/fe:$BUILD_NUMBER \
+        docker build -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:latest \
+                      -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:$BUILD_NUMBER \
                       --build-arg NEXT_PUBLIC_FRONTEND_ROOT_URL=https://your-frontend.com \
                       -f Dockerfile.fe .
 
-        docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/fe:latest
-        docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/fe:$BUILD_NUMBER
+        docker push ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:latest
+        docker push ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:$BUILD_NUMBER
