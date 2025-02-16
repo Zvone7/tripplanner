@@ -3,11 +3,11 @@ name: '[BE] CI Template'
 on:
   workflow_call:
     inputs:
-      BuildNumber:
+      buildNumber:
         required: false
         type: string
         default: 'latest'
-      Environment:
+      envCode:
         required: false
         type: string
         default: 'dev'
@@ -15,7 +15,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.Environment }}
+    environment: ${{ inputs.envCode }}
 
     steps:
     - name: Checkout Code
@@ -40,8 +40,10 @@ jobs:
         BUILD_NUMBER=${{ github.run_number }}
 
         docker build -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/be:latest \
-                      -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/be:$BUILD_NUMBER \
+                      -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/be:${{ inputs.buildNumber }} \
+                      --build-arg BUILD_NUMBER=${{ inputs.buildNumber }} \
+                      --build-arg ENV_CODE=${{ inputs.envCode }} \
                       -f Dockerfile.be .
 
         docker push ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/be:latest
-        docker push ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/be:$BUILD_NUMBER
+        docker push ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/be:${{ inputs.buildNumber }}

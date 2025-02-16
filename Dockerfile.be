@@ -1,3 +1,5 @@
+ARG ENV_CODE
+ARG BUILD_NUMBER
 # Stage 1: Build backend
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
@@ -6,6 +8,8 @@ RUN dotnet restore TripPlanner/Web/Web.csproj
 # Ignore specific warnings
 RUN dotnet publish TripPlanner/Web/Web.csproj -c Release -o /app/publish /p:NoWarn=CS8618 /p:NoWarn=CS8602 /p:NoWarn=CS8604
 
+ENV ENV_CODE=${ENV_CODE}
+ENV BUILD_NUMBER=${BUILD_NUMBER}
 # Stage 2: Runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app

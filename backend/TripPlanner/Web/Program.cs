@@ -44,6 +44,8 @@ public class Program
         appSettings.FrontendRootUrl = frontendRootUrl;
         appSettings.BackendRootUrl = backendRootUrl;
         appSettings.AppStartedUtc = DateTime.UtcNow;
+        appSettings.EnvCode = builder.Configuration["ENV_CODE"];
+        appSettings.BuildNumber = builder.Configuration["BUILD_NUMBER"];
         builder.Configuration.GetSection("AppSettings").Bind(appSettings);
         builder.Services.AddSingleton(appSettings);
         Console.WriteLine($"{DateTime.UtcNow}|AppSettings singleton created");

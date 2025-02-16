@@ -40,7 +40,7 @@ public class HomeController : Controller
     [Route(nameof(Test1))]
     public string Test1()
     {
-        return $"Api up and running. App Started {_appSettings.AppStartedUtc:yyyy/MM/dd HH:mm:ss}. \n" +
+        return $"Api up and running. App[{_appSettings.EnvCode}-{_appSettings.BuildNumber}] Started {_appSettings.AppStartedUtc:yyyy/MM/dd HH:mm:ss}. \n" +
                $"Backend at {_appSettings.BackendRootUrl}. \n" +
                $"Frontend at {_appSettings.FrontendRootUrl}.";
     }

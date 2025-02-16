@@ -3,11 +3,11 @@ name: '[FE] CD Template'
 on:
   workflow_call:
     inputs:
-      BuildNumber:
+      buildNumber:
         required: false
         type: string
         default: 'latest'
-      Environment:
+      envCode:
         required: false
         type: string
         default: 'dev'
@@ -15,7 +15,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.Environment }}
+    environment: ${{ inputs.envCode }}
 
     steps:
 
@@ -39,7 +39,7 @@ jobs:
         az webapp config container set \
           --name ${{ vars.WEB_APP_FE_NAME }} \
           --resource-group ${{ vars.RESOURCE_GROUP_NAME }} \
-          --container-image-name ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:${{ inputs.BuildNumber }} \
+          --container-image-name ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:${{ inputs.buildNumber }} \
           --container-registry-url https://${{ vars.ACR_NAME }}.azurecr.io
 
     - name: Restart Azure Web App

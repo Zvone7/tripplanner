@@ -3,11 +3,11 @@ name: '[FE] CI Template'
 on:
   workflow_call:
     inputs:
-      BuildNumber:
+      buildNumber:
         required: false
         type: string
         default: 'latest'
-      Environment:
+      envCode:
         required: false
         type: string
         default: 'dev'
@@ -15,7 +15,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.Environment }}
+    environment: ${{ inputs.envCode }}
 
     steps:
     - name: Checkout Code
@@ -41,7 +41,7 @@ jobs:
         BUILD_NUMBER=${{ github.run_number }}
 
         docker build -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:latest \
-                      -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:$BUILD_NUMBER \
+                      -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:${{ inputs.buildNumber }} \
                       --build-arg NEXT_PUBLIC_FRONTEND_ROOT_URL=https://your-frontend.com \
                       -f Dockerfile.fe .
 
