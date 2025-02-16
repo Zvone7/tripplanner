@@ -43,6 +43,7 @@ public class Program
         Console.WriteLine($"{DateTime.UtcNow}|Using backendRootUrl: {backendRootUrl}");
         appSettings.FrontendRootUrl = frontendRootUrl;
         appSettings.BackendRootUrl = backendRootUrl;
+        appSettings.AppStartedUtc = DateTime.UtcNow;
         builder.Configuration.GetSection("AppSettings").Bind(appSettings);
         builder.Services.AddSingleton(appSettings);
         Console.WriteLine($"{DateTime.UtcNow}|AppSettings singleton created");

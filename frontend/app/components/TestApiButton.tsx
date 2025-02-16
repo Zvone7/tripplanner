@@ -14,6 +14,7 @@ export function TestApiButton() {
     console.log("be_"+backendUrl);
     console.log("fe_"+process.env.NEXT_PUBLIC_FRONTEND_ROOT_URL);
     try {
+      console.log("making a request to: "+backendUrl+'/api/home/test1');
       const response = await fetch('/api/home/test1', {
         method: 'GET',
         headers: {

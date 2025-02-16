@@ -32,6 +32,7 @@ jobs:
 
         docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/fe:latest \
                       -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/fe:$BUILD_NUMBER \
+                      --build-arg NEXT_PUBLIC_FRONTEND_ROOT_URL=https://your-frontend.com \
                       -f Dockerfile.fe .
 
         docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/fe:latest

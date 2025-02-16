@@ -4,7 +4,7 @@ on:
   push:
     branches:
     # - feature/cicd
-    - test-fe-deploy
+    - release-fe-dev-cd
   workflow_dispatch:
     inputs:
       BuildNumber:

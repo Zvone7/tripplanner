@@ -4,7 +4,7 @@ on:
   push:
     branches:
     # - feature/cicd
-    - test-be-deploy
+    - release-be-dev-cd
   workflow_dispatch:
     inputs:
       BuildNumber:

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Domain.Settings;
 using Microsoft.AspNetCore.Mvc;
 using Web.Models;
 
@@ -8,10 +9,14 @@ namespace Web.Controllers;
 [ApiController]
 public class HomeController : Controller
 {
+    private readonly AppSettings _appSettings;
     private readonly ILogger<HomeController> _logger_;
 
-    public HomeController(ILogger<HomeController> logger)
+    public HomeController(
+        AppSettings appSettings,
+        ILogger<HomeController> logger)
     {
+        _appSettings = appSettings;
         _logger_ = logger;
     }
 
@@ -35,6 +40,6 @@ public class HomeController : Controller
     [Route(nameof(Test1))]
     public string Test1()
     {
-        return "all gucci";
+        return $"Api up and running. App Started {_appSettings.AppStartedUtc:yyyy/MM/dd}";
     }
 }
