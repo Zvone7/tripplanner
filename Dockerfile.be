@@ -1,8 +1,7 @@
-ARG ENV_CODE
-ARG BUILD_NUMBER
-
 # Stage 1: Build backend
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG ENV_CODE
+ARG BUILD_NUMBER
 WORKDIR /src
 COPY backend/ .
 RUN dotnet restore TripPlanner/Web/Web.csproj
@@ -11,6 +10,8 @@ RUN dotnet publish TripPlanner/Web/Web.csproj -c Release -o /app/publish /p:NoWa
 
 # Stage 2: Runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+ARG ENV_CODE
+ARG BUILD_NUMBER
 WORKDIR /appsettings
 ENV ENV_CODE=$ENV_CODE
 ENV BUILD_NUMBER=$BUILD_NUMBER
