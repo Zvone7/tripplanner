@@ -46,8 +46,8 @@ jobs:
       run: |
         docker build -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:latest \
                       -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:$BUILD_NUMBER \
-                      --build-arg BUILD_NUMBER=$BUILD_NUMBER\
-                      --build-arg ENV_CODE=${{ inputs.envCode }} \
+                      --build-arg NEXT_PUBLIC_BUILD_NUMBER=$BUILD_NUMBER\
+                      --build-arg NEXT_PUBLIC_ENV_CODE=${{ inputs.envCode }} \
                       --build-arg NEXT_PUBLIC_FRONTEND_ROOT_URL=https://your-frontend.com \
                       -f Dockerfile.fe .
 
