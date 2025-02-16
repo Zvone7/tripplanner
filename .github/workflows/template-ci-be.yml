@@ -2,13 +2,13 @@ name: '[BE] CI Template'
 
 on:
   workflow_call:
-    inputs:
-      BuildNumber:
-        required: false
-        type: string
-      Environment:
-        required: false
-        type: string
+    # inputs:
+    #   BuildNumber:
+    #     required: false
+    #     type: string
+    #   Environment:
+    #     required: false
+    #     type: string
 
 jobs:
   build:
@@ -39,7 +39,7 @@ jobs:
 
     - name: Build and Push Backend Docker Image
       run: |
-        BUILD_NUMBER=${{ inputs.BuildNumber }}
+        BUILD_NUMBER=${{ github.run_number }}
         
         docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:latest \
                       -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:$BUILD_NUMBER \

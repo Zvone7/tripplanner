@@ -2,21 +2,21 @@ name: CD
 
 on:
   workflow_call:
-    inputs:
-      BuildNumber:
-        type: string
-        description: 'Build number to deploy (e.g., latest or a specific tag)'
-        required: false
-        default: 'latest'
-      Environment:
-        required: false
-        type: string
+    # inputs:
+      # BuildNumber:
+      #   type: string
+      #   description: 'Build number to deploy (e.g., latest or a specific tag)'
+      #   required: false
+      #   default: 'latest'
+      # Environment:
+      #   required: false
+      #   type: string
 
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.Environment }}
+    # environment: ${{ inputs.Environment }}
 
     steps:
 
