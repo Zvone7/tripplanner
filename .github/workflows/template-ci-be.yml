@@ -39,7 +39,7 @@ jobs:
 
     - name: Build and Push Backend Docker Image
       run: |
-        BUILD_NUMBER=${{ inputs.BuildNumber }}
+        BUILD_NUMBER=${{ github.BuildNumber }}
         
         docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:latest \
                       -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:$BUILD_NUMBER \
