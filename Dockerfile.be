@@ -12,7 +12,7 @@ RUN dotnet publish TripPlanner/Web/Web.csproj -c Release -o /app/publish /p:NoWa
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 ARG ENV_CODE
 ARG BUILD_NUMBER
-WORKDIR /appsettings
+WORKDIR /app
 ENV ENV_CODE=$ENV_CODE
 ENV BUILD_NUMBER=$BUILD_NUMBER
 COPY --from=build /app/publish /app/backend

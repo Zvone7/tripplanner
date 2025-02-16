@@ -26,7 +26,6 @@ public class Program
         builder.Configuration.AddEnvironmentVariables();
         builder.Configuration.AddJsonFile("appsettings.json", optional: false);
         Console.WriteLine($"{DateTime.UtcNow}|appsettings loaded");
-
 #if DEBUG
         builder.Configuration.AddJsonFile("appsettings.Development.json", optional: true);
         Console.WriteLine($"{DateTime.UtcNow}|appsettings.dev loaded");
