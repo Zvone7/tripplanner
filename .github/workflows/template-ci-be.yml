@@ -6,9 +6,11 @@ on:
       BuildNumber:
         required: false
         type: string
+        default: 'latest'
       Environment:
         required: false
         type: string
+        default: 'dev'
 
 jobs:
   build:
@@ -30,17 +32,13 @@ jobs:
             "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           }
 
-    - name: Set Environment Variables
+    - name: Log in to ACR
       run: |
-        echo "ACR_NAME=${{ vars.ACR_NAME }}" >> $GITHUB_ENV
-        echo "NEXT_PUBLIC_BACKEND_ROOT_URL=${{ vars.NEXT_PUBLIC_BACKEND_ROOT_URL }}" >> $GITHUB_ENV
-        echo "NEXT_PUBLIC_FRONTEND_ROOT_URL=${{ vars.NEXT_PUBLIC_FRONTEND_ROOT_URL }}" >> $GITHUB_ENV
-        echo "API_URL=${{ vars.API_URL }}" >> $GITHUB_ENV
-
+        az acr login --name ${{ vars.ACR_NAME }}
     - name: Build and Push Backend Docker Image
       run: |
         BUILD_NUMBER=${{ github.run_number }}
-        
+
         docker build -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/be:latest \
                       -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/be:$BUILD_NUMBER \
                       -f Dockerfile.be .

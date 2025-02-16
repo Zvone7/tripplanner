@@ -30,13 +30,6 @@ jobs:
             "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           }
 
-    - name: Set Environment Variables
-      run: |
-        echo "ACR_NAME=${{ vars.ACR_NAME }}" >> $GITHUB_ENV
-        echo "NEXT_PUBLIC_BACKEND_ROOT_URL=${{ vars.NEXT_PUBLIC_BACKEND_ROOT_URL }}" >> $GITHUB_ENV
-        echo "NEXT_PUBLIC_FRONTEND_ROOT_URL=${{ vars.NEXT_PUBLIC_FRONTEND_ROOT_URL }}" >> $GITHUB_ENV
-        echo "API_URL=${{ vars.API_URL }}" >> $GITHUB_ENV
-
     - name: Log in to ACR
       run: |
         az acr login --name ${{ vars.ACR_NAME }}
@@ -51,4 +44,5 @@ jobs:
 
     - name: Restart Azure Web App
       run: |
-        az webapp restart --name ${{ vars.WEB_APP_FE_NAME }} --resource-group ${{ secrets.RESOURCE_GROUP_NAME }}
+        az webapp restart --name ${{ vars.WEB_APP_FE_NAME }} \
+          --resource-group ${{ secrets.RESOURCE_GROUP_NAME }}

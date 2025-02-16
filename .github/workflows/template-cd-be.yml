@@ -2,21 +2,20 @@ name: CD
 
 on:
   workflow_call:
-    # inputs:
-      # BuildNumber:
-      #   type: string
-      #   description: 'Build number to deploy (e.g., latest or a specific tag)'
-      #   required: false
-      #   default: 'latest'
-      # Environment:
-      #   required: false
-      #   type: string
-
+    inputs:
+      BuildNumber:
+        required: false
+        type: string
+        default: 'latest'
+      Environment:
+        required: false
+        type: string
+        default: 'dev'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # environment: ${{ inputs.Environment }}
+    environment: ${{ inputs.Environment }}
 
     steps:
 
@@ -33,16 +32,17 @@ jobs:
 
     - name: Log in to ACR
       run: |
-        az acr login --name ${{ secrets.ACR_NAME }}
+        az acr login --name ${{ vars.ACR_NAME }}
 
     - name: Deploy to Azure Web App (Docker)
       run: |
         az webapp config container set \
-          --name ${{ secrets.DEV_WEB_APP_BE_NAME }} \
-          --resource-group ${{ secrets.RESOURCE_GROUP_NAME }} \
-          --container-image-name ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:${{ inputs.BuildNumber }} \
-          --container-registry-url https://${{ secrets.ACR_NAME }}.azurecr.io
+          --name ${{ vars.WEB_APP_BE_NAME }} \
+          --resource-group ${{ vars.RESOURCE_GROUP_NAME }} \
+          --container-image-name ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/be:${{ inputs.BuildNumber }} \
+          --container-registry-url https://${{ vars.ACR_NAME }}.azurecr.io
 
     - name: Restart Azure Web App
       run: |
-        az webapp restart --name ${{ secrets.DEV_WEB_APP_BE_NAME }} --resource-group ${{ secrets.RESOURCE_GROUP_NAME }}
+        az webapp restart --name ${{ vars.WEB_APP_BE_NAME }} \
+          --resource-group ${{ secrets.RESOURCE_GROUP_NAME }}

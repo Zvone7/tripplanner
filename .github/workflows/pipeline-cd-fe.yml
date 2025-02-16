@@ -16,7 +16,7 @@ on:
 jobs:
   cd:
     name: Deploy
-    uses: ./.github/workflows/cd-template.yml  # Use the cd-template.yml
+    uses: ./.github/workflows/template-cd-fe.yml
     with:
       BuildNumber: ${{ github.event.inputs.BuildNumber || 'latest' }} 
     secrets: inherit
