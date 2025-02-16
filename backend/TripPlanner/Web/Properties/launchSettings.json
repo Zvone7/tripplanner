@@ -18,7 +18,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "KEYVAULT_NAME": "kv-tripplanner-dev",
-        "BUILD_NUMBER": "local",
+        "BUILD_NUMBER": "123",
         "ENV_CODE": "local",
         "CLIENT_ID": "",
         "CLIENT_SECRET": "",
