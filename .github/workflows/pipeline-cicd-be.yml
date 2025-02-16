@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       buildNumber:
-        description: 'Build number to deploy (e.g., latest or a specific tag). Default is GitHub build number.'
+        description: 'Build number to deploy (e.g., latest or a specific tag). Default is GitHub build number. '
         required: false
         default: 'latest'
       envCode:
