@@ -60,7 +60,7 @@ public class Program
 
     private static void LoadKeyVault(WebApplicationBuilder builder)
     {
-        var keyVaultName = builder.Configuration["KeyVaultName"];
+        var keyVaultName = builder.Configuration["KEYVAULT_NAME"];
         var keyvaultUri = new Uri($"https://{keyVaultName}.vault.azure.net/");
         var tenantId = builder.Configuration["TENANT_ID"];
         var clientId = builder.Configuration["CLIENT_ID"];
