@@ -3,7 +3,7 @@ name: '[FE] Build and Deploy Workflow'
 on:
   push:
     branches:
-      # - feature/cicd
+      - feature/cicd
       - release-fe-dev
   workflow_dispatch:
     inputs:
@@ -11,11 +11,18 @@ on:
         description: 'Build number to deploy (e.g., latest or a specific tag). Default is GitHub build number.'
         required: false
         default: 'latest'
+      # Environment:
+      #   description: 'Deployment environment (dev, prod)'
+      #   required: false
+      #   default: 'dev'
 
 jobs:
   ci:
     name: Build
     uses: ./.github/workflows/template-ci-fe.yml
+    with:
+      BuildNumber: ${{ github.event.inputs.BuildNumber || github.run_number || 'latest' }}
+      Environment: ${{ github.event.inputs.Environment || 'dev' }}
     secrets: inherit
 
   cd:

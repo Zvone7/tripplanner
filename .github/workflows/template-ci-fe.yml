@@ -2,10 +2,18 @@ name: '[FE] CI Template'
 
 on:
   workflow_call:
+    inputs:
+      BuildNumber:
+        required: false
+        type: string
+      Environment:
+        required: false
+        type: string
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: ${{ inputs.Environment }}
 
     steps:
     - name: Checkout Code
@@ -21,6 +29,13 @@ jobs:
             "tenantId": "${{ secrets.AZURE_TENANT_ID }}",
             "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           }
+
+    - name: Set Environment Variables
+      run: |
+        echo "ACR_NAME=${{ vars.ACR_NAME }}" >> $GITHUB_ENV
+        echo "NEXT_PUBLIC_BACKEND_ROOT_URL=${{ vars.NEXT_PUBLIC_BACKEND_ROOT_URL }}" >> $GITHUB_ENV
+        echo "NEXT_PUBLIC_FRONTEND_ROOT_URL=${{ vars.NEXT_PUBLIC_FRONTEND_ROOT_URL }}" >> $GITHUB_ENV
+        echo "API_URL=${{ vars.API_URL }}" >> $GITHUB_ENV
 
     - name: Log in to ACR
       run: |
