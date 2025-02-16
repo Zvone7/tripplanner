@@ -27,7 +27,9 @@ export function TestApiButton() {
       }
 
       const data = await response.text()
-      console.log("data:"+data);
+      console.log("------- response from api start -------");
+      console.log(data)
+      console.log("------- response from api end -------");
       toast({
         title: "API Test Successful",
         description: 'API request was successful, response: ' + data,

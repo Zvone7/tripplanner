@@ -28,7 +28,9 @@ public class AccountController : Controller
     public IActionResult Login()
     {
         // var redirectUrl = Url.Action(nameof(GoogleResponse), "Account", Request.Scheme);
-        var redirectUrl = $"{_appSettings_.BackendRootUrl}api/account/googleresponse";
+        var redirectUrl = string.IsNullOrWhiteSpace(_appSettings_.FrontendRootUrl) ?
+            $"{_appSettings_.BackendRootUrl}api/account/googleresponse" :
+            $"{_appSettings_.FrontendRootUrl}api/account/googleresponse";
         Console.WriteLine($"Will redirect google login to {redirectUrl}");
 
         var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
@@ -106,12 +108,12 @@ public class AccountController : Controller
         var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
 
         await HttpContext.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme, 
-            claimsPrincipal, 
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            claimsPrincipal,
             new AuthenticationProperties
-        {
-            IsPersistent = true,
-            ExpiresUtc = DateTime.UtcNow.AddDays(7)
-        });
+            {
+                IsPersistent = true,
+                ExpiresUtc = DateTime.UtcNow.AddDays(7)
+            });
     }
 }
