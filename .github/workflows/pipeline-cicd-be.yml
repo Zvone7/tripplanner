@@ -19,7 +19,7 @@ on:
 jobs:
   ci:
     name: Build
-    uses: ./.github/workflows/be-ci-template.yml
+    uses: ./.github/workflows/template-ci-be.yml
     with:
       BuildNumber: ${{ github.event.inputs.BuildNumber || github.run_number || 'latest' }}
       Environment: ${{ github.event.inputs.Environment || 'dev' }}
@@ -28,7 +28,7 @@ jobs:
   cd:
     name: Deploy
     needs: ci
-    uses: ./.github/workflows/be-cd-template.yml
+    uses: ./.github/workflows/template-cd-be.yml
     with:
       BuildNumber: ${{ github.event.inputs.BuildNumber || github.run_number || 'latest' }}
       Environment: ${{ github.event.inputs.Environment || 'dev' }} 

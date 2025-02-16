@@ -15,13 +15,13 @@ on:
 jobs:
   ci:
     name: Build
-    uses: ./.github/workflows/fe-ci-template.yml
+    uses: ./.github/workflows/template-ci-fe.yml
     secrets: inherit
 
   cd:
     name: Deploy
     needs: ci
-    uses: ./.github/workflows/fe-cd-template.yml
+    uses: ./.github/workflows/template-cd-fe.yml
     with:
       BuildNumber: ${{ github.event.inputs.BuildNumber || github.run_number || 'latest' }} 
     secrets: inherit
