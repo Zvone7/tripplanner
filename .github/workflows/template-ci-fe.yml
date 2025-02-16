@@ -35,17 +35,24 @@ jobs:
     - name: Log in to ACR
       run: |
         az acr login --name ${{ vars.ACR_NAME }}
-
-    - name: Build and Push Frontend Docker Image
+        - name: Set Build Number
+        id: build_number
+        run: |
+          DATE=$(date +%Y%m%d)
+          echo "BUILD_NUMBER=${DATE}.${{ inputs.buildNumber }}" >> $GITHUB_ENV
+  
+    - name: Debug Build Number
       run: |
-        BUILD_NUMBER=${{ github.run_number }}
-        
+        echo "Generated Build Number: $BUILD_NUMBER"
+
+    - name: Build and Push Backend Docker Image
+      run: |
         docker build -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:latest \
-                      -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:${{ inputs.buildNumber }} \
-                      --build-arg BUILD_NUMBER=${{ inputs.buildNumber }} \
+                      -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:$BUILD_NUMBER \
+                      --build-arg BUILD_NUMBER=$BUILD_NUMBER\
                       --build-arg ENV_CODE=${{ inputs.envCode }} \
                       --build-arg NEXT_PUBLIC_FRONTEND_ROOT_URL=https://your-frontend.com \
-                      -f Dockerfile.fe .
+                      -f Dockerfile.be .
 
         docker push ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:latest
         docker push ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:$BUILD_NUMBER
