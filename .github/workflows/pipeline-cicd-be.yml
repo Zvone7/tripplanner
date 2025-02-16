@@ -11,10 +11,10 @@ on:
         description: 'Build number to deploy (e.g., latest or a specific tag). Default is GitHub build number.'
         required: false
         default: 'latest'
-      Environment:
-        description: 'Deployment environment (dev, prod)'
-        required: false
-        default: 'dev'
+      # Environment:
+      #   description: 'Deployment environment (dev, prod)'
+      #   required: false
+      #   default: 'dev'
 
 jobs:
   ci:
