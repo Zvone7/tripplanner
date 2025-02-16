@@ -42,6 +42,6 @@ public class HomeController : Controller
     {
         return $"Api up and running. App Started {_appSettings.AppStartedUtc:yyyy/MM/dd HH:mm:ss}. \n" +
                $"Backend at {_appSettings.BackendRootUrl}. \n" +
-               $"Frontend at {_appSettings.FrontendRootUrl}. ";
+               $"Frontend at {_appSettings.FrontendRootUrl}.";
     }
 }
