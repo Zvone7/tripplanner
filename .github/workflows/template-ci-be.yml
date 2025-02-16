@@ -7,7 +7,7 @@ on:
         required: false
         type: string
         default: 'latest'
-      Environment:
+      envCode:
         required: false
         type: string
         default: 'dev'
@@ -15,7 +15,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.Environment }}
+    environment: ${{ inputs.envCode }}
 
     steps:
     - name: Checkout Code
@@ -32,22 +32,18 @@ jobs:
             "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           }
 
-    # display vars.ACR_NAME
-    - name: Display ACR_NAME
-      run: echo ${{ vars.ACR_NAME }}
-
     - name: Log in to ACR
       run: |
-        az acr login --name ${{ secrets.ACR_NAME }}
+        az acr login --name ${{ vars.ACR_NAME }}
     - name: Build and Push Backend Docker Image
       run: |
         BUILD_NUMBER=${{ github.run_number }}
 
-        docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:latest \
-                      -t ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:${{ inputs.buildNumber }} \
+        docker build -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/be:latest \
+                      -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/be:${{ inputs.buildNumber }} \
                       --build-arg BUILD_NUMBER=${{ inputs.buildNumber }} \
-                      --build-arg ENV_CODE=${{ inputs.Environment }} \
+                      --build-arg ENV_CODE=${{ inputs.envCode }} \
                       -f Dockerfile.be .
 
-        docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:latest
-        docker push ${{ secrets.ACR_NAME }}.azurecr.io/tripplanner/be:${{ inputs.buildNumber }}
+        docker push ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/be:latest
+        docker push ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/be:${{ inputs.buildNumber }}

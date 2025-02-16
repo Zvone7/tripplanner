@@ -7,7 +7,7 @@ on:
         required: false
         type: string
         default: 'latest'
-      Environment:
+      envCode:
         required: false
         type: string
         default: 'dev'
@@ -15,7 +15,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.Environment }}
+    environment: ${{ inputs.envCode }}
 
     steps:
 
