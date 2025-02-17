@@ -43,6 +43,7 @@ public class Program
     private static AppSettings InitializeAppSettings(WebApplicationBuilder builder)
     {
         var appSettings = new AppSettings();
+        builder.Configuration.GetSection("AppSettings").Bind(appSettings);
         appSettings.FrontendRootUrl = builder.Configuration["FRONTEND_ROOT_URL"];
         appSettings.BackendRootUrl = builder.Configuration["BACKEND_ROOT_URL"];
         appSettings.AppStartedUtc = DateTime.UtcNow;
@@ -51,7 +52,6 @@ public class Program
         Console.WriteLine($"{DateTime.UtcNow}|env: {appSettings.EnvCode}, buildNumber: {appSettings.BuildNumber}");
         Console.WriteLine($"{DateTime.UtcNow}|Using frontendRootUrl: {appSettings.FrontendRootUrl}");
         Console.WriteLine($"{DateTime.UtcNow}|Using backendRootUrl: {appSettings.BackendRootUrl}");
-        builder.Configuration.GetSection("AppSettings").Bind(appSettings);
         builder.Services.AddSingleton(appSettings);
         Console.WriteLine($"{DateTime.UtcNow}|AppSettings singleton created");
         return appSettings;
