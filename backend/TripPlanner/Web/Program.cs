@@ -39,7 +39,7 @@ public class Program
 #endif
         return appSettings;
     }
-    
+
     private static AppSettings InitializeAppSettings(WebApplicationBuilder builder)
     {
         var appSettings = new AppSettings();
@@ -100,12 +100,19 @@ public class Program
         builder.Services.Configure<AntiforgeryOptions>(config =>
         {
             config.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            config.Cookie.SameSite = SameSiteMode.Lax;
+#if Release
+            config.Cookie.SameSite = SameSiteMode.None;
+#endif
         });
 
         builder.Services.Configure<CookiePolicyOptions>(options =>
         {
-            options.MinimumSameSitePolicy = SameSiteMode.Lax;
             options.Secure = CookieSecurePolicy.Always;
+            options.MinimumSameSitePolicy = SameSiteMode.Lax;
+#if Release
+                options.MinimumSameSitePolicy = SameSiteMode.None;
+#endif
         });
 
         builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -116,8 +123,11 @@ public class Program
                 options.ExpireTimeSpan = TimeSpan.FromDays(7);
                 options.SlidingExpiration = true;
                 options.CookieManager = new ChunkingCookieManager();
-                options.Cookie.SameSite = SameSiteMode.Lax;
                 options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+#if Release
+                options.Cookie.SameSite = SameSiteMode.None;
+#endif
             })
             .AddGoogle(options =>
             {
@@ -132,7 +142,12 @@ public class Program
         {
             options.AddPolicy("AllowFrontend",
                 builder => builder
-                    .WithOrigins("http://localhost:3000", "https://localhost:7048", "http://localhost:5156", "http://localhost:80")
+                    .WithOrigins("http://localhost:3000",
+                        "https://localhost:7048",
+                        "http://localhost:5156",
+                        "http://localhost:80",
+                        appSettings.FrontendRootUrl,
+                        appSettings.BackendRootUrl)
                     .AllowCredentials()
                     .AllowAnyMethod()
                     .AllowAnyHeader()
