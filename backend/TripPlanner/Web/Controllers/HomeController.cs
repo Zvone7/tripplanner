@@ -42,7 +42,7 @@ public class HomeController : Controller
     {
         return $"Api up and running. [{_appSettings.EnvCode}-{_appSettings.BuildNumber}] \n" +
                $"Started {_appSettings.AppStartedUtc:yyyy/MM/dd HH:mm:ss} (utc). \n" +
-               $"Backend at {_appSettings.BackendRootUrl}. \n" +
-               $"Frontend at {_appSettings.FrontendRootUrl}.";
+               $"BE {_appSettings.BackendRootUrl}. \n" +
+               $"FE {_appSettings.FrontendRootUrl}.";
     }
 }
