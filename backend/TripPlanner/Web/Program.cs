@@ -10,6 +10,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        Console.WriteLine($"{DateTime.UtcNow}|App start");
         var builder = WebApplication.CreateBuilder(args);
         var appSettings = SetupConfiguration(builder);
         InitializeDi(builder, appSettings);
