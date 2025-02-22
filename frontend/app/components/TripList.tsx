@@ -30,6 +30,7 @@ export default function TripList() {
     try {
       const response = await fetch('/api/trip/getalltrips')
       if (!response.ok) {
+        console.log("response:", response);
         throw new Error('Failed to fetch trips')
       }
       const data = await response.json()

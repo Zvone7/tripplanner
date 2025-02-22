@@ -133,7 +133,8 @@ public class Program
             {
                 options.ClientId = appSettings.GoogleAuthSettings.ClientId;
                 options.ClientSecret = appSettings.GoogleAuthSettings.ClientSecret;
-                options.CallbackPath = "/api/account/googleresponse";
+                // options.CallbackPath = "/api/account/googleresponse"; // this doesnt even work locally
+                options.CallbackPath = "/signin-google";
             });
 
         builder.Services.AddControllersWithViews();
