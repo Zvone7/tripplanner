@@ -34,7 +34,7 @@ public class Program
 #endif
         var appSettings = InitializeAppSettings(builder);
 
-#if !DEBUG
+#if DEBUG
         builder.WebHost.UseUrls("http://0.0.0.0:5156");
 #endif
         return appSettings;
@@ -143,10 +143,12 @@ public class Program
         {
             options.AddPolicy("AllowFrontend",
                 builder => builder
-                    .WithOrigins("http://localhost:3000",
+                    .WithOrigins(
+                        #if DEBUG
+                        "http://localhost:3000",
                         "https://localhost:7048",
                         "http://localhost:5156",
-                        "http://localhost:80",
+                        #endif
                         appSettings.FrontendRootUrl,
                         appSettings.BackendRootUrl)
                     .AllowCredentials()

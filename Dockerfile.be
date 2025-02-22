@@ -17,6 +17,6 @@ ENV ENV_CODE=$ENV_CODE
 ENV BUILD_NUMBER=$BUILD_NUMBER
 COPY --from=build /app/publish /app/backend
 COPY --from=build /src/TripPlanner/Web/appsettings.json /app/
-EXPOSE 5156
+EXPOSE 7048
 
 CMD ["dotnet", "/app/backend/Web.dll"]
