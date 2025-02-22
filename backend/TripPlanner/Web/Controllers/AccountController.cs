@@ -28,7 +28,10 @@ public class AccountController : Controller
     public IActionResult Login()
     {
         // var redirectUrl = Url.Action(nameof(GoogleResponse), "Account", Request.Scheme);
-        var redirectUrl = $"{_appSettings_.BackendRootUrl}api/account/googleresponse";
+        var backendRootWithoutHttps = _appSettings_.BackendRootUrl.Replace("https://", "");
+        var redirectUrl = Url.Action(nameof(GoogleResponse), "Account", "https", backendRootWithoutHttps);
+
+        // var redirectUrl = $"{_appSettings_.BackendRootUrl}api/account/googleresponse";
         Console.WriteLine($"Will redirect google login to {redirectUrl}");
 
         var properties = new AuthenticationProperties { RedirectUri = redirectUrl };

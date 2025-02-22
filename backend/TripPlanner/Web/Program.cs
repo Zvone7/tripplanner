@@ -11,6 +11,12 @@ public class Program
     public static void Main(string[] args)
     {
         Console.WriteLine($"{DateTime.UtcNow}|App start");
+        Console.WriteLine("  *      TTTTT  PPPP       *  ");
+        Console.WriteLine(" ***       T    P   P     *** ");
+        Console.WriteLine("*****      T    PPPP     *****");
+        Console.WriteLine(" ***       T    P         *** ");
+        Console.WriteLine("  *        T    P          *  ");
+
         var builder = WebApplication.CreateBuilder(args);
         var appSettings = SetupConfiguration(builder);
         InitializeDi(builder, appSettings);
@@ -139,6 +145,10 @@ public class Program
                 options.ClientSecret = appSettings.GoogleAuthSettings.ClientSecret;
                 // options.CallbackPath = "/api/account/googleresponse"; // this doesnt even work locally
                 options.CallbackPath = "/signin-google";
+                options.ReturnUrlParameter = "returnUrl";
+                options.AuthorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
+                options.TokenEndpoint = "https://oauth2.googleapis.com/token";
+
             });
 
         builder.Services.AddControllersWithViews();
