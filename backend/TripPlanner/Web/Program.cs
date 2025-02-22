@@ -38,8 +38,7 @@ public class Program
         builder.WebHost.UseUrls("http://0.0.0.0:5156");
 #else
         var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-        builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
-        builder.WebHost.UseUrls("https://0.0.0.0:7048");
+        builder.WebHost.UseUrls([$"http://0.0.0.0:{port}"]);
 #endif
         return appSettings;
     }
