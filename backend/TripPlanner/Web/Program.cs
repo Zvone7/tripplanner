@@ -155,6 +155,12 @@ public class Program
                 options.ReturnUrlParameter = "returnUrl";
                 options.AuthorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
                 options.TokenEndpoint = "https://oauth2.googleapis.com/token";
+                
+                options.Events.OnRemoteFailure = ctx =>
+                {
+                    Console.WriteLine($"***** Google Auth Failed: {ctx.Failure}");
+                    return Task.CompletedTask;
+                };
 
             });
 
@@ -182,7 +188,7 @@ public class Program
     private static void ConfigureApp(WebApplication app)
     {
         // Configure the HTTP request pipeline.
-        if (!app.Environment.IsDevelopment())
+        // if (!app.Environment.IsDevelopment())
         {
             app.UseExceptionHandler("/Home/Error");
             // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.

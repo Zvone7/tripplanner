@@ -43,6 +43,7 @@ public class HomeController : Controller
         return $"Api up and running. [{_appSettings.EnvCode}-{_appSettings.BuildNumber}] \n" +
                $"Started {_appSettings.AppStartedUtc:yyyy/MM/dd HH:mm:ss} (utc). \n" +
                $"BE {_appSettings.BackendRootUrl}. \n" +
-               $"FE {_appSettings.FrontendRootUrl}.";
+               $"FE {_appSettings.FrontendRootUrl}. \n" +
+               $"GoogleClientId: {_appSettings.GoogleAuthSettings.ClientId}. \n";
     }
 }
