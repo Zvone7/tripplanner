@@ -4,6 +4,7 @@ using Db.Repositories;
 using Domain.Settings;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.HttpOverrides;
 using Web.Helpers;
 
 public class Program
@@ -42,7 +43,8 @@ public class Program
         var appSettings = InitializeAppSettings(builder);
 
 #if DEBUG
-        builder.WebHost.UseUrls("http://0.0.0.0:5156");
+        // builder.WebHost.UseUrls("http://0.0.0.0:5156");
+        builder.WebHost.UseUrls("https://0.0.0.0:7048");
 #else
         var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
         builder.WebHost.UseUrls([$"http://0.0.0.0:{port}"]);
@@ -141,8 +143,13 @@ public class Program
             })
             .AddGoogle(options =>
             {
+#if DEBUG
+                options.ClientId = "34984745962-g9vkhpoi9schcfj5ot43jfcnmdnilaea.apps.googleusercontent.com";
+                options.ClientSecret = "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";
+#else
                 options.ClientId = appSettings.GoogleAuthSettings.ClientId;
                 options.ClientSecret = appSettings.GoogleAuthSettings.ClientSecret;
+#endif
                 // options.CallbackPath = "/api/account/googleresponse"; // this doesnt even work locally
                 options.CallbackPath = "/signin-google";
                 options.ReturnUrlParameter = "returnUrl";
@@ -181,12 +188,17 @@ public class Program
             // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
             app.UseHsts();
         }
+        
+        app.UseForwardedHeaders(new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedProto
+        });
 
         app.UseCors("AllowFrontend");
 
-#if !DEBUG
-        // app.UseHttpsRedirection();
-#endif
+// #if !DEBUG
+        app.UseHttpsRedirection();
+// #endif
 
         app.UseDefaultFiles();
         app.UseStaticFiles();// Serves Next.js build files
