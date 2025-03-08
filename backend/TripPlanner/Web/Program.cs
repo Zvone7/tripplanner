@@ -158,7 +158,9 @@ public class Program
                 
                 options.Events.OnRemoteFailure = ctx =>
                 {
-                    Console.WriteLine($"***** Google Auth Failed: {ctx.Failure}");
+                    Console.WriteLine("***** Google Auth Failed *****");
+                    Console.WriteLine($"Failure: {ctx.Failure}");
+                    Console.WriteLine($"Request: {ctx.Request}");
                     return Task.CompletedTask;
                 };
 
