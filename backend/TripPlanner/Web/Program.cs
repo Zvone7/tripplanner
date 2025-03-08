@@ -143,13 +143,8 @@ public class Program
             })
             .AddGoogle(options =>
             {
-#if DEBUG
-                options.ClientId = "34984745962-g9vkhpoi9schcfj5ot43jfcnmdnilaea.apps.googleusercontent.com";
-                options.ClientSecret = "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";
-#else
                 options.ClientId = appSettings.GoogleAuthSettings.ClientId;
                 options.ClientSecret = appSettings.GoogleAuthSettings.ClientSecret;
-#endif
                 // options.CallbackPath = "/api/account/googleresponse"; // this doesnt even work locally
                 options.CallbackPath = "/signin-google";
                 options.ReturnUrlParameter = "returnUrl";
