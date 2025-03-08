@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User } from 'lucide-react'
+import { User, LogOut } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../components/ui/tooltip"
+import { Button } from "../components/ui/button"
+import { useRouter } from 'next/navigation'
 
 interface UserData {
   name: string;
@@ -11,6 +13,8 @@ interface UserData {
 
 export function UserInfo() {
   const [user, setUser] = useState<UserData | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchUserInfo() {
@@ -41,21 +45,60 @@ export function UserInfo() {
     fetchUserInfo();
   }, []);
 
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      const res = await fetch("/api/account/logout", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json"
+        },
+      });
+      
+      if (res.ok) {
+        // Clear user state
+        setUser(null);
+        // Redirect to home page
+        router.push('/');
+      } else {
+        console.error('Logout failed');
+      }
+    } catch (error) {
+      console.error('Error during logout:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   if (!user) return null;
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger>
-          <div className="flex items-center space-x-2 text-sm">
-            <User className="w-4 h-4" />
-            <span>{user.name.split(' ')[0]}</span>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{user.email}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <div className="flex items-center gap-4">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
+            <div className="flex items-center space-x-2 text-sm">
+              <User className="w-4 h-4" />
+              <span>{user.name.split(' ')[0]}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{user.email}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        onClick={handleLogout}
+        disabled={isLoggingOut}
+        className="flex items-center gap-1 text-xs"
+      >
+        <LogOut className="w-3 h-3" />
+        <span>Logout</span>
+      </Button>
+    </div>
   );
 }

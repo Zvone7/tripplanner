@@ -28,10 +28,14 @@ public class AccountController : Controller
     public IActionResult Login()
     {
         // var redirectUrl = Url.Action(nameof(GoogleResponse), "Account", Request.Scheme);
-        var backendRootWithoutHttps = _appSettings_.BackendRootUrl.Replace("https://", "");
-        var redirectUrl = Url.Action(nameof(GoogleResponse), "Account", "https", backendRootWithoutHttps);
+        var backendRootUrlWithoutSchema = _appSettings_.BackendRootUrl;
+        if (backendRootUrlWithoutSchema.Contains("https://"))
+            backendRootUrlWithoutSchema = _appSettings_.BackendRootUrl.Replace("https://", "");
+        if (backendRootUrlWithoutSchema.Contains("http://"))
+            backendRootUrlWithoutSchema = _appSettings_.BackendRootUrl.Replace("http://", "");
+        // var redirectUrl = Url.Action(nameof(GoogleResponse), "Account", "https", backendRootWithoutHttps);
 
-        // var redirectUrl = $"{_appSettings_.BackendRootUrl}api/account/googleresponse";
+        var redirectUrl = $"https://{backendRootUrlWithoutSchema}api/account/googleresponse";
         Console.WriteLine($"Will redirect google login to {redirectUrl}");
 
         var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
@@ -116,5 +120,12 @@ public class AccountController : Controller
                 IsPersistent = true,
                 ExpiresUtc = DateTime.UtcNow.AddDays(7)
             });
+    }
+    
+    [HttpPost("Logout")]
+    public async Task<IActionResult> Logout()
+    {
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        return Ok();
     }
 }
