@@ -28,11 +28,13 @@ public class AccountController : Controller
     public IActionResult Login()
     {
         // var redirectUrl = Url.Action(nameof(GoogleResponse), "Account", Request.Scheme);
-        var backendRootUrlWithoutSchema = _appSettings_.BackendRootUrl;
+
+        var rootUrlToUse = _appSettings_.BackendRootUrl;
+        var backendRootUrlWithoutSchema = rootUrlToUse;
         if (backendRootUrlWithoutSchema.Contains("https://"))
-            backendRootUrlWithoutSchema = _appSettings_.BackendRootUrl.Replace("https://", "");
+            backendRootUrlWithoutSchema = rootUrlToUse.Replace("https://", "");
         if (backendRootUrlWithoutSchema.Contains("http://"))
-            backendRootUrlWithoutSchema = _appSettings_.BackendRootUrl.Replace("http://", "");
+            backendRootUrlWithoutSchema = rootUrlToUse.Replace("http://", "");
         // var redirectUrl = Url.Action(nameof(GoogleResponse), "Account", "https", backendRootWithoutHttps);
 
         var redirectUrl = $"https://{backendRootUrlWithoutSchema}api/account/googleresponse";

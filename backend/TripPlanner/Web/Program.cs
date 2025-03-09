@@ -3,6 +3,7 @@ using Azure.Identity;
 using Db.Repositories;
 using Domain.Settings;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Web.Helpers;
@@ -150,7 +151,36 @@ public class Program
                 options.ReturnUrlParameter = "returnUrl";
                 options.AuthorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
                 options.TokenEndpoint = "https://oauth2.googleapis.com/token";
-                
+
+                options.Events.OnCreatingTicket = async ctx =>
+                {
+                    var claimsIdentity = (System.Security.Claims.ClaimsIdentity)ctx.Principal.Identity;
+
+                    // Log claims for debugging
+                    Console.WriteLine("User claims received:");
+                    foreach (var claim in ctx.Principal.Claims)
+                    {
+                        // Console.WriteLine($"{claim.Type}: {claim.Value}");
+                    }
+
+                    // Create authentication cookie
+                    var authProperties = new AuthenticationProperties
+                    {
+                        IsPersistent = true,// Keep user logged in
+                        ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)// Cookie expiry
+                    };
+
+                    await ctx.HttpContext.SignInAsync(
+                        CookieAuthenticationDefaults.AuthenticationScheme,
+                        new System.Security.Claims.ClaimsPrincipal(claimsIdentity),
+                        authProperties
+                    );
+
+                    // Redirect to frontend after setting authentication cookie
+                    ctx.Response.Redirect($"{appSettings.FrontendRootUrl}authenticated");
+
+                };
+
                 options.Events.OnRemoteFailure = ctx =>
                 {
                     Console.WriteLine("***** Google Auth Failed *****");
@@ -191,13 +221,33 @@ public class Program
             // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
             app.UseHsts();
         }
-        
+
         app.UseForwardedHeaders(new ForwardedHeadersOptions
         {
             ForwardedHeaders = ForwardedHeaders.XForwardedProto
         });
 
         app.UseCors("AllowFrontend");
+#if DEBUG
+        app.Use(async (context, next) =>
+        {
+            // Console.WriteLine($"**Incoming Request {context.Request.Path} \n" +
+            //                   $"\tHeaders: {string.Join(",",context.Request.Headers.Select(h=>h.Key))}");
+
+            var setCookieHeaders = context.Response.Headers
+                .Where(h => h.Key == "Set-Cookie")
+                .Select(h => $"{h.Key}: {h.Value}");
+            Console.WriteLine($"**Incoming Request {context.Request.Path} \n" +
+                              $"\tHeaders: {string.Join(",", setCookieHeaders)}");
+
+            Console.WriteLine($"--Incoming Request {context.Request.Path} \n" +
+                              $"\tCookies: {string.Join(",", context.Request.Cookies.Select(c => c.Key))}");
+
+
+            await next();
+        });
+#endif
+
 
 // #if !DEBUG
         app.UseHttpsRedirection();
