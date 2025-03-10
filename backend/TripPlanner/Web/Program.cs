@@ -113,8 +113,9 @@ public class Program
         builder.Services.Configure<AntiforgeryOptions>(config =>
         {
             config.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+#if DEBUG
             config.Cookie.SameSite = SameSiteMode.Lax;
-#if Release
+#else
             config.Cookie.SameSite = SameSiteMode.None;
 #endif
         });
@@ -122,9 +123,10 @@ public class Program
         builder.Services.Configure<CookiePolicyOptions>(options =>
         {
             options.Secure = CookieSecurePolicy.Always;
+#if DEBUG
             options.MinimumSameSitePolicy = SameSiteMode.Lax;
-#if Release
-                options.MinimumSameSitePolicy = SameSiteMode.None;
+#else
+            options.MinimumSameSitePolicy = SameSiteMode.None;
 #endif
         });
 
@@ -137,8 +139,9 @@ public class Program
                 options.SlidingExpiration = true;
                 options.CookieManager = new ChunkingCookieManager();
                 options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+#if DEBUG
                 options.Cookie.SameSite = SameSiteMode.Lax;
-#if Release
+#else
                 options.Cookie.SameSite = SameSiteMode.None;
 #endif
             })
@@ -156,12 +159,14 @@ public class Program
                 {
                     var claimsIdentity = (System.Security.Claims.ClaimsIdentity)ctx.Principal.Identity;
 
+#if DEBUG
                     // Log claims for debugging
                     Console.WriteLine("User claims received:");
                     foreach (var claim in ctx.Principal.Claims)
                     {
                         // Console.WriteLine($"{claim.Type}: {claim.Value}");
                     }
+#endif
 
                     // Create authentication cookie
                     var authProperties = new AuthenticationProperties
