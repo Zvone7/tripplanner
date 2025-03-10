@@ -139,9 +139,11 @@ public class Program
                 options.SlidingExpiration = true;
                 options.CookieManager = new ChunkingCookieManager();
                 options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.Cookie.Name = "TpAuthCookie";
 #if DEBUG
                 options.Cookie.SameSite = SameSiteMode.Lax;
 #else
+                options.Cookie.Domain = ".northeurope-01.azurewebsites.net";
                 options.Cookie.SameSite = SameSiteMode.None;
 #endif
             })
