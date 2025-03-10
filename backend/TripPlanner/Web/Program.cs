@@ -151,7 +151,6 @@ public class Program
             {
                 options.ClientId = appSettings.GoogleAuthSettings.ClientId;
                 options.ClientSecret = appSettings.GoogleAuthSettings.ClientSecret;
-                // options.CallbackPath = "/api/account/googleresponse"; // this doesnt even work locally
                 options.CallbackPath = "/signin-google";
                 options.ReturnUrlParameter = "returnUrl";
                 options.AuthorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -160,17 +159,6 @@ public class Program
                 options.Events.OnCreatingTicket = async ctx =>
                 {
                     var claimsIdentity = (System.Security.Claims.ClaimsIdentity)ctx.Principal.Identity;
-
-#if DEBUG
-                    // Log claims for debugging
-                    Console.WriteLine("User claims received:");
-                    foreach (var claim in ctx.Principal.Claims)
-                    {
-                        // Console.WriteLine($"{claim.Type}: {claim.Value}");
-                    }
-#endif
-
-                    // Create authentication cookie
                     var authProperties = new AuthenticationProperties
                     {
                         IsPersistent = true,// Keep user logged in
@@ -222,7 +210,7 @@ public class Program
     private static void ConfigureApp(WebApplication app)
     {
         // Configure the HTTP request pipeline.
-        // if (!app.Environment.IsDevelopment())
+        if (!app.Environment.IsDevelopment())
         {
             app.UseExceptionHandler("/Home/Error");
             // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
@@ -235,26 +223,6 @@ public class Program
         });
 
         app.UseCors("AllowFrontend");
-#if DEBUG
-        app.Use(async (context, next) =>
-        {
-            // Console.WriteLine($"**Incoming Request {context.Request.Path} \n" +
-            //                   $"\tHeaders: {string.Join(",",context.Request.Headers.Select(h=>h.Key))}");
-
-            var setCookieHeaders = context.Response.Headers
-                .Where(h => h.Key == "Set-Cookie")
-                .Select(h => $"{h.Key}: {h.Value}");
-            Console.WriteLine($"**Incoming Request {context.Request.Path} \n" +
-                              $"\tHeaders: {string.Join(",", setCookieHeaders)}");
-
-            Console.WriteLine($"--Incoming Request {context.Request.Path} \n" +
-                              $"\tCookies: {string.Join(",", context.Request.Cookies.Select(c => c.Key))}");
-
-
-            await next();
-        });
-#endif
-
 
 // #if !DEBUG
         app.UseHttpsRedirection();
