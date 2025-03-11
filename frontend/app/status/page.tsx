@@ -16,12 +16,6 @@ export default function Authenticated() {
   const envCode= process.env.NEXT_PUBLIC_ENV_CODE || 'unknown';
   const buildNumber= process.env.NEXT_PUBLIC_BUILD_NUMBER || 'unknown';
   useEffect(() => {
-
-    var startTime = getServerStartTime();
-    console.log("Server start time: "+startTime);
-
-    console.log("Checking authentication...");
-
     fetch(`/api/account/info`, {
       method: "GET",
       credentials: "include",
@@ -31,8 +25,6 @@ export default function Authenticated() {
     })
       .then((res) => {
         if (!res.ok) {
-            console.log("Response Headers:", [...res.headers.entries()]);
-            console.log("Set-Cookie Header:", res.headers.get("Set-Cookie"));
           throw new Error("Authentication failed");
         }
         else{
@@ -40,7 +32,6 @@ export default function Authenticated() {
         return res.json();
       })
       .then((data) => {
-        console.log("User authenticated:", data);
         setAuthStatus(`Authenticated as: ${data.email || "Unknown"}`);
       })
       .catch((err) => {

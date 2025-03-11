@@ -11,11 +11,9 @@ const ApiTestPage = () => {
     const fetchData = async () => {
       try {
         const response = await fetch('api/home/status');
-        console.log("response:"+response);
         if (!response.ok) {
           throw new Error('Network response was not ok');
         }
-        console.log("succ:"+response);
         const result = await response.text(); // or .json() if your API returns JSON
         setData(result);
       } catch (error: any) {

@@ -6,13 +6,13 @@ const backendUrl = process.env.NEXT_PUBLIC_BACKEND_ROOT_URL || "https://dev-wapp
 
 // if backendurl contains localhost, we are in dev env and try loading self-signed cert
 if (backendUrl.includes("localhost")) {
-  console.log("ℹ️ Custom CA certificate will be loaded for HTTPS requests.");
+  console.log("Custom CA certificate will be loaded for HTTPS requests.");
   // Path to the self-signed certificate
   const certPath = "./aspnet-dev-cert.pem";
   
   if (fs.existsSync(certPath)) {
     process.env.NODE_EXTRA_CA_CERTS = certPath;
-    console.log("✅ Custom CA certificate loaded for HTTPS requests.");
+    console.log("Custom CA certificate loaded for HTTPS requests.");
   } else {
     console.warn("⚠️ Self-signed certificate not found. Using default CA.");
   }

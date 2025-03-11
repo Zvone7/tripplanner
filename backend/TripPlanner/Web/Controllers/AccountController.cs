@@ -28,17 +28,6 @@ public class AccountController : Controller
     public IActionResult Login()
     {
         var redirectUrl = Url.Action(nameof(GoogleResponse), "Account", Request.Scheme);
-
-        // var rootUrlToUse = _appSettings_.BackendRootUrl;
-        // var backendRootUrlWithoutSchema = rootUrlToUse;
-        // if (backendRootUrlWithoutSchema.Contains("https://"))
-        //     backendRootUrlWithoutSchema = rootUrlToUse.Replace("https://", "");
-        // if (backendRootUrlWithoutSchema.Contains("http://"))
-        //     backendRootUrlWithoutSchema = rootUrlToUse.Replace("http://", "");
-        //
-        // var redirectUrl = $"https://{backendRootUrlWithoutSchema}api/account/googleresponse";
-        Console.WriteLine($"Will redirect google login to {redirectUrl}");
-
         var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
         properties.AllowRefresh = true;
         properties.IsPersistent = true;
@@ -48,15 +37,14 @@ public class AccountController : Controller
     [HttpGet("GoogleResponse")]
     public async Task<IActionResult> GoogleResponse(CancellationToken cancellationToken = default)
     {
-        Console.WriteLine($"Received google response!");
         var authenticateResult = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
         if (!authenticateResult.Succeeded)
         {
-            Console.WriteLine($"Unsucesful auth tho.");
+            Console.WriteLine($"Unsuccessful authentication via google. Redirecting home.");
             return Redirect(_redirectUrl_);
         }
-        Console.WriteLine($"Successfull auth.");
+        Console.WriteLine($"Successful authenticated via google.");
 
         // Extract user information from claims
         var claims = authenticateResult.Principal.Identities

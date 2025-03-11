@@ -49,9 +49,6 @@ public class Program
         // use this if https is not working
         // builder.WebHost.UseUrls("http://0.0.0.0:5156");
         builder.WebHost.UseUrls("https://0.0.0.0:7048");
-#else
-        // var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-        // builder.WebHost.UseUrls([$"http://0.0.0.0:{port}"]);
 #endif
         return appSettings;
     }

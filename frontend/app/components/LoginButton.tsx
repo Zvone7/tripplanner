@@ -10,7 +10,6 @@ export function LoginButton() {
   const handleLogin = async () => {
     try {
       setIsLoading(true);
-      console.log("backendUrl:"+backendUrl);
       // Create a form element
       const form = document.createElement('form');
       form.method = 'GET';

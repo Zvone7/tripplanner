@@ -12,14 +12,7 @@ export function TestApiButton() {
     setIsLoading(true);
     setApiResponse(null);
     
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_ROOT_URL || 
-      "https://dev-wapp-tripplanner-be-e9eyezate0caefes.northeurope-01.azurewebsites.net";
-    
-    console.log("Backend URL:", backendUrl);
-    console.log("Frontend URL:", process.env.NEXT_PUBLIC_FRONTEND_ROOT_URL);
-    
     try {
-      console.log("Making a request to: /api/home/status");
       const response = await fetch('/api/home/status', {
         method: 'GET',
         headers: {
