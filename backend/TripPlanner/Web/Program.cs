@@ -156,25 +156,25 @@ public class Program
                 options.AuthorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
                 options.TokenEndpoint = "https://oauth2.googleapis.com/token";
 
-                options.Events.OnCreatingTicket = async ctx =>
-                {
-                    var claimsIdentity = (System.Security.Claims.ClaimsIdentity)ctx.Principal.Identity;
-                    var authProperties = new AuthenticationProperties
-                    {
-                        IsPersistent = true,// Keep user logged in
-                        ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)// Cookie expiry
-                    };
-
-                    await ctx.HttpContext.SignInAsync(
-                        CookieAuthenticationDefaults.AuthenticationScheme,
-                        new System.Security.Claims.ClaimsPrincipal(claimsIdentity),
-                        authProperties
-                    );
-
-                    // Redirect to frontend after setting authentication cookie
-                    ctx.Response.Redirect($"{appSettings.FrontendRootUrl}authenticated");
-
-                };
+                // options.Events.OnCreatingTicket = async ctx =>
+                // {
+                //     var claimsIdentity = (System.Security.Claims.ClaimsIdentity)ctx.Principal.Identity;
+                //     var authProperties = new AuthenticationProperties
+                //     {
+                //         IsPersistent = true,// Keep user logged in
+                //         ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)// Cookie expiry
+                //     };
+                //
+                //     await ctx.HttpContext.SignInAsync(
+                //         CookieAuthenticationDefaults.AuthenticationScheme,
+                //         new System.Security.Claims.ClaimsPrincipal(claimsIdentity),
+                //         authProperties
+                //     );
+                //
+                //     // Redirect to frontend after setting authentication cookie
+                //     ctx.Response.Redirect($"{appSettings.FrontendRootUrl}authenticated");
+                //
+                // };
 
                 options.Events.OnRemoteFailure = ctx =>
                 {
