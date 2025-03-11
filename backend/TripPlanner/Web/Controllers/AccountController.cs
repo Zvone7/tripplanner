@@ -27,17 +27,16 @@ public class AccountController : Controller
     [HttpGet("Login")]
     public IActionResult Login()
     {
-        // var redirectUrl = Url.Action(nameof(GoogleResponse), "Account", Request.Scheme);
+        var redirectUrl = Url.Action(nameof(GoogleResponse), "Account", Request.Scheme);
 
-        var rootUrlToUse = _appSettings_.BackendRootUrl;
-        var backendRootUrlWithoutSchema = rootUrlToUse;
-        if (backendRootUrlWithoutSchema.Contains("https://"))
-            backendRootUrlWithoutSchema = rootUrlToUse.Replace("https://", "");
-        if (backendRootUrlWithoutSchema.Contains("http://"))
-            backendRootUrlWithoutSchema = rootUrlToUse.Replace("http://", "");
-        // var redirectUrl = Url.Action(nameof(GoogleResponse), "Account", "https", backendRootWithoutHttps);
-
-        var redirectUrl = $"https://{backendRootUrlWithoutSchema}api/account/googleresponse";
+        // var rootUrlToUse = _appSettings_.BackendRootUrl;
+        // var backendRootUrlWithoutSchema = rootUrlToUse;
+        // if (backendRootUrlWithoutSchema.Contains("https://"))
+        //     backendRootUrlWithoutSchema = rootUrlToUse.Replace("https://", "");
+        // if (backendRootUrlWithoutSchema.Contains("http://"))
+        //     backendRootUrlWithoutSchema = rootUrlToUse.Replace("http://", "");
+        //
+        // var redirectUrl = $"https://{backendRootUrlWithoutSchema}api/account/googleresponse";
         Console.WriteLine($"Will redirect google login to {redirectUrl}");
 
         var properties = new AuthenticationProperties { RedirectUri = redirectUrl };

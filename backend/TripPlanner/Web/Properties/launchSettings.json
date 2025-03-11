@@ -24,7 +24,7 @@
         "CLIENT_SECRET": "",
         "TENANT_ID": "",
         "FRONTEND_ROOT_URL": "http://localhost:3000/",
-        "BACKEND_ROOT_URL": "http://localhost:5156/"
+        "BACKEND_ROOT_URL": "https://localhost:7048/"
       }
     }
   }
