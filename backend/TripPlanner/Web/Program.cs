@@ -38,9 +38,8 @@ public class Program
 #if DEBUG
         builder.Configuration.AddJsonFile("appsettings.Development.json", optional: true);
         Console.WriteLine($"{DateTime.UtcNow}|appsettings.dev loaded");
-#else
-        LoadKeyVault(builder);
 #endif
+        LoadKeyVault(builder);
         var appSettings = InitializeAppSettings(builder);
 
 #if DEBUG
@@ -74,10 +73,14 @@ public class Program
     {
         var keyVaultName = builder.Configuration["KEYVAULT_NAME"];
         var keyvaultUri = new Uri($"https://{keyVaultName}.vault.azure.net/");
+#if DEBUG
         var tenantId = builder.Configuration["TENANT_ID"];
         var clientId = builder.Configuration["CLIENT_ID"];
         var clientSecret = builder.Configuration["CLIENT_SECRET"];
         var clientSecretCredential = new ClientSecretCredential(tenantId, clientId, clientSecret);
+#else
+        var clientSecretCredential = new DefaultAzureCredential();
+#endif
 
         Console.WriteLine($"{DateTime.UtcNow}|Using keyvault {keyVaultName}");
         builder.Configuration.AddAzureKeyVault(keyvaultUri, clientSecretCredential);
@@ -155,35 +158,6 @@ public class Program
                 options.ReturnUrlParameter = "returnUrl";
                 options.AuthorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
                 options.TokenEndpoint = "https://oauth2.googleapis.com/token";
-
-                // options.Events.OnCreatingTicket = async ctx =>
-                // {
-                //     var claimsIdentity = (System.Security.Claims.ClaimsIdentity)ctx.Principal.Identity;
-                //     var authProperties = new AuthenticationProperties
-                //     {
-                //         IsPersistent = true,// Keep user logged in
-                //         ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)// Cookie expiry
-                //     };
-                //
-                //     await ctx.HttpContext.SignInAsync(
-                //         CookieAuthenticationDefaults.AuthenticationScheme,
-                //         new System.Security.Claims.ClaimsPrincipal(claimsIdentity),
-                //         authProperties
-                //     );
-                //
-                //     // Redirect to frontend after setting authentication cookie
-                //     ctx.Response.Redirect($"{appSettings.FrontendRootUrl}authenticated");
-                //
-                // };
-
-                options.Events.OnRemoteFailure = ctx =>
-                {
-                    Console.WriteLine("***** Google Auth Failed *****");
-                    Console.WriteLine($"Failure: {ctx.Failure}");
-                    Console.WriteLine($"Request: {ctx.Request}");
-                    return Task.CompletedTask;
-                };
-
             });
 
         builder.Services.AddControllersWithViews();
@@ -224,9 +198,7 @@ public class Program
 
         app.UseCors("AllowFrontend");
 
-// #if !DEBUG
         app.UseHttpsRedirection();
-// #endif
 
         app.UseDefaultFiles();
         app.UseStaticFiles();// Serves Next.js build files
