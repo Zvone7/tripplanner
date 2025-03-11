@@ -3,7 +3,6 @@ using Azure.Identity;
 using Db.Repositories;
 using Domain.Settings;
 using Microsoft.AspNetCore.Antiforgery;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Web.Helpers;
@@ -12,21 +11,25 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        Console.WriteLine("****************************************");
+        Console.WriteLine("****************************************");
         Console.WriteLine($"{DateTime.UtcNow}|App start");
-        Console.WriteLine("  *      TTTTT  PPPP       *  ");
-        Console.WriteLine(" ***       T    P   P     *** ");
-        Console.WriteLine("*****      T    PPPP     *****");
-        Console.WriteLine(" ***       T    P         *** ");
-        Console.WriteLine("  *        T    P          *  ");
+        Console.WriteLine("****************************************");
+        Console.WriteLine("****************************************");
 
         var builder = WebApplication.CreateBuilder(args);
         var appSettings = SetupConfiguration(builder);
         InitializeDi(builder, appSettings);
+        SetupAuthNAuth(builder, appSettings);
 
         var app = builder.Build();
         ConfigureApp(app);
 
+        Console.WriteLine("****************************************");
+        Console.WriteLine("****************************************");
         Console.WriteLine($"{DateTime.UtcNow}|Final app start");
+        Console.WriteLine("****************************************");
+        Console.WriteLine("****************************************");
         app.Run();
     }
 
@@ -35,20 +38,22 @@ public class Program
         builder.Configuration.AddEnvironmentVariables();
         builder.Configuration.AddJsonFile("appsettings.json", optional: false);
         Console.WriteLine($"{DateTime.UtcNow}|appsettings loaded");
-#if DEBUG
+        var keyVaultName = builder.Configuration["KEYVAULT_NAME"];
+#if RELEASE
+        LoadKeyVaultViaDefaultCredential(builder, keyVaultName);
+#else
         builder.Configuration.AddJsonFile("appsettings.Development.json", optional: true);
         Console.WriteLine($"{DateTime.UtcNow}|appsettings.dev loaded");
-#else
-        LoadKeyVault(builder);
+        LoadKeyVaultViaAppRegCredential(builder, keyVaultName);
+        builder.Configuration.AddJsonFile("appsettings.Development.json", optional: true);
+        Console.WriteLine($"{DateTime.UtcNow}|appsettings.dev re-loaded to overwrite keyvault configs");
 #endif
         var appSettings = InitializeAppSettings(builder);
 
 #if DEBUG
+        // use this if https is not working
         // builder.WebHost.UseUrls("http://0.0.0.0:5156");
         builder.WebHost.UseUrls("https://0.0.0.0:7048");
-#else
-        var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-        builder.WebHost.UseUrls([$"http://0.0.0.0:{port}"]);
 #endif
         return appSettings;
     }
@@ -70,16 +75,31 @@ public class Program
         return appSettings;
     }
 
-    private static void LoadKeyVault(WebApplicationBuilder builder)
+    private static void LoadKeyVaultViaDefaultCredential(WebApplicationBuilder builder, string keyVaultName)
     {
-        var keyVaultName = builder.Configuration["KEYVAULT_NAME"];
+        Console.WriteLine($"{DateTime.UtcNow}|Using keyvault {keyVaultName} (default azure credential).");
         var keyvaultUri = new Uri($"https://{keyVaultName}.vault.azure.net/");
-        var tenantId = builder.Configuration["TENANT_ID"];
-        var clientId = builder.Configuration["CLIENT_ID"];
-        var clientSecret = builder.Configuration["CLIENT_SECRET"];
+        var clientSecretCredential = new DefaultAzureCredential();
+        builder.Configuration.AddAzureKeyVault(keyvaultUri, clientSecretCredential);
+        Console.WriteLine($"{DateTime.UtcNow}|Keyvault loaded");
+    }
+
+
+    private static void LoadKeyVaultViaAppRegCredential(WebApplicationBuilder builder, string keyVaultName)
+    {
+        Console.WriteLine($"{DateTime.UtcNow}|Using keyvault {keyVaultName} (clientid).");
+        var keyvaultUri = new Uri($"https://{keyVaultName}.vault.azure.net/");
+        var clientId = builder.Configuration.GetValue<string>("AzureAd:ClientId");
+        if (string.IsNullOrWhiteSpace(clientId))
+            clientId = builder.Configuration["CLIENT_ID"];
+        var tenantId = builder.Configuration.GetValue<string>("AzureAd:TenantId");
+        if (string.IsNullOrWhiteSpace(tenantId))
+            tenantId = builder.Configuration["TENANT_ID"];
+        var clientSecret = builder.Configuration.GetValue<string>("AzureAd:ClientSecret");
+        if (string.IsNullOrWhiteSpace(clientSecret))
+            clientSecret = builder.Configuration["CLIENT_SECRET"];
         var clientSecretCredential = new ClientSecretCredential(tenantId, clientId, clientSecret);
 
-        Console.WriteLine($"{DateTime.UtcNow}|Using keyvault {keyVaultName}");
         builder.Configuration.AddAzureKeyVault(keyvaultUri, clientSecretCredential);
         Console.WriteLine($"{DateTime.UtcNow}|Keyvault loaded");
     }
@@ -88,7 +108,6 @@ public class Program
     {
         SetupServices(builder);
         SetupRepositories(builder);
-        SetupAuthNAuth(builder, appSettings);
     }
 
     private static void SetupServices(WebApplicationBuilder builder)
@@ -155,35 +174,6 @@ public class Program
                 options.ReturnUrlParameter = "returnUrl";
                 options.AuthorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
                 options.TokenEndpoint = "https://oauth2.googleapis.com/token";
-
-                options.Events.OnCreatingTicket = async ctx =>
-                {
-                    var claimsIdentity = (System.Security.Claims.ClaimsIdentity)ctx.Principal.Identity;
-                    var authProperties = new AuthenticationProperties
-                    {
-                        IsPersistent = true,// Keep user logged in
-                        ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)// Cookie expiry
-                    };
-
-                    await ctx.HttpContext.SignInAsync(
-                        CookieAuthenticationDefaults.AuthenticationScheme,
-                        new System.Security.Claims.ClaimsPrincipal(claimsIdentity),
-                        authProperties
-                    );
-
-                    // Redirect to frontend after setting authentication cookie
-                    ctx.Response.Redirect($"{appSettings.FrontendRootUrl}authenticated");
-
-                };
-
-                options.Events.OnRemoteFailure = ctx =>
-                {
-                    Console.WriteLine("***** Google Auth Failed *****");
-                    Console.WriteLine($"Failure: {ctx.Failure}");
-                    Console.WriteLine($"Request: {ctx.Request}");
-                    return Task.CompletedTask;
-                };
-
             });
 
         builder.Services.AddControllersWithViews();
@@ -224,9 +214,7 @@ public class Program
 
         app.UseCors("AllowFrontend");
 
-// #if !DEBUG
         app.UseHttpsRedirection();
-// #endif
 
         app.UseDefaultFiles();
         app.UseStaticFiles();// Serves Next.js build files

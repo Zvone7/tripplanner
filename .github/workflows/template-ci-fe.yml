@@ -48,7 +48,8 @@ jobs:
                       -t ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:$BUILD_NUMBER \
                       --build-arg NEXT_PUBLIC_BUILD_NUMBER=$BUILD_NUMBER\
                       --build-arg NEXT_PUBLIC_ENV_CODE=${{ inputs.envCode }} \
-                      --build-arg NEXT_PUBLIC_FRONTEND_ROOT_URL=https://your-frontend.com \
+                      --build-arg NEXT_PUBLIC_BACKEND_ROOT_URL=${{vars.NEXT_PUBLIC_BACKEND_ROOT_URL}} \
+                      --build-arg NEXT_PUBLIC_FRONTEND_ROOT_URL=${{vars.NEXT_PUBLIC_FRONTEND_ROOT_URL}} \
                       -f Dockerfile.fe .
 
         docker push ${{ vars.ACR_NAME }}.azurecr.io/tripplanner/fe:latest

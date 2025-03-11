@@ -34,7 +34,7 @@ export function UserInfo() {
           setUser(userData);
         }
         // if (res.status === 401), redirect to root
-        if(res.status === 401 && window.location.pathname !== "/") {
+        if(res.status === 401 && window.location.pathname !== "/" && window.location.pathname !== "/status") {
           window.location.href = "/";
         }
       } catch (error) {

@@ -99,8 +99,6 @@ export default function SegmentsPage() {
 
       if (editingSegment) {
         // Update existing segment
-        console.log("updating segment with id:", editingSegment.id)
-        console.log("segmentData:", segmentData)
         response = await fetch(`/api/Segment/UpdateSegment?tripId=${tripId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
