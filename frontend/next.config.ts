@@ -2,7 +2,7 @@
 const https = require("https");
 const fs = require("fs");
 
-const backendUrl = process.env.NEXT_PUBLIC_BACKEND_ROOT_URL || "https://dev-wapp-tripplanner-be-e9eyezate0caefes.northeurope-01.azurewebsites.net";
+const backendUrl = process.env.NEXT_PUBLIC_BACKEND_ROOT_URL || "not set";
 
 // if backendurl contains localhost, we are in dev env and try loading self-signed cert
 if (backendUrl.includes("localhost")) {
