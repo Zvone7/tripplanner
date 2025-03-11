@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TestApiButton } from '../components/TestApiButton';
 import { getServerStartTime } from '../lib/serverTime';
+import Link from 'next/link';
 
 export default function Authenticated() {
   const router = useRouter();
@@ -50,9 +51,9 @@ export default function Authenticated() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-8">
-      <a href="/" className="text-blue-500 hover:underline mb-8">
+      <Link href="/" className="text-blue-500 hover:underline mb-8">
         Back to TripPlanner
-      </a>
+      </Link>
       
       <TestApiButton />
       
