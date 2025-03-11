@@ -143,7 +143,7 @@ public class Program
 #if DEBUG
                 options.Cookie.SameSite = SameSiteMode.Lax;
 #else
-                // options.Cookie.Domain = ".northeurope-01.azurewebsites.net";
+                options.Cookie.Domain = ".northeurope-01.azurewebsites.net";
                 options.Cookie.SameSite = SameSiteMode.None;
 #endif
             })
