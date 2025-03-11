@@ -3,11 +3,8 @@
 import { useState } from 'react'
 import { Button } from "../components/ui/button"
 
-interface LoginButtonProps {
-  backendUrl: string;
-}
-
-export function LoginButton({ backendUrl }: LoginButtonProps) {
+export function LoginButton() {
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_ROOT_URL;
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {

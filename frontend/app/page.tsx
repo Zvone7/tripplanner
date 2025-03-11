@@ -1,14 +1,7 @@
-import { TestApiButton } from './components/TestApiButton'
 import { LoginButton } from './components/LoginButton'
 import { Toaster } from "./components/ui/toaster"
-import { getServerStartTime } from './lib/serverTime'
 
 export default function Home() {
-  const serverStartTime = getServerStartTime();
-  const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_ROOT_URL;
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_ROOT_URL || "https://dev-wapp-tripplanner-be-e9eyezate0caefes.northeurope-01.azurewebsites.net";
-  const envCode = process.env.NEXT_PUBLIC_ENV_CODE;
-  const buildNumber = process.env.NEXT_PUBLIC_BUILD_NUMBER;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gray-100">
@@ -16,21 +9,11 @@ export default function Home() {
       <p className="text-xl mb-8">Page used for trip planning.</p>
       <p className="mb-4 text-sm text-gray-600">This site is using cookies. Site in development. Use at own responsibility.</p>
       
-      <LoginButton backendUrl={backendUrl} />
+      <LoginButton />
 
       <a href="/trips" className="text-blue-500 hover:underline mt-4">
         View my trips
       </a>
-      <TestApiButton />
-      <p className="mt-4 text-sm text-gray-500">
-        started {serverStartTime} utc (env {envCode}, build {buildNumber})
-      </p>
-      <p className="mt-4 text-sm text-gray-500">
-        FrontedUrL {frontendUrl}
-      </p>
-      <p className="mt-4 text-sm text-gray-500">
-        BackendUrL {backendUrl}
-      </p>
       <Toaster />
     </div>
   );

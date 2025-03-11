@@ -3,7 +3,6 @@ using Azure.Identity;
 using Db.Repositories;
 using Domain.Settings;
 using Microsoft.AspNetCore.Antiforgery;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Web.Helpers;
@@ -12,21 +11,25 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        Console.WriteLine("****************************************");
+        Console.WriteLine("****************************************");
         Console.WriteLine($"{DateTime.UtcNow}|App start");
-        Console.WriteLine("  *      TTTTT  PPPP       *  ");
-        Console.WriteLine(" ***       T    P   P     *** ");
-        Console.WriteLine("*****      T    PPPP     *****");
-        Console.WriteLine(" ***       T    P         *** ");
-        Console.WriteLine("  *        T    P          *  ");
+        Console.WriteLine("****************************************");
+        Console.WriteLine("****************************************");
 
         var builder = WebApplication.CreateBuilder(args);
         var appSettings = SetupConfiguration(builder);
         InitializeDi(builder, appSettings);
+        SetupAuthNAuth(builder, appSettings);
 
         var app = builder.Build();
         ConfigureApp(app);
 
+        Console.WriteLine("****************************************");
+        Console.WriteLine("****************************************");
         Console.WriteLine($"{DateTime.UtcNow}|Final app start");
+        Console.WriteLine("****************************************");
+        Console.WriteLine("****************************************");
         app.Run();
     }
 
@@ -35,14 +38,15 @@ public class Program
         builder.Configuration.AddEnvironmentVariables();
         builder.Configuration.AddJsonFile("appsettings.json", optional: false);
         Console.WriteLine($"{DateTime.UtcNow}|appsettings loaded");
+        LoadKeyVault(builder);
 #if DEBUG
         builder.Configuration.AddJsonFile("appsettings.Development.json", optional: true);
         Console.WriteLine($"{DateTime.UtcNow}|appsettings.dev loaded");
 #endif
-        LoadKeyVault(builder);
         var appSettings = InitializeAppSettings(builder);
 
 #if DEBUG
+        // use this if https is not working
         // builder.WebHost.UseUrls("http://0.0.0.0:5156");
         builder.WebHost.UseUrls("https://0.0.0.0:7048");
 #else
@@ -91,7 +95,6 @@ public class Program
     {
         SetupServices(builder);
         SetupRepositories(builder);
-        SetupAuthNAuth(builder, appSettings);
     }
 
     private static void SetupServices(WebApplicationBuilder builder)
