@@ -20,9 +20,6 @@
         "KEYVAULT_NAME": "kv-tripplanner-dev",
         "BUILD_NUMBER": "123",
         "ENV_CODE": "local",
-        "CLIENT_ID": "",
-        "CLIENT_SECRET": "",
-        "TENANT_ID": "",
         "FRONTEND_ROOT_URL": "http://localhost:3000/",
         "BACKEND_ROOT_URL": "https://localhost:7048/"
       }
