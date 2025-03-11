@@ -27,9 +27,7 @@ public class AccountController : Controller
     [HttpGet("Login")]
     public IActionResult Login()
     {
-        var redirectUrl = Url.Action(nameof(GoogleResponse), "Account");
-        // var redirectUrl = $"{Request.Scheme}://{Request.Host}/api/account/googleresponse";
-
+        var redirectUrl = Url.Action(nameof(GoogleResponse), "Account", Request.Scheme);
         var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
         properties.AllowRefresh = true;
         properties.IsPersistent = true;
@@ -42,7 +40,11 @@ public class AccountController : Controller
         var authenticateResult = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
         if (!authenticateResult.Succeeded)
+        {
+            Console.WriteLine($"Unsuccessful authentication via google. Redirecting home.");
             return Redirect(_redirectUrl_);
+        }
+        Console.WriteLine($"Successful authenticated via google.");
 
         // Extract user information from claims
         var claims = authenticateResult.Principal.Identities
@@ -100,12 +102,19 @@ public class AccountController : Controller
         var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
 
         await HttpContext.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme, 
-            claimsPrincipal, 
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            claimsPrincipal,
             new AuthenticationProperties
-        {
-            IsPersistent = true,
-            ExpiresUtc = DateTime.UtcNow.AddDays(7)
-        });
+            {
+                IsPersistent = true,
+                ExpiresUtc = DateTime.UtcNow.AddDays(7)
+            });
+    }
+    
+    [HttpPost("Logout")]
+    public async Task<IActionResult> Logout()
+    {
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        return Ok();
     }
 }

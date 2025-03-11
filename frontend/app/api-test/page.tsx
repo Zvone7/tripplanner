@@ -10,12 +10,10 @@ const ApiTestPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('api/home/test1');
-        console.log("response:"+response);
+        const response = await fetch('api/home/status');
         if (!response.ok) {
           throw new Error('Network response was not ok');
         }
-        console.log("succ:"+response);
         const result = await response.text(); // or .json() if your API returns JSON
         setData(result);
       } catch (error: any) {

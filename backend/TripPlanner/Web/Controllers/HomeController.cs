@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Domain.Settings;
 using Microsoft.AspNetCore.Mvc;
 using Web.Models;
 
@@ -8,10 +9,14 @@ namespace Web.Controllers;
 [ApiController]
 public class HomeController : Controller
 {
+    private readonly AppSettings _appSettings;
     private readonly ILogger<HomeController> _logger_;
 
-    public HomeController(ILogger<HomeController> logger)
+    public HomeController(
+        AppSettings appSettings,
+        ILogger<HomeController> logger)
     {
+        _appSettings = appSettings;
         _logger_ = logger;
     }
 
@@ -32,9 +37,12 @@ public class HomeController : Controller
     }
 
     [HttpGet]
-    [Route(nameof(Test1))]
-    public string Test1()
+    [Route(nameof(Status))]
+    public string Status()
     {
-        return "all gucci";
+        return $"Api up and running. [{_appSettings.EnvCode}-{_appSettings.BuildNumber}] \n" +
+               $"Started {_appSettings.AppStartedUtc:yyyy/MM/dd HH:mm:ss} (utc). \n" +
+               $"BE {_appSettings.BackendRootUrl}. \n" +
+               $"FE {_appSettings.FrontendRootUrl}. \n";
     }
 }
