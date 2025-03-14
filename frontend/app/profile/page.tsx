@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card"
-// import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar"
 import { Button } from "../components/ui/button"
 import { Skeleton } from "../components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
@@ -129,18 +128,8 @@ export default function ProfilePage() {
         <ArrowLeftIcon className="mr-2 h-4 w-4" /> Back
       </Button>
 
-      {/* User Profile Card */}
       <Card className="mb-8">
         <CardHeader className="flex flex-row items-center gap-4">
-          {/* <Avatar className="h-16 w-16">
-            {user?.imageUrl ? (
-              <AvatarImage src={user.imageUrl} alt={user.name} />
-            ) : (
-              <AvatarFallback>
-                <UserIcon className="h-8 w-8" />
-              </AvatarFallback>
-            )}
-          </Avatar> */}
           <div>
             <CardTitle className="text-2xl">{user?.name}</CardTitle>
             <CardDescription>{user?.email}</CardDescription>
@@ -167,7 +156,6 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Admin Section - Pending Approvals */}
       {user?.role === "admin" && (
         <Card>
           <CardHeader>

@@ -44,7 +44,6 @@ public class UserRepository
 
     public async Task SetApprovedAsync(int id, CancellationToken cancellationToken = default)
     {
-        // set is_approved = 1 and approved_at_utc to datetime.utcnow
         using IDbConnection db = new SqlConnection(_connectionString_);
         await db.ExecuteAsync("UPDATE app_user " +
                               "SET is_approved = 1, approved_at_utc = @approved_at_utc " +
