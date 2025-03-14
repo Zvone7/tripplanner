@@ -34,4 +34,20 @@ public class UserRepository
         using IDbConnection db = new SqlConnection(_connectionString_);
         return await db.QueryFirstOrDefaultAsync<AppUser>("SELECT * FROM app_user WHERE email = @email", new { email = email });
     }
+    
+    public async Task<List<AppUser>> GetUnapprovedUsersAsync(CancellationToken cancellationToken = default)
+    {
+        using IDbConnection db = new SqlConnection(_connectionString_);
+        var res = await db.QueryAsync<AppUser>("SELECT * FROM app_user WHERE is_approved = 0");
+        return res.ToList();
+    }
+
+    public async Task SetApprovedAsync(int id, CancellationToken cancellationToken = default)
+    {
+        // set is_approved = 1 and approved_at_utc to datetime.utcnow
+        using IDbConnection db = new SqlConnection(_connectionString_);
+        await db.ExecuteAsync("UPDATE app_user " +
+                              "SET is_approved = 1, approved_at_utc = @approved_at_utc " +
+                              "WHERE id = @id", new { id = id, approved_at_utc = DateTime.UtcNow });
+    }
 }

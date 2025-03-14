@@ -8,6 +8,7 @@ export default function Home() {
       <h1 className="text-4xl font-bold mb-4">Trip Planner</h1>
       <p className="text-xl mb-8">Page used for trip planning.</p>
       <p className="mb-4 text-sm text-gray-600">This site is using cookies. Site in development. Use at own responsibility.</p>
+      <p className="mb-4 text-sm text-gray-600">After signing in with google, admin will be notified of your application and will approve your account.</p>
       
       <LoginButton />
 

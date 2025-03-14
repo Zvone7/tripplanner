@@ -88,8 +88,13 @@ CREATE TABLE app_user (
     email NVARCHAR(255),
     name NVARCHAR(255),
     role NVARCHAR(255),
-    created_at_utc DATETIME2
+    created_at_utc DATETIME2,
+    approved_at_utc DATETIME2 NULL,
+    bit is_approved DEFAULT 0
 );
+
+-- UPDATE app_user SET is_approved = 1 WHERE id = 1
+-- UPDATE app_user SET role = 'admin' WHERE id = 1
 
 CREATE TABLE app_user_to_trip (
     id INT PRIMARY KEY IDENTITY,
