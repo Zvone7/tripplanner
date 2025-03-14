@@ -50,54 +50,34 @@ function SegmentDiagram({ segments }: { segments: ConnectedSegment[] }) {
     return 0;
   });
 
-  const totalDuration = sortedSegments.reduce((total, segment) => {
-    if (segment.startDateTimeUtc && segment.endDateTimeUtc) {
-      const start = new Date(segment.startDateTimeUtc).getTime();
-      const end = new Date(segment.endDateTimeUtc).getTime();
-      return total + (end - start);
-    }
-    return total;
-  }, 0);
-
-  const minWidth = 100 / sortedSegments.length / 2;
+  const segmentWidth = 100 / sortedSegments.length;
 
   return (
     <div className="flex w-full space-x-1 overflow-x-auto py-2">
-      {sortedSegments.map((segment, index) => {
-        let width = minWidth;
-        if (segment.startDateTimeUtc && segment.endDateTimeUtc) {
-          const start = new Date(segment.startDateTimeUtc).getTime();
-          const end = new Date(segment.endDateTimeUtc).getTime();
-          const duration = end - start;
-          const calculatedWidth = (duration / totalDuration) * 100;
-          width = Math.max(calculatedWidth, minWidth);
-        }
-
-        return (
+      {sortedSegments.map((segment) => (
+        <div
+          key={segment.id}
+          className="flex-grow relative"
+          style={{
+            width: `${segmentWidth}%`,
+            minWidth: "80px", // Ensure a minimum width for very small screens
+          }}
+        >
           <div
-            key={segment.id}
-            className="flex-grow relative"
+            className="h-12 flex items-center justify-center relative overflow-hidden"
             style={{
-              width: `${width}%`,
-              minWidth: `${minWidth}%`,
+              backgroundColor: segment.segmentType.color,
+              clipPath: 'polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%)',
             }}
+            title={`${segment.segmentType.name} - ${segment.name}`}
           >
-            <div
-              className="h-12 flex items-center justify-center relative overflow-hidden"
-              style={{
-                backgroundColor: segment.segmentType.color,
-                clipPath: 'polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%)',
-              }}
-              title={`${segment.segmentType.name} - ${segment.name}`}
-            >
-              {/* Icon in the Center */}
-              <div className="relative z-10 flex items-center justify-center w-8 h-8">
-                <div dangerouslySetInnerHTML={{ __html: segment.segmentType.iconSvg }} className="w-6 h-6" />
-              </div>
+            {/* Icon in the Center */}
+            <div className="relative z-10 flex items-center justify-center w-8 h-8">
+              <div dangerouslySetInnerHTML={{ __html: segment.segmentType.iconSvg }} className="w-6 h-6" />
             </div>
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 }
@@ -111,9 +91,25 @@ export default function OptionsPage() {
   const [error, setError] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingOption, setEditingOption] = useState<Option | null>(null)
+  const [tripName, setTripName] = useState<string>('') // Add state for trip name
   const searchParams = useSearchParams()
   const tripId = searchParams.get('tripId')
   const router = useRouter()
+
+  const fetchTripName = useCallback(async () => {
+    if (!tripId) return
+    try {
+      const response = await fetch(`/api/trip/gettripbyid?tripId=${tripId}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch trip details')
+      }
+      const data = await response.json()
+      setTripName(data.name)
+    } catch (err) {
+      console.error('Error fetching trip details:', err)
+      setTripName('Unknown Trip')
+    }
+  }, [tripId])
 
   const fetchOptions = useCallback(async () => {
     if (!tripId) return
@@ -182,13 +178,14 @@ export default function OptionsPage() {
       console.error('Error fetching connected segments:', error)
       return []
     }
-  }, [segmentTypes])
+  }, [segmentTypes, tripId])
 
   useEffect(() => {
+    fetchTripName()
     fetchOptions()
     fetchSegments()
     fetchSegmentTypes()
-  }, [fetchOptions, fetchSegments, fetchSegmentTypes])
+  }, [fetchTripName, fetchOptions, fetchSegments, fetchSegmentTypes])
 
   useEffect(() => {
     const fetchAllConnectedSegments = async () => {
@@ -278,7 +275,9 @@ export default function OptionsPage() {
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>Trip Options</CardTitle>
-          <CardDescription>Options for Trip ID: {tripId}</CardDescription>
+          <CardDescription>
+            Options for {tripName ? tripName : `Trip ID: ${tripId}`}
+          </CardDescription>
         </div>
         <div className="flex space-x-2">
           <Button variant="outline" onClick={() => router.push('/trips')}>

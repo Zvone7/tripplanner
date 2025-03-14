@@ -109,6 +109,41 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     fetchOptions()
   }, [tripId])
 
+  // Add this new effect to sync end date/time with start date/time
+  useEffect(() => {
+    // Only update end date/time if they are empty and start date/time has a value
+    if (startDate && startTime && !endDate && !endTime) {
+      setEndDate(startDate);
+      setEndTime(startTime);
+      setEndDateTimeUtcOffset(startDateTimeUtcOffset);
+    }
+  }, [startDate, startTime, startDateTimeUtcOffset]);
+
+  // Custom handlers for start date/time changes
+  const handleStartDateChange = (value: string) => {
+    setStartDate(value);
+    // If end date is empty, set it to match start date
+    if (!endDate) {
+      setEndDate(value);
+    }
+  };
+
+  const handleStartTimeChange = (value: string) => {
+    setStartTime(value);
+    // If end time is empty, set it to match start time
+    if (!endTime) {
+      setEndTime(value);
+    }
+  };
+
+  const handleStartUtcOffsetChange = (value: number) => {
+    setStartDateTimeUtcOffset(value);
+    // If end time is empty, set its offset to match start offset
+    if (!endTime) {
+      setEndDateTimeUtcOffset(value);
+    }
+  };
+
   const fetchOptions = async () => {
     try {
       const response = await fetch(`/api/Option/GetOptionsByTripId?tripId=${tripId}`)
@@ -251,9 +286,9 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
             label="Start"
             dateValue={startDate}
             timeValue={startTime}
-            onDateChange={setStartDate}
-            onTimeChange={setStartTime}
-            onUtcOffsetChange={setStartDateTimeUtcOffset}
+            onDateChange={handleStartDateChange}
+            onTimeChange={handleStartTimeChange}
+            onUtcOffsetChange={handleStartUtcOffsetChange}
             id="start"
             initialUtcOffset={startDateTimeUtcOffset}
           />
