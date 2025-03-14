@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { UserInfo } from './components/UserInfo';
+import Link from 'next/link';
+import { Home } from 'lucide-react';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -29,7 +31,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <header className="p-4 flex justify-end">
+        <header className="p-4 flex justify-between items-center">
+          <Link href="/trips" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors">
+            <Home className="w-5 h-5" />
+            <span className="ml-2 text-sm font-medium">Home</span>
+          </Link>
           <UserInfo />
         </header>
         {children}

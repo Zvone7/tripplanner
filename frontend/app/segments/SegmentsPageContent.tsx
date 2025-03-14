@@ -37,9 +37,25 @@ export default function SegmentsPage() {
   const [error, setError] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingSegment, setEditingSegment] = useState<Segment | null | undefined>(null)
+  const [tripName, setTripName] = useState<string>('')
   const searchParams = useSearchParams()
   const tripId = searchParams.get('tripId')
   const router = useRouter()
+  
+    const fetchTripName = useCallback(async () => {
+      if (!tripId) return
+      try {
+        const response = await fetch(`/api/trip/gettripbyid?tripId=${tripId}`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch trip details')
+        }
+        const data = await response.json()
+        setTripName(data.name)
+      } catch (err) {
+        console.error('Error fetching trip details:', err)
+        setTripName('Unknown Trip')
+      }
+    }, [tripId])
 
   const fetchSegmentTypes = useCallback(async () => {
     try {
@@ -74,9 +90,10 @@ export default function SegmentsPage() {
   }, [tripId])
 
   useEffect(() => {
+    fetchTripName()
     fetchSegmentTypes()
     fetchSegments()
-  }, [fetchSegmentTypes, fetchSegments])
+  }, [fetchTripName, fetchSegmentTypes, fetchSegments])
 
   const handleEditSegment = (segment: Segment) => {
     setEditingSegment(segment)
@@ -163,7 +180,9 @@ export default function SegmentsPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Trip Segments</CardTitle>
-            <CardDescription>Segments for Trip ID: {tripId}</CardDescription>
+            <CardDescription>
+              {tripName ? tripName : `Trip ID: ${tripId}`}
+            </CardDescription>
           </div>
           <div className="flex space-x-2">
             <Button variant="outline" onClick={() => router.push('/trips')}>
