@@ -5,6 +5,7 @@ import { User, LogOut } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../components/ui/tooltip"
 import { Button } from "../components/ui/button"
 import { useRouter } from 'next/navigation'
+import Link from 'next/link';
 
 interface UserData {
   name: string;
@@ -78,10 +79,12 @@ export function UserInfo() {
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger>
+            <Link href="/profile">
             <div className="flex items-center space-x-2 text-sm">
               <User className="w-4 h-4" />
               <span>{user.name.split(' ')[0]}</span>
             </div>
+            </Link>
           </TooltipTrigger>
           <TooltipContent>
             <p>{user.email}</p>

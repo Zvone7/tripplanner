@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Application.Services;
+using Domain.Constants;
 using Domain.Dtos;
 using Domain.Settings;
 using Microsoft.AspNetCore.Authentication.Google;
@@ -82,7 +83,8 @@ public class AccountController : Controller
             if (emailClaim != null && userIdClaim != null)
             {
                 var user = await _userService_.GetAsync(int.Parse(userIdClaim.Value), cancellationToken);
-                return user;
+                if (user != null && user.IsApproved)
+                    return user;
             }
         }
         return Unauthorized();
@@ -94,7 +96,7 @@ public class AccountController : Controller
         {
             new Claim(ClaimTypes.Email, email),
             new Claim(ClaimTypes.Name, name),
-            new Claim(ClaimTypes.Role, "User"),
+            new Claim(ClaimTypes.Role, UserRoles.user.ToString()),
             new Claim("UserId", userId.ToString())
         };
 
@@ -110,7 +112,7 @@ public class AccountController : Controller
                 ExpiresUtc = DateTime.UtcNow.AddDays(7)
             });
     }
-    
+
     [HttpPost("Logout")]
     public async Task<IActionResult> Logout()
     {

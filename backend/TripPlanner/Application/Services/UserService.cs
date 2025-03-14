@@ -1,4 +1,5 @@
 using Db.Repositories;
+using Domain.Constants;
 using Domain.Dtos;
 
 namespace Application.Services;
@@ -18,7 +19,7 @@ public class UserService
         {
             name = name,
             email = email,
-            role = "user",
+            role = UserRoles.user.ToString(),
             created_at_utc = DateTime.UtcNow
         }, cancellationToken);
 
@@ -42,7 +43,9 @@ public class UserService
             Name = user.name,
             Email = user.email,
             Role = user.role,
-            CreatedAt = user.created_at_utc
+            CreatedAt = user.created_at_utc,
+            ApprovedAt = user.approved_at_utc,
+            IsApproved = user.is_approved,
         };
         return result;
     }
@@ -56,8 +59,37 @@ public class UserService
             Name = user.name,
             Email = user.email,
             Role = user.role,
-            CreatedAt = user.created_at_utc
+            CreatedAt = user.created_at_utc,
+            ApprovedAt = user.approved_at_utc,
+            IsApproved = user.is_approved,
         };
         return result;
+    }
+
+    public async Task<List<UserDto>> GetUnapprovedUsersAsync(CancellationToken cancellationToken)
+    {
+        var users = await _userRepository_.GetUnapprovedUsersAsync(cancellationToken);
+        var result = users.Select(user => new UserDto
+        {
+            Id = user.Id,
+            Name = user.name,
+            Email = user.email,
+            Role = user.role,
+            CreatedAt = user.created_at_utc,
+            ApprovedAt = user.approved_at_utc,
+            IsApproved = user.is_approved,
+        }).ToList();
+        return result;
+    }
+
+    public async Task<bool> SetApprovedAsync(int userId, CancellationToken cancellationToken)
+    {
+        var userToApprove = await GetAsync(userId, cancellationToken);
+        if (userToApprove != null)
+        {
+            await _userRepository_.SetApprovedAsync(userId, cancellationToken);
+            return true;
+        }
+        return false;
     }
 }
