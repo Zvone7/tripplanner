@@ -16,10 +16,18 @@ public class TripRepository
     public async Task<List<TripDbm>> GetAllActiveAsync(int userId, CancellationToken cancellationToken)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
-        return (await db.QueryAsync<TripDbm>("SELECT * FROM Trip t " +
-                                             "inner join app_user_to_trip aut on aut.trip_id = t.id " +
-                                             "WHERE t.is_active = 1 " +
-                                             "and aut.app_user_id=@userId", new { userId = userId })).AsList();
+        return (await db.QueryAsync<TripDbm>(
+            "SELECT t.id, t.name, t.description, t.is_active, " +
+            "       MIN(s.start_datetime_utc) AS startTime, " +
+            "       MAX(s.end_datetime_utc) AS endTime " +
+            "FROM Trip t " +
+            "INNER JOIN app_user_to_trip aut ON aut.trip_id = t.id " +
+            "LEFT JOIN segment s ON s.trip_id = t.id " +  // Use LEFT JOIN to include trips even if they have no segments
+            "WHERE t.is_active = 1 " +
+            "AND aut.app_user_id = @userId " +
+            "GROUP BY t.id, t.name, t.description, t.is_active", 
+            new { userId = userId })).AsList();
+
     }
 
     public async Task<TripDbm?> GetAsync(int tripId, CancellationToken cancellationToken)

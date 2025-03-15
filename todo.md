@@ -1,8 +1,4 @@
-- Add option to connect different segments to different options - this is quite important - figure out UI (do it initially on option view, but maybe add a support on segment modal when adding it)
-- Dont allow updating option cost in the modal
-- Dont allow updating start/end time for option in modal
-- Investigate possible google flights/skyscanner integration
-- Investigate possible booking.com integration
+- merge save changes and update connected into single button
 - Check mobile responsivenessness (it's a word)
-- Deploy? 
-- user login (let's pretend I'll ever reach this point)
+- Investigate possible booking.com integration
+- Investigate possible google flights/skyscanner integration

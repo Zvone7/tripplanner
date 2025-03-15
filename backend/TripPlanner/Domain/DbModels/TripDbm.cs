@@ -6,4 +6,6 @@ public class TripDbm
     public string Name { get; set; }
     public string Description { get; set; }
     public bool is_active { get; set; }
+    public DateTime? StartTime { get; set; }
+    public DateTime? EndTime { get; set; } 
 }

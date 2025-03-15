@@ -11,6 +11,8 @@ interface Trip {
   name: string;
   description: string;
   isActive: boolean;
+  startTime: string;
+  endTime: string;
 }
 
 interface TripModalProps {
@@ -39,7 +41,7 @@ export default function TripModal({ isOpen, onClose, onSave, trip }: TripModalPr
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSave({ name, description, isActive })
+    onSave({ name, description, isActive, startTime: '', endTime: '' })
   }
 
   return (

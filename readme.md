@@ -1,6 +1,6 @@
 # Trip planner
 
-Quick app for laying out different trips and trip options.
+Quick app for laying out different trips and trip options. Check it out [here](https://dev-wapp-tripplanner-fe-gzdghmetfqdyf6be.northeurope-01.azurewebsites.net/).
 
 Let's say you are considering flying to Amsterdam, but the flights on Saturday are more expensive than on Friday.
 However, then you need to book one night less - how much will that cost total?

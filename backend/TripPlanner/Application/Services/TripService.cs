@@ -20,7 +20,9 @@ public class TripService
             Id = t.Id,
             Name = t.Name,
             Description = t.Description,
-            IsActive = t.is_active
+            IsActive = t.is_active,
+            StartTime = t.StartTime,
+            EndTime = t.EndTime
         }).ToList();
         return result;
     }
