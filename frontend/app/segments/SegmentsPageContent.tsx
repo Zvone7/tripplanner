@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
 import { Skeleton } from "../components/ui/skeleton"
 import { Button } from "../components/ui/button"
-import { PencilIcon, PlusIcon, TrashIcon, ListIcon, ArrowLeftIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon, ListIcon } from 'lucide-react'
 import SegmentModal from '../segments/SegmentModal'
+import { formatDate } from '../utils/formatters'
 
 interface Segment {
   id: number;
@@ -165,34 +166,24 @@ export default function SegmentsPage() {
     return <div>No trip ID provided</div>
   }
 
-  const formatDate = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-  
-    return `${year}/${month}/${day} ${hours}:${minutes}`;
-  };
-
   return (
       <Card className="w-full max-w-4xl mx-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Trip Segments</CardTitle>
+            <CardTitle>Segments</CardTitle>
             <CardDescription>
               {tripName ? tripName : `Trip ID: ${tripId}`}
             </CardDescription>
           </div>
           <div className="flex space-x-2">
-            <Button variant="outline" onClick={() => router.push('/trips')}>
-              <ArrowLeftIcon className="mr-2 h-4 w-4" /> Back to Trips
-            </Button>
-            <Button variant="outline" onClick={() => router.push(`/options?tripId=${tripId}`)}>
-              <ListIcon className="mr-2 h-4 w-4" /> View Options
+            <Button 
+              variant="outline"
+              onClick={() => router.push(`/options?tripId=${tripId}`)}
+             >
+              <ListIcon className="mr-2 h-4 w-4" />View Options
             </Button>
             <Button onClick={handleCreateSegment}>
-              <PlusIcon className="mr-2 h-4 w-4" /> Add Segment
+              <PlusIcon className="h-4 w-4" />
             </Button>
           </div>
         </CardHeader>

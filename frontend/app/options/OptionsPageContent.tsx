@@ -7,8 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
 import { Skeleton } from "../components/ui/skeleton"
 import { Button } from "../components/ui/button"
-import { PencilIcon, PlusIcon, TrashIcon, LayoutIcon, ArrowLeftIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon, LayoutIcon } from 'lucide-react'
 import OptionModal from './OptionModal'
+import { formatDateStr } from '../utils/formatters'
 
 interface Option {
   id: number;
@@ -274,20 +275,20 @@ export default function OptionsPage() {
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Trip Options</CardTitle>
+          <CardTitle>Options</CardTitle>
           <CardDescription>
-            Options for {tripName ? tripName : `Trip ID: ${tripId}`}
+            {tripName ? tripName : `Trip ID: ${tripId}`}
           </CardDescription>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline" onClick={() => router.push('/trips')}>
-            <ArrowLeftIcon className="mr-2 h-4 w-4" /> Back to Trips
-          </Button>
-          <Button variant="outline" onClick={() => router.push(`/segments?tripId=${tripId}`)}>
-            <LayoutIcon className="mr-2 h-4 w-4" /> View Segments
+          <Button 
+            variant="outline" 
+            onClick={() => router.push(`/segments?tripId=${tripId}`)}
+          >
+            <LayoutIcon className="mr-2 h-4 w-4" />View Segments
           </Button>
           <Button onClick={handleCreateOption}>
-            <PlusIcon className="mr-2 h-4 w-4" /> Add Option
+            <PlusIcon className="h-4 w-4" />
           </Button>
         </div>
       </CardHeader>
@@ -301,8 +302,8 @@ export default function OptionsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Start Date</TableHead>
-                <TableHead>End Date</TableHead>
+                <TableHead>Start</TableHead>
+                <TableHead>End</TableHead>
                 <TableHead>Total Cost</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -316,8 +317,8 @@ export default function OptionsPage() {
                     onClick={() => handleEditOption(option)}
                   >
                     <TableCell className="font-medium">{option.name}</TableCell>
-                    <TableCell>{option.startDateTimeUtc ? new Date(option.startDateTimeUtc).toLocaleString() : 'N/A'}</TableCell>
-                    <TableCell>{option.endDateTimeUtc ? new Date(option.endDateTimeUtc).toLocaleString() : 'N/A'}</TableCell>
+                    <TableCell>{option.startDateTimeUtc ? formatDateStr(option.startDateTimeUtc) : 'N/A'}</TableCell>
+                    <TableCell>{option.endDateTimeUtc ? formatDateStr(option.endDateTimeUtc) : 'N/A'}</TableCell>
                     <TableCell>${option.totalCost.toFixed(2)}</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
