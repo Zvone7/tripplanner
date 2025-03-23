@@ -100,7 +100,7 @@ export function UserInfo() {
         className="flex items-center gap-1 text-xs"
       >
         <LogOut className="w-3 h-3" />
-        <span>Logout</span>
+        <span></span>
       </Button>
     </div>
   );
