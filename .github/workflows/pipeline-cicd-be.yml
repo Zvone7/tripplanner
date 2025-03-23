@@ -3,7 +3,6 @@ name: '[BE] Build and Deploy Workflow'
 on:
   push:
     branches:
-      - feature/cicd
       - release-be-dev
   workflow_dispatch:
     inputs:

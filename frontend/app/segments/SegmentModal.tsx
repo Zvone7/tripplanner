@@ -178,8 +178,9 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     }
   }
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
+  
     if (segmentTypeId === null) {
       toast({
         title: "Error",
@@ -187,7 +188,8 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       })
       return
     }
-    onSave({
+    
+    await onSave({
       tripId,
       name,
       startDateTimeUtc: `${startDate}T${startTime}:00.000Z`,
@@ -197,6 +199,10 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       cost: parseFloat(cost),
       segmentTypeId,
     })
+  
+    if (segment) {
+      await handleUpdateConnectedOptions()
+    }
   }, [tripId, name, startDate, startTime, endDate, endTime, startDateTimeUtcOffset, endDateTimeUtcOffset, cost, segmentTypeId, onSave])
 
   const handleUpdateConnectedOptions = async () => {
@@ -337,11 +343,6 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
           )}
           <DialogFooter>
             <Button type="submit">Save changes</Button>
-            {segment && (
-              <Button type="button" onClick={handleUpdateConnectedOptions}>
-                Update Connected Options
-              </Button>
-            )}
           </DialogFooter>
         </form>
       </DialogContent>
