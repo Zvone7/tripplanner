@@ -2,12 +2,13 @@
 import type React from "react"
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
 import { Skeleton } from "../components/ui/skeleton"
 import { Button } from "../components/ui/button"
-import { PencilIcon, PlusIcon, TrashIcon, LayoutIcon, ListIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
+import { PencilIcon, PlusIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
 import TripModal from "./TripModal"
+import { formatDateStr } from '../utils/formatters'
 
 interface Trip {
   id: number;
@@ -169,20 +170,6 @@ export default function TripList() {
     e.stopPropagation()
     router.push(`/segments?tripId=${tripId}`)
   }
-  const formatDateRange = (startTime: string | null, endTime: string | null) => {
-    if (!startTime || !endTime) return "N/A"
-  
-    const formatDate = (dateString: string) => {
-      const date = new Date(dateString)
-      const day = date.getDate().toString().padStart(2, "0") // Ensure two digits
-      const month = (date.getMonth() + 1).toString().padStart(2, "0") // Months are 0-based
-      const year = date.getFullYear()
-  
-      return `${day}.${month}.${year}` // Format: DD.MM.YYYY
-    }
-  
-    return `${formatDate(startTime)} - ${formatDate(endTime)}`
-  }
   
 
   return (
@@ -196,11 +183,10 @@ export default function TripList() {
       <Card className="w-full max-w-4xl mx-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>My Trips</CardTitle>
-            <CardDescription>A list of all your trips</CardDescription>
+            <CardTitle>Trips</CardTitle>
           </div>
           <Button onClick={handleCreateTrip}>
-            <PlusIcon className="mr-2 h-4 w-4" /> Add Trip
+            <PlusIcon className="h-4 w-4" />
           </Button>
         </CardHeader>
         <CardContent>
@@ -215,7 +201,7 @@ export default function TripList() {
                   className="flex items-center justify-between cursor-pointer mb-2 p-2 border border-gray-300 hover:bg-gray-200 rounded-md transition-colors"
                   onClick={() => setShowCurrentTrips(!showCurrentTrips)}
                 >
-                  <h3 className="text-lg font-medium">Current Trips</h3>
+                  <h3 className="text-lg font-medium">Current trips</h3>
                   <Button variant="ghost" size="sm">
                     {showCurrentTrips ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
                   </Button>
@@ -227,7 +213,8 @@ export default function TripList() {
                       <TableRow>
                         <TableHead>Name</TableHead>
                         <TableHead>Description</TableHead>
-                        <TableHead>Time Period</TableHead>
+                        <TableHead>Start</TableHead>
+                        <TableHead>End</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -240,7 +227,8 @@ export default function TripList() {
                         >
                           <TableCell className="font-medium">{trip.name}</TableCell>
                           <TableCell>{trip.description}</TableCell>
-                          <TableCell>{formatDateRange(trip.startTime, trip.endTime)}</TableCell>
+                          <TableCell>{formatDateStr(trip.startTime)}</TableCell>
+                          <TableCell>{formatDateStr(trip.endTime)}</TableCell>
                           <TableCell onClick={(e) => e.stopPropagation()}>
                             <div className="flex space-x-2">
                               <Button variant="ghost" size="sm" onClick={(e) => handleEditTrip(e, trip)}>
@@ -264,7 +252,7 @@ export default function TripList() {
                     className="flex items-center justify-between cursor-pointer mb-2 p-2 border border-gray-300 hover:bg-gray-200 rounded-md transition-colors"
                     onClick={() => setShowOldTrips(!showOldTrips)}
                   >
-                    <h3 className="text-lg font-medium">Old Trips</h3>
+                    <h3 className="text-lg font-medium">Past trips</h3>
                     <Button variant="ghost" size="sm">
                       {showOldTrips ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
                     </Button>
@@ -276,7 +264,8 @@ export default function TripList() {
                         <TableRow>
                           <TableHead>Name</TableHead>
                           <TableHead>Description</TableHead>
-                          <TableHead>Time Period</TableHead>
+                          <TableHead>Start</TableHead>
+                          <TableHead>End</TableHead>
                           <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -289,7 +278,8 @@ export default function TripList() {
                         >                      
                             <TableCell className="font-medium">{trip.name}</TableCell>
                             <TableCell>{trip.description}</TableCell>
-                            <TableCell>{formatDateRange(trip.startTime, trip.endTime)}</TableCell>
+                          <TableCell>{formatDateStr(trip.startTime)}</TableCell>
+                          <TableCell>{formatDateStr(trip.endTime)}</TableCell>
                             <TableCell>
                               <div className="flex space-x-2">
                                 <Button variant="ghost" size="sm" onClick={(e) => handleEditTrip(e, trip)}>

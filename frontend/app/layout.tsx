@@ -34,7 +34,7 @@ export default function RootLayout({
         <header className="p-4 flex justify-between items-center">
           <Link href="/trips" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors">
             <Home className="w-5 h-5" />
-            <span className="ml-2 text-sm font-medium">Home</span>
+            <span className="ml-2 text-sm font-medium">Trips</span>
           </Link>
           <UserInfo />
         </header>
