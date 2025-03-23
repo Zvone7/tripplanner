@@ -7,14 +7,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Skeleton } from "./ui/skeleton"
 import { Button } from "./ui/button"
 import { PencilIcon, PlusIcon, TrashIcon, LayoutIcon, ListIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
+import TripModal from "./TripModal"
 
 interface Trip {
   id: number;
   name: string;
   description: string;
   isActive: boolean;
-  startTime: string
-  endTime: string;
+  startTime: string | null;
+  endTime: string | null;
 }
 export default function TripList() {
   const [trips, setTrips] = useState<Trip[]>([])
@@ -105,7 +106,7 @@ export default function TripList() {
     setIsModalOpen(false)
     setEditingTrip(null)
   }
-
+  
   const handleSaveTrip = async (tripData: Omit<Trip, "id">) => {
     try {
       let response
@@ -113,6 +114,7 @@ export default function TripList() {
       if (editingTrip) {
         // Update existing trip
         const updatedTripData = { ...tripData, id: editingTrip.id }
+        console.log("updatedTripData:", updatedTripData)
         response = await fetch(`/api/trip/updatetrip?tripId=${editingTrip.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -159,8 +161,7 @@ export default function TripList() {
     }
   }
 
-  const handleViewOptions = (e: React.MouseEvent, tripId: number) => {
-    e.stopPropagation()
+  const handleViewOptions = (tripId: number) => {
     router.push(`/options?tripId=${tripId}`)
   }
 
@@ -168,7 +169,7 @@ export default function TripList() {
     e.stopPropagation()
     router.push(`/segments?tripId=${tripId}`)
   }
-  const formatDateRange = (startTime: string, endTime: string) => {
+  const formatDateRange = (startTime: string | null, endTime: string | null) => {
     if (!startTime || !endTime) return "N/A"
   
     const formatDate = (dateString: string) => {
@@ -185,86 +186,42 @@ export default function TripList() {
   
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>My Trips</CardTitle>
-          <CardDescription>A list of all your trips</CardDescription>
-        </div>
-        <Button onClick={handleCreateTrip}>
-          <PlusIcon className="mr-2 h-4 w-4" /> Add Trip
-        </Button>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <LoadingSkeleton />
-        ) : error ? (
-          <p className="text-center text-red-500">{error}</p>
-        ) : (
-          <>
-            <div className="mt-4">
-              <div
-                className="flex items-center justify-between cursor-pointer mb-2 p-2 border border-gray-300 hover:bg-gray-200 rounded-md transition-colors"
-                onClick={() => setShowCurrentTrips(!showCurrentTrips)}
-              >
-                <h3 className="text-lg font-medium">Current Trips</h3>
-                <Button variant="ghost" size="sm">
-                  {showCurrentTrips ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
-                </Button>
-              </div>
-
-              {showCurrentTrips && (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Time Period</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {currentTrips.map((trip) => (
-                      <TableRow key={trip.id}>
-                        <TableCell className="font-medium">{trip.name}</TableCell>
-                        <TableCell>{trip.description}</TableCell>
-                        <TableCell>{formatDateRange(trip.startTime, trip.endTime)}</TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button variant="ghost" size="sm" onClick={(e) => handleEditTrip(e, trip)}>
-                              <PencilIcon className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={(e) => handleDeleteTrip(e, trip.id)}>
-                              <TrashIcon className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={(e) => handleViewOptions(e, trip.id)}>
-                              <ListIcon className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={(e) => handleViewSegments(e, trip.id)}>
-                              <LayoutIcon className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
-
-            {oldTrips.length > 0 && (
-              <div className="mt-8">
+    <div>
+      <TripModal 
+        isOpen={isModalOpen} 
+        onClose={handleCloseModal} 
+        onSave={handleSaveTrip} 
+        trip={editingTrip} 
+      />
+      <Card className="w-full max-w-4xl mx-auto">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>My Trips</CardTitle>
+            <CardDescription>A list of all your trips</CardDescription>
+          </div>
+          <Button onClick={handleCreateTrip}>
+            <PlusIcon className="mr-2 h-4 w-4" /> Add Trip
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <LoadingSkeleton />
+          ) : error ? (
+            <p className="text-center text-red-500">{error}</p>
+          ) : (
+            <>
+              <div className="mt-4">
                 <div
                   className="flex items-center justify-between cursor-pointer mb-2 p-2 border border-gray-300 hover:bg-gray-200 rounded-md transition-colors"
-                  onClick={() => setShowOldTrips(!showOldTrips)}
+                  onClick={() => setShowCurrentTrips(!showCurrentTrips)}
                 >
-                  <h3 className="text-lg font-medium">Old Trips</h3>
+                  <h3 className="text-lg font-medium">Current Trips</h3>
                   <Button variant="ghost" size="sm">
-                    {showOldTrips ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
+                    {showCurrentTrips ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
                   </Button>
                 </div>
 
-                {showOldTrips && (
+                {showCurrentTrips && (
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -275,24 +232,22 @@ export default function TripList() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {oldTrips.map((trip) => (
-                        <TableRow key={trip.id}>
+                      {currentTrips.map((trip) => (
+                        <TableRow
+                          key={trip.id}
+                          className="cursor-pointer hover:bg-muted"
+                          onClick={() => handleViewOptions(trip.id)}
+                        >
                           <TableCell className="font-medium">{trip.name}</TableCell>
                           <TableCell>{trip.description}</TableCell>
                           <TableCell>{formatDateRange(trip.startTime, trip.endTime)}</TableCell>
-                          <TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             <div className="flex space-x-2">
                               <Button variant="ghost" size="sm" onClick={(e) => handleEditTrip(e, trip)}>
                                 <PencilIcon className="h-4 w-4" />
                               </Button>
                               <Button variant="ghost" size="sm" onClick={(e) => handleDeleteTrip(e, trip.id)}>
                                 <TrashIcon className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={(e) => handleViewOptions(e, trip.id)}>
-                                <ListIcon className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={(e) => handleViewSegments(e, trip.id)}>
-                                <LayoutIcon className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
@@ -302,14 +257,63 @@ export default function TripList() {
                   </Table>
                 )}
               </div>
-            )}
-          </>
-        )}
-      </CardContent>
-    </Card>
+
+              {oldTrips.length > 0 && (
+                <div className="mt-8">
+                  <div
+                    className="flex items-center justify-between cursor-pointer mb-2 p-2 border border-gray-300 hover:bg-gray-200 rounded-md transition-colors"
+                    onClick={() => setShowOldTrips(!showOldTrips)}
+                  >
+                    <h3 className="text-lg font-medium">Old Trips</h3>
+                    <Button variant="ghost" size="sm">
+                      {showOldTrips ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
+                    </Button>
+                  </div>
+
+                  {showOldTrips && (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead>Time Period</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {oldTrips.map((trip) => (
+                          <TableRow
+                          key={trip.id}
+                          className="cursor-pointer hover:bg-muted"
+                          onClick={() => handleViewOptions(trip.id)}
+                        >                      
+                            <TableCell className="font-medium">{trip.name}</TableCell>
+                            <TableCell>{trip.description}</TableCell>
+                            <TableCell>{formatDateRange(trip.startTime, trip.endTime)}</TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Button variant="ghost" size="sm" onClick={(e) => handleEditTrip(e, trip)}>
+                                  <PencilIcon className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={(e) => handleDeleteTrip(e, trip.id)}>
+                                  <TrashIcon className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   )
 }
-
 
 function LoadingSkeleton() {
   return (
