@@ -217,7 +217,11 @@ export default function SegmentsPage() {
                 {segments.map((segment) => {
                   const segmentType = segmentTypes.find(st => st.id === segment.segmentTypeId)
                   return (
-                    <TableRow key={segment.id}>
+                    <TableRow 
+                      key={segment.id}
+                      className="cursor-pointer hover:bg-muted"
+                      onClick={() => handleEditSegment(segment)}
+                    >
                       <TableCell>
                         {segmentType && (
                           <div className="flex items-center space-x-2">
@@ -232,9 +236,6 @@ export default function SegmentsPage() {
                       <TableCell>${segment.cost.toFixed(2)}</TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
-                          <Button variant="ghost" size="sm" onClick={() => handleEditSegment(segment)}>
-                            <PencilIcon className="h-4 w-4" />
-                          </Button>
                           <Button variant="ghost" size="sm" onClick={() => handleDeleteSegment(segment.id)}>
                             <TrashIcon className="h-4 w-4" />
                           </Button>
