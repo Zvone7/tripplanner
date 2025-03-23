@@ -108,15 +108,21 @@ export default function OptionModal({ isOpen, onClose, onSave, option, tripId, r
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    onSave({
+    await onSave({
       name,
       startDateTimeUtc: null,
       endDateTimeUtc: null,
       tripId,
       totalCost: 0
     })
+    
+  
+    if (option) {
+      await handleUpdateConnectedSegments()
+    }
+
     handleClose()
   }
 
@@ -220,11 +226,6 @@ export default function OptionModal({ isOpen, onClose, onSave, option, tripId, r
           </div>
           <DialogFooter>
             <Button type="submit">Save changes</Button>
-            {option && (
-              <Button type="button" onClick={handleUpdateConnectedSegments}>
-                Update Connected Segments
-              </Button>
-            )}
           </DialogFooter>
         </form>
       </DialogContent>

@@ -3,7 +3,6 @@ name: '[FE] Build and Deploy Workflow'
 on:
   push:
     branches:
-      - feature/cicd
       - release-fe-dev
   workflow_dispatch:
     inputs:
