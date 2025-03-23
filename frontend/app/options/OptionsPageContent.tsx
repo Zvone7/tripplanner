@@ -310,16 +310,17 @@ export default function OptionsPage() {
             <TableBody>
               {options.map((option) => (
                 <Fragment key={option.id}>
-                  <TableRow>
+                  <TableRow
+                    key={option.id}
+                    className="cursor-pointer hover:bg-muted"
+                    onClick={() => handleEditOption(option)}
+                  >
                     <TableCell className="font-medium">{option.name}</TableCell>
                     <TableCell>{option.startDateTimeUtc ? new Date(option.startDateTimeUtc).toLocaleString() : 'N/A'}</TableCell>
                     <TableCell>{option.endDateTimeUtc ? new Date(option.endDateTimeUtc).toLocaleString() : 'N/A'}</TableCell>
                     <TableCell>${option.totalCost.toFixed(2)}</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button variant="ghost" size="sm" onClick={() => handleEditOption(option)}>
-                          <PencilIcon className="h-4 w-4" />
-                        </Button>
                         <Button variant="ghost" size="sm" onClick={() => handleDeleteOption(option.id)}>
                           <TrashIcon className="h-4 w-4" />
                         </Button>
