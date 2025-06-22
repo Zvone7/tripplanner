@@ -8,5 +8,6 @@ public class UserDto
     public string Role { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? ApprovedAt { get; set; }
+    public UserPreferenceDto? UserPreference { get; set; }
     public bool IsApproved { get; set; }
 }

@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
+import { useState } from "react"
 import { Button } from "../components/ui/button"
 
 export function LoginButton() {
@@ -11,8 +11,8 @@ export function LoginButton() {
     try {
       setIsLoading(true);
       // Create a form element
-      const form = document.createElement('form');
-      form.method = 'GET';
+      const form = document.createElement("form");
+      form.method = "GET";
       form.action = `${backendUrl}/api/Account/Login`;
       
       // This will include cookies in the request

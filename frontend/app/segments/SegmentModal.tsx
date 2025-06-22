@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
@@ -40,21 +40,21 @@ interface SegmentType {
 interface SegmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (segment: Omit<Segment, 'id'>) => void;
+  onSave: (segment: Omit<Segment, "id">) => void;
   segment?: Segment | null;
   tripId: number;
   segmentTypes: SegmentType[];
 }
 
 export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId, segmentTypes }: SegmentModalProps) {
-  const [name, setName] = useState('')
-  const [startDate, setStartDate] = useState('')
-  const [startTime, setStartTime] = useState('')
-  const [endDate, setEndDate] = useState('')
-  const [endTime, setEndTime] = useState('')
+  const [name, setName] = useState("")
+  const [startDate, setStartDate] = useState("")
+  const [startTime, setStartTime] = useState("")
+  const [endDate, setEndDate] = useState("")
+  const [endTime, setEndTime] = useState("")
   const [startDateTimeUtcOffset, setStartDateTimeUtcOffset] = useState(0)
   const [endDateTimeUtcOffset, setEndDateTimeUtcOffset] = useState(0)
-  const [cost, setCost] = useState('')
+  const [cost, setCost] = useState("")
   const [segmentTypeId, setSegmentTypeId] = useState<number | null>(null)
   const [options, setOptions] = useState<Option[]>([])
   const [selectedOptions, setSelectedOptions] = useState<number[]>([])
@@ -65,14 +65,14 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     if(offset!==0){
       tempDate.setHours(tempDate.getHours() + offset)
     }
-    return date.getFullYear() + '-' + (tempDate.getMonth() + 1).toString().padStart(2, '0') + '-' + tempDate.getDate().toString().padStart(2, '0')
+    return date.getFullYear() + "-" + (tempDate.getMonth() + 1).toString().padStart(2, "0") + "-" + tempDate.getDate().toString().padStart(2, "0")
   }
   const getTimeValie = (date: Date, offset: number) =>{ 
     var tempDate = new Date(date);
     if(offset!==0){
       tempDate.setHours(tempDate.getHours() + offset)
     }
-    return String(tempDate.getHours()).padStart(2, '0') + ':' + String(tempDate.getMinutes()).padStart(2, '0')
+    return String(tempDate.getHours()).padStart(2, "0") + ":" + String(tempDate.getMinutes()).padStart(2, "0")
   }
 
   useEffect(() => {
@@ -92,14 +92,14 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       setSegmentTypeId(segment.segmentTypeId)
       fetchConnectedOptions(segment.id)
     } else {
-      setName('')
-      setStartDate('')
-      setStartTime('')
-      setEndDate('')
-      setEndTime('')
+      setName("")
+      setStartDate("")
+      setStartTime("")
+      setEndDate("")
+      setEndTime("")
       setStartDateTimeUtcOffset(0)
       setEndDateTimeUtcOffset(0)
-      setCost('')
+      setCost("")
       setSegmentTypeId(null)
       setSelectedOptions([])
     }
@@ -148,12 +148,12 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     try {
       const response = await fetch(`/api/Option/GetOptionsByTripId?tripId=${tripId}`)
       if (!response.ok) {
-        throw new Error('Failed to fetch options')
+        throw new Error("Failed to fetch options")
       }
       const data = await response.json()
       setOptions(data)
     } catch (error) {
-      console.error('Error fetching options:', error)
+      console.error("Error fetching options:", error)
       toast({
         title: "Error",
         description: "Failed to fetch options. Please try again.",
@@ -165,12 +165,12 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     try {
       const response = await fetch(`/api/Segment/GetConnectedOptions?tripId=${tripId}&segmentId=${segmentId}`)
       if (!response.ok) {
-        throw new Error('Failed to fetch connected options')
+        throw new Error("Failed to fetch connected options")
       }
       const data = await response.json()
       setSelectedOptions(data.map((option: Option) => option.id))
     } catch (error) {
-      console.error('Error fetching connected options:', error)
+      console.error("Error fetching connected options:", error)
       toast({
         title: "Error",
         description: "Failed to fetch connected options. Please try again.",
@@ -210,9 +210,9 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
 
     try {
       const response = await fetch(`/api/Segment/UpdateConnectedOptions?tripId=${tripId}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           SegmentId: segment.id,
@@ -222,7 +222,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       })
 
       if (!response.ok) {
-        throw new Error('Failed to update connected options')
+        throw new Error("Failed to update connected options")
       }
 
       toast({
@@ -230,7 +230,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
         description: "Connected options updated successfully",
       })
     } catch (error) {
-      console.error('Error updating connected options:', error)
+      console.error("Error updating connected options:", error)
       toast({
         title: "Error",
         description: "Failed to update connected options. Please try again.",
@@ -250,7 +250,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{segment ? 'Edit Segment' : 'Create Segment'}</DialogTitle>
+          <DialogTitle>{segment ? "Edit Segment" : "Create Segment"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-4 items-center gap-4">
@@ -270,7 +270,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
               Segment Type
             </Label>
             <Select
-              value={segmentTypeId?.toString() || ''}
+              value={segmentTypeId?.toString() || ""}
               onValueChange={(value) => setSegmentTypeId(parseInt(value))}
             >
               <SelectTrigger className="col-span-3">

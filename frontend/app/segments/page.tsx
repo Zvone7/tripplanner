@@ -1,8 +1,8 @@
-'use client'
+"use client"
 
-import React, { Suspense } from 'react'
+import React, { Suspense } from "react"
 import { Skeleton } from "../components/ui/skeleton"
-import SegmentsPageContent from '../segments/SegmentsPageContent'
+import SegmentsPageContent from "../segments/SegmentsPageContent"
 
 
 export default function SegmentsPage() {
