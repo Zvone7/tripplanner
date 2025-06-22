@@ -1,15 +1,15 @@
-'use client'
+"use client"
 
-import React, { Fragment } from 'react'
-import { useEffect, useState, useCallback } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import React, { Fragment } from "react"
+import { useEffect, useState, useCallback } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
 import { Skeleton } from "../components/ui/skeleton"
 import { Button } from "../components/ui/button"
-import { PlusIcon, TrashIcon, LayoutIcon } from 'lucide-react'
-import OptionModal from './OptionModal'
-import { formatDateStr } from '../utils/formatters'
+import { PlusIcon, TrashIcon, LayoutIcon } from "lucide-react"
+import OptionModal from "./OptionModal"
+import { formatDateStr } from "../utils/formatters"
 
 interface Option {
   id: number;
@@ -68,7 +68,7 @@ function SegmentDiagram({ segments }: { segments: ConnectedSegment[] }) {
             className="h-12 flex items-center justify-center relative overflow-hidden"
             style={{
               backgroundColor: segment.segmentType.color,
-              clipPath: 'polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%)',
+              clipPath: "polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%)",
             }}
             title={`${segment.segmentType.name} - ${segment.name}`}
           >
@@ -92,9 +92,9 @@ export default function OptionsPage() {
   const [error, setError] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingOption, setEditingOption] = useState<Option | null>(null)
-  const [tripName, setTripName] = useState<string>('') // Add state for trip name
+  const [tripName, setTripName] = useState<string>("") // Add state for trip name
   const searchParams = useSearchParams()
-  const tripId = searchParams.get('tripId')
+  const tripId = searchParams.get("tripId")
   const router = useRouter()
 
   const fetchTripName = useCallback(async () => {
@@ -102,13 +102,13 @@ export default function OptionsPage() {
     try {
       const response = await fetch(`/api/trip/gettripbyid?tripId=${tripId}`)
       if (!response.ok) {
-        throw new Error('Failed to fetch trip details')
+        throw new Error("Failed to fetch trip details")
       }
       const data = await response.json()
       setTripName(data.name)
     } catch (err) {
-      console.error('Error fetching trip details:', err)
-      setTripName('Unknown Trip')
+      console.error("Error fetching trip details:", err)
+      setTripName("Unknown Trip")
     }
   }, [tripId])
 
@@ -118,13 +118,13 @@ export default function OptionsPage() {
     try {
       const response = await fetch(`/api/Option/GetOptionsByTripId?tripId=${tripId}`)
       if (!response.ok) {
-        throw new Error('Failed to fetch options')
+        throw new Error("Failed to fetch options")
       }
       const data = await response.json()
       setOptions(data)
     } catch (err) {
-      setError('An error occurred while fetching options')
-      console.error('Error fetching options:', err)
+      setError("An error occurred while fetching options")
+      console.error("Error fetching options:", err)
     } finally {
       setIsLoading(false)
     }
@@ -135,25 +135,25 @@ export default function OptionsPage() {
     try {
       const response = await fetch(`/api/Segment/GetSegmentsByTripId?tripId=${tripId}`)
       if (!response.ok) {
-        throw new Error('Failed to fetch segments')
+        throw new Error("Failed to fetch segments")
       }
       const data = await response.json()
       setSegments(data)
     } catch (err) {
-      console.error('Error fetching segments:', err)
+      console.error("Error fetching segments:", err)
     }
   }, [tripId])
 
   const fetchSegmentTypes = useCallback(async () => {
     try {
-      const response = await fetch('/api/Segment/GetSegmentTypes')
+      const response = await fetch("/api/Segment/GetSegmentTypes")
       if (!response.ok) {
-        throw new Error('Failed to fetch segment types')
+        throw new Error("Failed to fetch segment types")
       }
       const data = await response.json()
       setSegmentTypes(data)
     } catch (err) {
-      console.error('Error fetching segment types:', err)
+      console.error("Error fetching segment types:", err)
     }
   }, [])
 
@@ -161,22 +161,22 @@ export default function OptionsPage() {
     try {
       const response = await fetch(`/api/Option/GetConnectedSegments?tripId=${tripId}&optionId=${optionId}`)
       if (!response.ok) {
-        throw new Error('Failed to fetch connected segments')
+        throw new Error("Failed to fetch connected segments")
       }
       const connectedSegments = await response.json()
       return connectedSegments.map((segment: Segment) => ({
         ...segment,
         segmentType: segmentTypes.find(st => st.id === segment.segmentTypeId) || {
           id: 0,
-          shortName: 'Unknown',
-          name: 'Unknown',
-          description: 'Unknown segment type',
-          color: '#CCCCCC',
-          iconSvg: '<svg></svg>'
+          shortName: "Unknown",
+          name: "Unknown",
+          description: "Unknown segment type",
+          color: "#CCCCCC",
+          iconSvg: "<svg></svg>"
         }
       }))
     } catch (error) {
-      console.error('Error fetching connected segments:', error)
+      console.error("Error fetching connected segments:", error)
       return []
     }
   }, [segmentTypes, tripId])
@@ -217,53 +217,53 @@ export default function OptionsPage() {
     setEditingOption(null)
   }
 
-  const handleSaveOption = async (optionData: Omit<Option, 'id'>) => {
+  const handleSaveOption = async (optionData: Omit<Option, "id">) => {
     try {
       let response;
 
       if (editingOption) {
         // Update existing option
         response = await fetch(`/api/Option/UpdateOption?tripId=${tripId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...optionData, id: editingOption.id }),
         })
       } else {
         // Create new option
         response = await fetch(`/api/Option/CreateOption?tripId=${tripId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(optionData),
         })
       }
 
       if (!response.ok) {
-        throw new Error('Failed to save option')
+        throw new Error("Failed to save option")
       }
 
       handleCloseModal()
       await fetchOptions()
     } catch (err) {
-      console.error('Error saving option:', err)
-      setError('An error occurred while saving the option')
+      console.error("Error saving option:", err)
+      setError("An error occurred while saving the option")
     }
   }
 
   const handleDeleteOption = async (optionId: number) => {
-    if (window.confirm('Are you sure you want to delete this option?')) {
+    if (window.confirm("Are you sure you want to delete this option?")) {
       try {
         const response = await fetch(`/api/Option/DeleteOption?tripId=${tripId}&optionId=${optionId}`, {
-          method: 'DELETE',
+          method: "DELETE",
         })
 
         if (!response.ok) {
-          throw new Error('Failed to delete option')
+          throw new Error("Failed to delete option")
         }
 
         await fetchOptions()
       } catch (err) {
-        console.error('Error deleting option:', err)
-        setError('An error occurred while deleting the option')
+        console.error("Error deleting option:", err)
+        setError("An error occurred while deleting the option")
       }
     }
   }
@@ -317,8 +317,8 @@ export default function OptionsPage() {
                     onClick={() => handleEditOption(option)}
                   >
                     <TableCell className="font-medium">{option.name}</TableCell>
-                    <TableCell>{option.startDateTimeUtc ? formatDateStr(option.startDateTimeUtc) : 'N/A'}</TableCell>
-                    <TableCell>{option.endDateTimeUtc ? formatDateStr(option.endDateTimeUtc) : 'N/A'}</TableCell>
+                    <TableCell>{option.startDateTimeUtc ? formatDateStr(option.startDateTimeUtc) : "N/A"}</TableCell>
+                    <TableCell>{option.endDateTimeUtc ? formatDateStr(option.endDateTimeUtc) : "N/A"}</TableCell>
                     <TableCell>${option.totalCost.toFixed(2)}</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">

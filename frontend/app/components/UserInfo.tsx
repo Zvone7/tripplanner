@@ -1,11 +1,11 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from 'react'
-import { User, LogOut } from 'lucide-react'
+import { useState, useEffect } from "react"
+import { User, LogOut } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../components/ui/tooltip"
 import { Button } from "../components/ui/button"
-import { useRouter } from 'next/navigation'
-import Link from 'next/link';
+import { useRouter } from "next/navigation"
+import Link from "next/link";
 
 interface UserData {
   name: string;
@@ -39,7 +39,7 @@ export function UserInfo() {
           window.location.href = "/";
         }
       } catch (error) {
-        console.error('Failed to fetch user info:', error);
+        console.error("Failed to fetch user info:", error);
       }
     }
 
@@ -61,12 +61,12 @@ export function UserInfo() {
         // Clear user state
         setUser(null);
         // Redirect to home page
-        router.push('/');
+        router.push("/");
       } else {
-        console.error('Logout failed');
+        console.error("Logout failed");
       }
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error("Error during logout:", error);
     } finally {
       setIsLoggingOut(false);
     }
@@ -82,7 +82,7 @@ export function UserInfo() {
             <Link href="/profile">
             <div className="flex items-center space-x-2 text-sm">
               <User className="w-4 h-4" />
-              <span>{user.name.split(' ')[0]}</span>
+              <span>{user.name.split(" ")[0]}</span>
             </div>
             </Link>
           </TooltipTrigger>

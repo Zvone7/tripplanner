@@ -1,20 +1,20 @@
-'use client'
+"use client"
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { TestApiButton } from '../components/TestApiButton';
-import { getServerStartTime } from '../lib/serverTime';
-import Link from 'next/link';
+import { TestApiButton } from "../components/TestApiButton";
+import { getServerStartTime } from "../lib/serverTime";
+import Link from "next/link";
 
 export default function Authenticated() {
   const router = useRouter();
   const [authStatus, setAuthStatus] = useState<string | null>(null);
 
   const serverStartTime = getServerStartTime();
-  const frontendUrl= process.env.NEXT_PUBLIC_FRONTEND_ROOT_URL || 'not set';
-  const backendUrl= process.env.NEXT_PUBLIC_BACKEND_ROOT_URL || 'not set';
-  const envCode= process.env.NEXT_PUBLIC_ENV_CODE || 'unknown';
-  const buildNumber= process.env.NEXT_PUBLIC_BUILD_NUMBER || 'unknown';
+  const frontendUrl= process.env.NEXT_PUBLIC_FRONTEND_ROOT_URL || "not set";
+  const backendUrl= process.env.NEXT_PUBLIC_BACKEND_ROOT_URL || "not set";
+  const envCode= process.env.NEXT_PUBLIC_ENV_CODE || "unknown";
+  const buildNumber= process.env.NEXT_PUBLIC_BUILD_NUMBER || "unknown";
   useEffect(() => {
     fetch(`/api/account/info`, {
       method: "GET",

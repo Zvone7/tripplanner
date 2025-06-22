@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
@@ -33,14 +33,14 @@ interface Option {
 interface OptionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (option: Omit<Option, 'id'>) => void;
+  onSave: (option: Omit<Option, "id">) => void;
   option?: Option | null;
   tripId: number;
   refreshOptions: () => void;
 }
 
 export default function OptionModal({ isOpen, onClose, onSave, option, tripId, refreshOptions }: OptionModalProps) {
-  const [name, setName] = useState('')
+  const [name, setName] = useState("")
   const [segments, setSegments] = useState<Segment[]>([])
   const [segmentTypes, setSegmentTypes] = useState<SegmentType[]>([])
   const [selectedSegments, setSelectedSegments] = useState<number[]>([])
@@ -50,7 +50,7 @@ export default function OptionModal({ isOpen, onClose, onSave, option, tripId, r
       setName(option.name)
       fetchConnectedSegments(option.id)
     } else {
-      setName('')
+      setName("")
       setSelectedSegments([])
     }
     fetchSegments()
@@ -61,12 +61,12 @@ export default function OptionModal({ isOpen, onClose, onSave, option, tripId, r
     try {
       const response = await fetch(`/api/Segment/GetSegmentsByTripId?tripId=${tripId}`)
       if (!response.ok) {
-        throw new Error('Failed to fetch segments')
+        throw new Error("Failed to fetch segments")
       }
       const data = await response.json()
       setSegments(data)
     } catch (error) {
-      console.error('Error fetching segments:', error)
+      console.error("Error fetching segments:", error)
       toast({
         title: "Error",
         description: "Failed to fetch segments. Please try again.",
@@ -76,14 +76,14 @@ export default function OptionModal({ isOpen, onClose, onSave, option, tripId, r
 
   const fetchSegmentTypes = async () => {
     try {
-      const response = await fetch('/api/Segment/GetSegmentTypes')
+      const response = await fetch("/api/Segment/GetSegmentTypes")
       if (!response.ok) {
-        throw new Error('Failed to fetch segment types')
+        throw new Error("Failed to fetch segment types")
       }
       const data = await response.json()
       setSegmentTypes(data)
     } catch (error) {
-      console.error('Error fetching segment types:', error)
+      console.error("Error fetching segment types:", error)
       toast({
         title: "Error",
         description: "Failed to fetch segment types. Please try again.",
@@ -95,12 +95,12 @@ export default function OptionModal({ isOpen, onClose, onSave, option, tripId, r
     try {
       const response = await fetch(`/api/Option/GetConnectedSegments?tripId=${tripId}&optionId=${optionId}`)
       if (!response.ok) {
-        throw new Error('Failed to fetch connected segments')
+        throw new Error("Failed to fetch connected segments")
       }
       const data = await response.json()
       setSelectedSegments(data.map((segment: Segment) => segment.id))
     } catch (error) {
-      console.error('Error fetching connected segments:', error)
+      console.error("Error fetching connected segments:", error)
       toast({
         title: "Error",
         description: "Failed to fetch connected segments. Please try again.",
@@ -131,9 +131,9 @@ export default function OptionModal({ isOpen, onClose, onSave, option, tripId, r
 
     try {
       const response = await fetch(`/api/Option/UpdateConnectedSegments?tripId=${tripId}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           OptionId: option.id,
@@ -142,7 +142,7 @@ export default function OptionModal({ isOpen, onClose, onSave, option, tripId, r
       })
 
       if (!response.ok) {
-        throw new Error('Failed to update connected segments')
+        throw new Error("Failed to update connected segments")
       }
 
       toast({
@@ -151,7 +151,7 @@ export default function OptionModal({ isOpen, onClose, onSave, option, tripId, r
       })
       handleClose()
     } catch (error) {
-      console.error('Error updating connected segments:', error)
+      console.error("Error updating connected segments:", error)
       toast({
         title: "Error",
         description: "Failed to update connected segments. Please try again.",
@@ -176,7 +176,7 @@ export default function OptionModal({ isOpen, onClose, onSave, option, tripId, r
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{option ? 'Edit Option' : 'Create Option'}</DialogTitle>
+          <DialogTitle>{option ? "Edit Option" : "Create Option"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">

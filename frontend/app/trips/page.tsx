@@ -1,4 +1,4 @@
-import TripList from './TripsPageContent'
+import TripList from "./TripsPageContent"
 
 export default function TripsPage() {
   return (

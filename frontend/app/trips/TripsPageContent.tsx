@@ -8,7 +8,7 @@ import { Skeleton } from "../components/ui/skeleton"
 import { Button } from "../components/ui/button"
 import { PencilIcon, PlusIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
 import TripModal from "./TripModal"
-import { formatDateStr } from '../utils/formatters'
+import { formatDateStr } from "../utils/formatters"
 
 interface Trip {
   id: number;
