@@ -103,3 +103,12 @@ CREATE TABLE app_user_to_trip (
     FOREIGN KEY (app_user_id) REFERENCES app_user(id),
     FOREIGN KEY (trip_id) REFERENCES trip(id)
 )
+
+CREATE TABLE user_preference (
+    id INT PRIMARY KEY IDENTITY,
+    app_user_id INT UNIQUE,
+    preferred_utc_offset int,
+    FOREIGN KEY (app_user_id) REFERENCES app_user(id)
+);
+
+CREATE UNIQUE INDEX idx_user_preference_app_user_id ON user_preference(app_user_id);

@@ -18,7 +18,7 @@ public class UserRepository
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
         await db.ExecuteAsync(
-            "INSERT INTO app_user (name, email, role, created_at_utc) " + 
+            "INSERT INTO app_user (name, email, role, created_at_utc) " +
             "VALUES (@name, @email, @role, @created_at_utc)", user);
         return user;
     }
@@ -34,7 +34,7 @@ public class UserRepository
         using IDbConnection db = new SqlConnection(_connectionString_);
         return await db.QueryFirstOrDefaultAsync<AppUser>("SELECT * FROM app_user WHERE email = @email", new { email = email });
     }
-    
+
     public async Task<List<AppUser>> GetUnapprovedUsersAsync(CancellationToken cancellationToken = default)
     {
         using IDbConnection db = new SqlConnection(_connectionString_);
@@ -49,4 +49,44 @@ public class UserRepository
                               "SET is_approved = 1, approved_at_utc = @approved_at_utc " +
                               "WHERE id = @id", new { id = id, approved_at_utc = DateTime.UtcNow });
     }
+}
+
+public class UserPreferenceRepository
+{
+    private readonly string _connectionString_;
+    public UserPreferenceRepository(AppSettings appSettings)
+    {
+        _connectionString_ = appSettings.DbConnString;
+    }
+
+    public async Task<UserPreference?> GetAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        using IDbConnection db = new SqlConnection(_connectionString_);
+        return await db.QueryFirstOrDefaultAsync<UserPreference>(
+            "SELECT * FROM user_preference WHERE app_user_id = @userId", new { userId = userId });
+    }
+
+    public async Task<UserPreference> CreateAsync(UserPreference userPreference, int userId, CancellationToken cancellationToken = default)
+    {
+        using IDbConnection db = new SqlConnection(_connectionString_);
+        await db.ExecuteAsync(
+            "INSERT INTO user_preference (app_user_id, preferred_utc_offset) " +
+            "VALUES (@app_user_id, @preferred_utc_offset)",
+            new { 
+                app_user_id = userId, 
+                userPreference.preferred_utc_offset });
+        return userPreference;
+    }
+
+    public async Task<UserPreference> UpdateAsync(UserPreference userPreference, int userId, CancellationToken cancellationToken = default)
+    {
+        using IDbConnection db = new SqlConnection(_connectionString_);
+        await db.ExecuteAsync(
+            "UPDATE user_preference SET preferred_utc_offset = @preferred_utc_offset " +
+            "WHERE app_user_id = @userId", new { 
+                userPreference.preferred_utc_offset,
+                userId });
+        return userPreference;
+    }
+
 }

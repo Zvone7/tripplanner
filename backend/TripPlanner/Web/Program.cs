@@ -125,6 +125,7 @@ public class Program
         builder.Services.AddScoped<OptionRepository>();
         builder.Services.AddScoped<SegmentRepository>();
         builder.Services.AddScoped<UserRepository>();
+        builder.Services.AddScoped<UserPreferenceRepository>();
     }
 
     private static void SetupAuthNAuth(WebApplicationBuilder builder, AppSettings appSettings)

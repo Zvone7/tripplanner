@@ -18,3 +18,19 @@ export const formatDateStr = (dateString: string | null) => {
     
     return `${day}.${month}.${year}`
   }
+
+
+export const formatDateWithUserOffset = (dateString: string, userPreferredOffset: number) => {
+    if (!dateString) return "N/A"
+
+    const date = new Date(dateString)
+    const offsetDate = new Date(date.getTime() + userPreferredOffset * 60 * 60 * 1000)
+
+    const year = offsetDate.getUTCFullYear()
+    const month = String(offsetDate.getUTCMonth() + 1).padStart(2, "0")
+    const day = String(offsetDate.getUTCDate()).padStart(2, "0")
+    const hours = String(offsetDate.getUTCHours()).padStart(2, "0")
+    const minutes = String(offsetDate.getUTCMinutes()).padStart(2, "0")
+
+    return `${year}/${month}/${day} ${hours}:${minutes}`
+  }
