@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
 import { Skeleton } from "../components/ui/skeleton"
 import { Button } from "../components/ui/button"
-import { PlusIcon, TrashIcon, ListIcon } from "lucide-react"
+import { PlusIcon, TrashIcon, ListIcon, EditIcon } from "lucide-react"
 import SegmentModal from "../segments/SegmentModal"
 import { formatDateWithUserOffset } from "../utils/formatters"
 
@@ -37,6 +37,75 @@ interface UserPreference {
 
 interface User {
   userPreference: UserPreference
+}
+
+// Mobile Card Component
+function SegmentCard({
+  segment,
+  segmentType,
+  userPreferredOffset,
+  onEdit,
+  onDelete,
+}: {
+  segment: Segment
+  segmentType: SegmentType | undefined
+  userPreferredOffset: number
+  onEdit: (segment: Segment) => void
+  onDelete: (segmentId: number) => void
+}) {
+  const getTimezoneDisplayText = () => {
+    if (userPreferredOffset === 0) return "UTC"
+    return `UTC${userPreferredOffset >= 0 ? "+" : ""}${userPreferredOffset}`
+  }
+
+  return (
+    <Card className="mb-4 cursor-pointer hover:bg-muted/50" onClick={() => onEdit(segment)}>
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <div className="flex items-center space-x-2 mb-2">
+              {segmentType && (
+                <>
+                  <div dangerouslySetInnerHTML={{ __html: segmentType.iconSvg }} className="w-6 h-6" />
+                  <span className="text-sm text-muted-foreground">{segmentType.name}</span>
+                </>
+              )}
+            </div>
+            <CardTitle className="text-lg">{segment.name}</CardTitle>
+            <CardDescription className="mt-2">
+              <div className="space-y-1">
+                <div>
+                  {formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset)}
+                </div>
+                <div>
+                  {formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset)}
+                </div>
+                <div>
+                  ${segment.cost.toFixed(2)}
+                </div>
+                <div className="text-xs text-muted-foreground">Times shown in {getTimezoneDisplayText()}</div>
+              </div>
+            </CardDescription>
+          </div>
+          <div className="flex space-x-2 ml-4">
+            <Button variant="ghost" size="sm" onClick={() => onEdit(segment)}>
+              <EditIcon className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete(segment.id)
+              }}
+            >
+              <TrashIcon className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+    </Card>
+  )
 }
 
 export default function SegmentsPage() {
@@ -192,8 +261,8 @@ export default function SegmentsPage() {
   }
 
   const getTimezoneDisplayText = () => {
-    if (userPreferredOffset === 0) return "utc"
-    return `utc${userPreferredOffset >= 0 ? "+" : ""}${userPreferredOffset}`
+    if (userPreferredOffset === 0) return "UTC"
+    return `UTC${userPreferredOffset >= 0 ? "+" : ""}${userPreferredOffset}`
   }
 
   return (
@@ -219,57 +288,79 @@ export default function SegmentsPage() {
         ) : error ? (
           <p className="text-center text-red-500">{error}</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Start Time ({getTimezoneDisplayText()})</TableHead>
-                <TableHead>End Time ({getTimezoneDisplayText()})</TableHead>
-                <TableHead>Cost</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            {/* Desktop Table View - Hidden on mobile */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Start Time ({getTimezoneDisplayText()})</TableHead>
+                    <TableHead>End Time ({getTimezoneDisplayText()})</TableHead>
+                    <TableHead>Cost</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {segments.map((segment) => {
+                    const segmentType = segmentTypes.find((st) => st.id === segment.segmentTypeId)
+                    return (
+                      <TableRow
+                        key={segment.id}
+                        className="cursor-pointer hover:bg-muted"
+                        onClick={() => handleEditSegment(segment)}
+                      >
+                        <TableCell>
+                          {segmentType && (
+                            <div className="flex items-center space-x-2">
+                              <div dangerouslySetInnerHTML={{ __html: segmentType.iconSvg }} className="w-6 h-6" />
+                              <span>{segmentType.name}</span>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-medium">{segment.name}</TableCell>
+                        <TableCell>{formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset)}</TableCell>
+                        <TableCell>{formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset)}</TableCell>
+                        <TableCell>${segment.cost.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDeleteSegment(segment.id)
+                              }}
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile Card View - Hidden on desktop */}
+            <div className="md:hidden">
               {segments.map((segment) => {
                 const segmentType = segmentTypes.find((st) => st.id === segment.segmentTypeId)
                 return (
-                  <TableRow
+                  <SegmentCard
                     key={segment.id}
-                    className="cursor-pointer hover:bg-muted"
-                    onClick={() => handleEditSegment(segment)}
-                  >
-                    <TableCell>
-                      {segmentType && (
-                        <div className="flex items-center space-x-2">
-                          <div dangerouslySetInnerHTML={{ __html: segmentType.iconSvg }} className="w-6 h-6" />
-                          <span>{segmentType.name}</span>
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-medium">{segment.name}</TableCell>
-                    <TableCell>{formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset)}</TableCell>
-                    <TableCell>{formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset)}</TableCell>
-                    <TableCell>${segment.cost.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDeleteSegment(segment.id)
-                          }}
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                    segment={segment}
+                    segmentType={segmentType}
+                    userPreferredOffset={userPreferredOffset}
+                    onEdit={handleEditSegment}
+                    onDelete={handleDeleteSegment}
+                  />
                 )
               })}
-            </TableBody>
-          </Table>
+            </div>
+          </>
         )}
       </CardContent>
       <SegmentModal
