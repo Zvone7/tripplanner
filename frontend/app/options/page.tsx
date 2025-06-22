@@ -1,7 +1,7 @@
-'use client'
+"use client"
 
-import React, { Suspense } from 'react'
-import OptionsPageContent from '../options/OptionsPageContent'
+import React, { Suspense } from "react"
+import OptionsPageContent from "../options/OptionsPageContent"
 
 export default function OptionsPage() {
 

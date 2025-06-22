@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
+import { useState } from "react"
 import { Button } from "../components/ui/button"
 import { toast } from "../components/ui/use-toast"
 
@@ -13,15 +13,15 @@ export function TestApiButton() {
     setApiResponse(null);
     
     try {
-      const response = await fetch('/api/home/status', {
-        method: 'GET',
+      const response = await fetch("/api/home/status", {
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
       
       if (!response.ok) {
-        throw new Error('API request failed');
+        throw new Error("API request failed");
       }
 
       const data = await response.text();
@@ -34,10 +34,10 @@ export function TestApiButton() {
       
       toast({
         title: "API Test Successful",
-        description: 'API request was successful',
+        description: "API request was successful",
       });
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       toast({
         title: "API Test Failed",
         description: "There was an error communicating with the API."

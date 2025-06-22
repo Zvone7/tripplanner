@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
@@ -18,13 +18,13 @@ interface Trip {
 interface TripModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (trip: Omit<Trip, 'id'>) => void;
+  onSave: (trip: Omit<Trip, "id">) => void;
   trip?: Trip | null;
 }
 
 export default function TripModal({ isOpen, onClose, onSave, trip }: TripModalProps) {
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
   const [isActive, setIsActive] = useState(true)
 
   useEffect(() => {
@@ -33,8 +33,8 @@ export default function TripModal({ isOpen, onClose, onSave, trip }: TripModalPr
       setDescription(trip.description)
       setIsActive(trip.isActive)
     } else {
-      setName('')
-      setDescription('')
+      setName("")
+      setDescription("")
       setIsActive(true)
     }
   }, [trip])
@@ -48,7 +48,7 @@ export default function TripModal({ isOpen, onClose, onSave, trip }: TripModalPr
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{trip ? 'Edit Trip' : 'Create Trip'}</DialogTitle>
+          <DialogTitle>{trip ? "Edit Trip" : "Create Trip"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">

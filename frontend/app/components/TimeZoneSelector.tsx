@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useMemo } from "react"
 import { Label } from "./ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 
@@ -12,18 +12,18 @@ interface TimezoneSelectorProps {
 }
 
 const timezones = [
-  {name: 'America/Los_Angeles', value: -8},
-  {name: 'America/Denver', value: -7},
-  {name: 'America/Chicago', value: -6},
-  {name: 'America/New_York', value: -5},
-  {name: 'Europe/London', value: 0},
-  {name: 'Europe/Paris/Berlin', value: 1},
-  {name: 'Europe/Moscow', value: 3},
-  {name: 'Asia/Dubai', value: 4},
-  {name: 'Asia/Kolkata', value: 5},
-  {name: 'Asia/Shanghai', value: 8},
-  {name: 'Asia/Tokyo', value: 9},
-  {name: 'Australia/Sydney', value: 11}
+  {name: "America/Los_Angeles", value: -8},
+  {name: "America/Denver", value: -7},
+  {name: "America/Chicago", value: -6},
+  {name: "America/New_York", value: -5},
+  {name: "Europe/London", value: 0},
+  {name: "Europe/Paris/Berlin", value: 1},
+  {name: "Europe/Moscow", value: 3},
+  {name: "Asia/Dubai", value: 4},
+  {name: "Asia/Kolkata", value: 5},
+  {name: "Asia/Shanghai", value: 8},
+  {name: "Asia/Tokyo", value: 9},
+  {name: "Australia/Sydney", value: 11}
 ]
 
 export const TimezoneSelector: React.FC<TimezoneSelectorProps> = React.memo(({
@@ -45,7 +45,7 @@ export const TimezoneSelector: React.FC<TimezoneSelectorProps> = React.memo(({
   const timezoneOptions = useMemo(() => 
     timezones.map((tz) => (
       <SelectItem key={tz.name} value={tz.name}>
-        {tz.name} (UTC{tz.value >= 0 ? '+' : ''}{tz.value})
+        {tz.name} (UTC{tz.value >= 0 ? "+" : ""}{tz.value})
       </SelectItem>
     )),
     []
@@ -70,4 +70,4 @@ export const TimezoneSelector: React.FC<TimezoneSelectorProps> = React.memo(({
   )
 })
 
-TimezoneSelector.displayName = 'TimezoneSelector'
+TimezoneSelector.displayName = "TimezoneSelector"

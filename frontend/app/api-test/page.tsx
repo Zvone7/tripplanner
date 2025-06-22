@@ -1,7 +1,7 @@
 // /app/api-test/page.tsx
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 const ApiTestPage = () => {
   const [data, setData] = useState<string | null>(null);
@@ -10,9 +10,9 @@ const ApiTestPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('api/home/status');
+        const response = await fetch("api/home/status");
         if (!response.ok) {
-          throw new Error('Network response was not ok');
+          throw new Error("Network response was not ok");
         }
         const result = await response.text(); // or .json() if your API returns JSON
         setData(result);
@@ -28,7 +28,7 @@ const ApiTestPage = () => {
   return (
     <div>
       <h1>API Test Page</h1>
-      {error && <p style={{ color: 'red' }}>Error: {error}</p>}
+      {error && <p style={{ color: "red" }}>Error: {error}</p>}
       <p>Data from API: {data}</p>
     </div>
   );
