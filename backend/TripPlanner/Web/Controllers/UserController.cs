@@ -25,7 +25,7 @@ public class UserController(UserService userService) : Controller
         }
         return BadRequest();
     }
-    
+
     [HttpPost("ApproveUser")]
     public async Task<ActionResult<bool>> ApproveUser(int userIdToApprove, CancellationToken cancellationToken)
     {
@@ -42,4 +42,22 @@ public class UserController(UserService userService) : Controller
         }
         return BadRequest();
     }
+
+    [HttpPost("UpdateUserPreference")]
+    public async Task<ActionResult<UserDto>> UpdateUserPreference(UserPreferenceDto userPreference, CancellationToken cancellationToken)
+    {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type.ToString() == "UserId");
+            var userId = int.Parse(userIdClaim.Value);
+            var user = await _userService.GetAsync(userId: userId, cancellationToken);
+            if (user != null && user.IsApproved)
+            {
+                var res = await _userService.UpdateUserPreferenceAsync(userId, userPreference, cancellationToken);
+                return res;
+            }
+        }
+        return BadRequest();
+    }
+
 }

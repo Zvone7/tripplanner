@@ -1,4 +1,4 @@
-import { LoginButton } from './components/LoginButton'
+import { LoginButton } from "./components/LoginButton"
 import { Toaster } from "./components/ui/toaster"
 
 export default function Home() {

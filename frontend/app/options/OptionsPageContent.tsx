@@ -1,57 +1,57 @@
-'use client'
+"use client"
 
-import React, { Fragment } from 'react'
-import { useEffect, useState, useCallback } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { Fragment } from "react"
+import { useEffect, useState, useCallback } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
 import { Skeleton } from "../components/ui/skeleton"
 import { Button } from "../components/ui/button"
-import { PlusIcon, TrashIcon, LayoutIcon } from 'lucide-react'
-import OptionModal from './OptionModal'
-import { formatDateStr } from '../utils/formatters'
+import { PlusIcon, TrashIcon, LayoutIcon, EditIcon } from "lucide-react"
+import OptionModal from "./OptionModal"
+import { formatDateStr } from "../utils/formatters"
 
 interface Option {
-  id: number;
-  name: string;
-  startDateTimeUtc: string | null;
-  endDateTimeUtc: string | null;
-  tripId: number;
-  totalCost: number;
+  id: number
+  name: string
+  startDateTimeUtc: string | null
+  endDateTimeUtc: string | null
+  tripId: number
+  totalCost: number
 }
 
 interface Segment {
-  id: number;
-  tripId: number;
-  startDateTimeUtc: string | null;
-  endDateTimeUtc: string | null;
-  name: string;
-  cost: number;
-  segmentTypeId: number;
+  id: number
+  tripId: number
+  startDateTimeUtc: string | null
+  endDateTimeUtc: string | null
+  name: string
+  cost: number
+  segmentTypeId: number
 }
 
 interface SegmentType {
-  id: number;
-  shortName: string;
-  name: string;
-  description: string;
-  color: string;
-  iconSvg: string;
+  id: number
+  shortName: string
+  name: string
+  description: string
+  color: string
+  iconSvg: string
 }
 
 interface ConnectedSegment extends Segment {
-  segmentType: SegmentType;
+  segmentType: SegmentType
 }
 
 function SegmentDiagram({ segments }: { segments: ConnectedSegment[] }) {
   const sortedSegments = segments.sort((a, b) => {
     if (a.startDateTimeUtc && b.startDateTimeUtc) {
-      return new Date(a.startDateTimeUtc).getTime() - new Date(b.startDateTimeUtc).getTime();
+      return new Date(a.startDateTimeUtc).getTime() - new Date(b.startDateTimeUtc).getTime()
     }
-    return 0;
-  });
+    return 0
+  })
 
-  const segmentWidth = 100 / sortedSegments.length;
+  const segmentWidth = 100 / sortedSegments.length
 
   return (
     <div className="flex w-full space-x-1 overflow-x-auto py-2">
@@ -68,7 +68,7 @@ function SegmentDiagram({ segments }: { segments: ConnectedSegment[] }) {
             className="h-12 flex items-center justify-center relative overflow-hidden"
             style={{
               backgroundColor: segment.segmentType.color,
-              clipPath: 'polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%)',
+              clipPath: "polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%)",
             }}
             title={`${segment.segmentType.name} - ${segment.name}`}
           >
@@ -80,7 +80,63 @@ function SegmentDiagram({ segments }: { segments: ConnectedSegment[] }) {
         </div>
       ))}
     </div>
-  );
+  )
+}
+
+// Mobile Card Component
+function OptionCard({
+  option,
+  connectedSegments,
+  onEdit,
+  onDelete,
+}: {
+  option: Option
+  connectedSegments: ConnectedSegment[]
+  onEdit: (option: Option) => void
+  onDelete: (optionId: number) => void
+}) {
+  return (
+    <Card className="mb-4 cursor-pointer hover:bg-muted/50" onClick={() => onEdit(option)}>
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <CardTitle className="text-lg">{option.name}</CardTitle>
+            <CardDescription className="mt-1">
+              <div className="space-y-1">
+                <div>
+                  {option.startDateTimeUtc ? formatDateStr(option.startDateTimeUtc) : "N/A"}
+                </div>
+                <div>
+                  {option.endDateTimeUtc ? formatDateStr(option.endDateTimeUtc) : "N/A"}
+                </div>
+                <div>
+                  ${option.totalCost.toFixed(2)}
+                </div>
+              </div>
+            </CardDescription>
+          </div>
+          <div className="flex space-x-2 ml-4">
+            <Button variant="ghost" size="sm" onClick={() => onEdit(option)}>
+              <EditIcon className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete(option.id)
+              }}
+            >
+              <TrashIcon className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <SegmentDiagram segments={connectedSegments} />
+      </CardContent>
+    </Card>
+  )
 }
 
 export default function OptionsPage() {
@@ -92,9 +148,9 @@ export default function OptionsPage() {
   const [error, setError] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingOption, setEditingOption] = useState<Option | null>(null)
-  const [tripName, setTripName] = useState<string>('') // Add state for trip name
+  const [tripName, setTripName] = useState<string>("") // Add state for trip name
   const searchParams = useSearchParams()
-  const tripId = searchParams.get('tripId')
+  const tripId = searchParams.get("tripId")
   const router = useRouter()
 
   const fetchTripName = useCallback(async () => {
@@ -102,13 +158,13 @@ export default function OptionsPage() {
     try {
       const response = await fetch(`/api/trip/gettripbyid?tripId=${tripId}`)
       if (!response.ok) {
-        throw new Error('Failed to fetch trip details')
+        throw new Error("Failed to fetch trip details")
       }
       const data = await response.json()
       setTripName(data.name)
     } catch (err) {
-      console.error('Error fetching trip details:', err)
-      setTripName('Unknown Trip')
+      console.error("Error fetching trip details:", err)
+      setTripName("Unknown Trip")
     }
   }, [tripId])
 
@@ -118,13 +174,13 @@ export default function OptionsPage() {
     try {
       const response = await fetch(`/api/Option/GetOptionsByTripId?tripId=${tripId}`)
       if (!response.ok) {
-        throw new Error('Failed to fetch options')
+        throw new Error("Failed to fetch options")
       }
       const data = await response.json()
       setOptions(data)
     } catch (err) {
-      setError('An error occurred while fetching options')
-      console.error('Error fetching options:', err)
+      setError("An error occurred while fetching options")
+      console.error("Error fetching options:", err)
     } finally {
       setIsLoading(false)
     }
@@ -135,51 +191,54 @@ export default function OptionsPage() {
     try {
       const response = await fetch(`/api/Segment/GetSegmentsByTripId?tripId=${tripId}`)
       if (!response.ok) {
-        throw new Error('Failed to fetch segments')
+        throw new Error("Failed to fetch segments")
       }
       const data = await response.json()
       setSegments(data)
     } catch (err) {
-      console.error('Error fetching segments:', err)
+      console.error("Error fetching segments:", err)
     }
   }, [tripId])
 
   const fetchSegmentTypes = useCallback(async () => {
     try {
-      const response = await fetch('/api/Segment/GetSegmentTypes')
+      const response = await fetch("/api/Segment/GetSegmentTypes")
       if (!response.ok) {
-        throw new Error('Failed to fetch segment types')
+        throw new Error("Failed to fetch segment types")
       }
       const data = await response.json()
       setSegmentTypes(data)
     } catch (err) {
-      console.error('Error fetching segment types:', err)
+      console.error("Error fetching segment types:", err)
     }
   }, [])
 
-  const getConnectedSegments = useCallback(async (optionId: number): Promise<ConnectedSegment[]> => {
-    try {
-      const response = await fetch(`/api/Option/GetConnectedSegments?tripId=${tripId}&optionId=${optionId}`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch connected segments')
-      }
-      const connectedSegments = await response.json()
-      return connectedSegments.map((segment: Segment) => ({
-        ...segment,
-        segmentType: segmentTypes.find(st => st.id === segment.segmentTypeId) || {
-          id: 0,
-          shortName: 'Unknown',
-          name: 'Unknown',
-          description: 'Unknown segment type',
-          color: '#CCCCCC',
-          iconSvg: '<svg></svg>'
+  const getConnectedSegments = useCallback(
+    async (optionId: number): Promise<ConnectedSegment[]> => {
+      try {
+        const response = await fetch(`/api/Option/GetConnectedSegments?tripId=${tripId}&optionId=${optionId}`)
+        if (!response.ok) {
+          throw new Error("Failed to fetch connected segments")
         }
-      }))
-    } catch (error) {
-      console.error('Error fetching connected segments:', error)
-      return []
-    }
-  }, [segmentTypes, tripId])
+        const connectedSegments = await response.json()
+        return connectedSegments.map((segment: Segment) => ({
+          ...segment,
+          segmentType: segmentTypes.find((st) => st.id === segment.segmentTypeId) || {
+            id: 0,
+            shortName: "Unknown",
+            name: "Unknown",
+            description: "Unknown segment type",
+            color: "#CCCCCC",
+            iconSvg: "<svg></svg>",
+          },
+        }))
+      } catch (error) {
+        console.error("Error fetching connected segments:", error)
+        return []
+      }
+    },
+    [segmentTypes, tripId],
+  )
 
   useEffect(() => {
     fetchTripName()
@@ -217,53 +276,53 @@ export default function OptionsPage() {
     setEditingOption(null)
   }
 
-  const handleSaveOption = async (optionData: Omit<Option, 'id'>) => {
+  const handleSaveOption = async (optionData: Omit<Option, "id">) => {
     try {
-      let response;
+      let response
 
       if (editingOption) {
         // Update existing option
         response = await fetch(`/api/Option/UpdateOption?tripId=${tripId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...optionData, id: editingOption.id }),
         })
       } else {
         // Create new option
         response = await fetch(`/api/Option/CreateOption?tripId=${tripId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(optionData),
         })
       }
 
       if (!response.ok) {
-        throw new Error('Failed to save option')
+        throw new Error("Failed to save option")
       }
 
       handleCloseModal()
       await fetchOptions()
     } catch (err) {
-      console.error('Error saving option:', err)
-      setError('An error occurred while saving the option')
+      console.error("Error saving option:", err)
+      setError("An error occurred while saving the option")
     }
   }
 
   const handleDeleteOption = async (optionId: number) => {
-    if (window.confirm('Are you sure you want to delete this option?')) {
+    if (window.confirm("Are you sure you want to delete this option?")) {
       try {
         const response = await fetch(`/api/Option/DeleteOption?tripId=${tripId}&optionId=${optionId}`, {
-          method: 'DELETE',
+          method: "DELETE",
         })
 
         if (!response.ok) {
-          throw new Error('Failed to delete option')
+          throw new Error("Failed to delete option")
         }
 
         await fetchOptions()
       } catch (err) {
-        console.error('Error deleting option:', err)
-        setError('An error occurred while deleting the option')
+        console.error("Error deleting option:", err)
+        setError("An error occurred while deleting the option")
       }
     }
   }
@@ -271,21 +330,18 @@ export default function OptionsPage() {
   if (!tripId) {
     return <div>No trip ID provided</div>
   }
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>Options</CardTitle>
-          <CardDescription>
-            {tripName ? tripName : `Trip ID: ${tripId}`}
-          </CardDescription>
+          <CardDescription>{tripName ? tripName : `Trip ID: ${tripId}`}</CardDescription>
         </div>
         <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={() => router.push(`/segments?tripId=${tripId}`)}
-          >
-            <LayoutIcon className="mr-2 h-4 w-4" />View Segments
+          <Button variant="outline" onClick={() => router.push(`/segments?tripId=${tripId}`)}>
+            <LayoutIcon className="mr-2 h-4 w-4" />
+            View Segments
           </Button>
           <Button onClick={handleCreateOption}>
             <PlusIcon className="h-4 w-4" />
@@ -298,45 +354,68 @@ export default function OptionsPage() {
         ) : error ? (
           <p className="text-center text-red-500">{error}</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Start</TableHead>
-                <TableHead>End</TableHead>
-                <TableHead>Total Cost</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {options.map((option) => (
-                <Fragment key={option.id}>
-                  <TableRow
-                    key={option.id}
-                    className="cursor-pointer hover:bg-muted"
-                    onClick={() => handleEditOption(option)}
-                  >
-                    <TableCell className="font-medium">{option.name}</TableCell>
-                    <TableCell>{option.startDateTimeUtc ? formatDateStr(option.startDateTimeUtc) : 'N/A'}</TableCell>
-                    <TableCell>{option.endDateTimeUtc ? formatDateStr(option.endDateTimeUtc) : 'N/A'}</TableCell>
-                    <TableCell>${option.totalCost.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button variant="ghost" size="sm" onClick={() => handleDeleteOption(option.id)}>
-                          <TrashIcon className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+          <>
+            {/* Desktop Table View - Hidden on mobile */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={5}>
-                      <SegmentDiagram segments={connectedSegments[option.id] || []} />
-                    </TableCell>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Start</TableHead>
+                    <TableHead>End</TableHead>
+                    <TableHead>Total Cost</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                </Fragment>
+                </TableHeader>
+                <TableBody>
+                  {options.map((option) => (
+                    <Fragment key={option.id}>
+                      <TableRow className="cursor-pointer hover:bg-muted" onClick={() => handleEditOption(option)}>
+                        <TableCell className="font-medium">{option.name}</TableCell>
+                        <TableCell>
+                          {option.startDateTimeUtc ? formatDateStr(option.startDateTimeUtc) : "N/A"}
+                        </TableCell>
+                        <TableCell>{option.endDateTimeUtc ? formatDateStr(option.endDateTimeUtc) : "N/A"}</TableCell>
+                        <TableCell>${option.totalCost.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDeleteOption(option.id)
+                              }}
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell colSpan={5}>
+                          <SegmentDiagram segments={connectedSegments[option.id] || []} />
+                        </TableCell>
+                      </TableRow>
+                    </Fragment>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile Card View - Hidden on desktop */}
+            <div className="md:hidden">
+              {options.map((option) => (
+                <OptionCard
+                  key={option.id}
+                  option={option}
+                  connectedSegments={connectedSegments[option.id] || []}
+                  onEdit={handleEditOption}
+                  onDelete={handleDeleteOption}
+                />
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          </>
         )}
       </CardContent>
       <OptionModal

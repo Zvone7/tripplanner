@@ -7,10 +7,14 @@ namespace Application.Services;
 public class UserService
 {
     private readonly UserRepository _userRepository_;
+    private readonly UserPreferenceRepository _userPreferenceRepository;
 
-    public UserService(UserRepository userRepository)
+    public UserService(
+        UserRepository userRepository,
+        UserPreferenceRepository userPreferenceRepository)
     {
         _userRepository_ = userRepository;
+        _userPreferenceRepository = userPreferenceRepository;
     }
 
     public async Task<UserDto> CreateUserAsync(string email, string name, CancellationToken cancellationToken)
@@ -23,12 +27,19 @@ public class UserService
             created_at_utc = DateTime.UtcNow
         }, cancellationToken);
 
+        var userPreference = await _userPreferenceRepository.CreateAsync(new UserPreference
+            {
+                preferred_utc_offset = 1
+            }, created.Id,
+            cancellationToken);
+
         var result = new UserDto
         {
             Id = created.Id,
             Name = created.name,
             Email = created.email,
-            Role = created.role
+            Role = created.role,
+            UserPreference = new UserPreferenceDto(userPreference)
         };
 
         return result;
@@ -37,6 +48,7 @@ public class UserService
     public async Task<UserDto?> GetAsync(int userId, CancellationToken cancellationToken)
     {
         var user = await _userRepository_.GetAsync(userId, cancellationToken);
+        var userPreference = await _userPreferenceRepository.GetAsync(userId, cancellationToken);
         var result = user == null ? null : new UserDto
         {
             Id = user.Id,
@@ -46,6 +58,7 @@ public class UserService
             CreatedAt = user.created_at_utc,
             ApprovedAt = user.approved_at_utc,
             IsApproved = user.is_approved,
+            UserPreference = userPreference != null ? new UserPreferenceDto(userPreference) : new UserPreferenceDto()
         };
         return result;
     }
@@ -53,6 +66,7 @@ public class UserService
     public async Task<UserDto?> GetAsync(string email, CancellationToken cancellationToken)
     {
         var user = await _userRepository_.GetAsync(email, cancellationToken);
+        var userPreference = await _userPreferenceRepository.GetAsync(user?.Id ?? 0, cancellationToken);
         var result = user == null ? null : new UserDto
         {
             Id = user.Id,
@@ -62,6 +76,7 @@ public class UserService
             CreatedAt = user.created_at_utc,
             ApprovedAt = user.approved_at_utc,
             IsApproved = user.is_approved,
+            UserPreference = userPreference != null ? new UserPreferenceDto(userPreference) : new UserPreferenceDto()
         };
         return result;
     }
@@ -91,5 +106,40 @@ public class UserService
             return true;
         }
         return false;
+    }
+
+    // update user preference
+    public async Task<UserDto?> UpdateUserPreferenceAsync(int userId, UserPreferenceDto userPreferenceDto, CancellationToken cancellationToken)
+    {
+        UserDto? user = null;
+        var userPreference = await _userPreferenceRepository.GetAsync(userId, cancellationToken);
+        if (userPreference == null)
+        {
+            // create new user preference
+            userPreference = new UserPreference
+            {
+                app_user_id = userId,
+                preferred_utc_offset = userPreferenceDto.PreferredUtcOffset
+            };
+            userPreference = await _userPreferenceRepository.CreateAsync(userPreference, userId, cancellationToken);
+            user = await GetAsync(userId, cancellationToken);
+            if (user != null)
+            {
+                user.UserPreference = new UserPreferenceDto(userPreference);
+            }
+        }
+        else
+        {
+            userPreference.preferred_utc_offset = userPreferenceDto.PreferredUtcOffset;
+            var updatedPreference = await _userPreferenceRepository.UpdateAsync(userPreference, userId, cancellationToken);
+
+            user = await GetAsync(userId, cancellationToken);
+            if (user != null)
+            {
+                user.UserPreference = new UserPreferenceDto(updatedPreference);
+            }
+        }
+
+        return user;
     }
 }
