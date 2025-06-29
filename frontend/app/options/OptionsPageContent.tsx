@@ -101,7 +101,7 @@ function OptionCard({
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <CardTitle className="text-lg">{option.name}</CardTitle>
-            <CardDescription className="mt-1">
+            <div className="mt-2 text-sm text-muted-foreground space-y-1">
               <div className="space-y-1">
                 <div>
                   {option.startDateTimeUtc ? formatDateStr(option.startDateTimeUtc) : "N/A"}
@@ -113,7 +113,7 @@ function OptionCard({
                   ${option.totalCost.toFixed(2)}
                 </div>
               </div>
-            </CardDescription>
+              </div>
           </div>
           <div className="flex space-x-2 ml-4">
             <Button variant="ghost" size="sm" onClick={() => onEdit(option)}>

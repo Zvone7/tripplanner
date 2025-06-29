@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
 import { Skeleton } from "../components/ui/skeleton"
 import { Button } from "../components/ui/button"
@@ -39,17 +39,15 @@ function TripCard({
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <CardTitle className="text-lg">{trip.name}</CardTitle>
-            <CardDescription className="mt-2">
-              <div className="space-y-1">
-                <div>{trip.description}</div>
-                <div>
-                  <span className="font-medium">Start:</span> {formatDateStr(trip.startTime)}
-                </div>
-                <div>
-                  <span className="font-medium">End:</span> {formatDateStr(trip.endTime)}
-                </div>
+            <div className="mt-2 text-sm text-muted-foreground space-y-1">
+              <div>{trip.description}</div>
+              <div>
+                <span className="font-medium">Start:</span> {formatDateStr(trip.startTime)}
               </div>
-            </CardDescription>
+              <div>
+                <span className="font-medium">End:</span> {formatDateStr(trip.endTime)}
+              </div>
+            </div>
           </div>
           <div className="flex flex-col space-y-1 ml-4">
             <Button
