@@ -6,27 +6,18 @@ import { Label } from "./ui/label"
 import { TimezoneSelector } from "../components/TimeZoneSelector"
 
 interface DateTimePickerProps {
-  label: string;
-  dateValue: string;
-  timeValue: string;
-  onDateChange: (value: string) => void;
-  onTimeChange: (value: string) => void;
-  onUtcOffsetChange: (utcOffset: number) => void;
-  id: string;
-  initialUtcOffset: number;
+  label: string
+  dateValue: string
+  timeValue: string
+  onDateChange: (value: string) => void
+  onTimeChange: (value: string) => void
+  onUtcOffsetChange: (utcOffset: number) => void
+  id: string
+  initialUtcOffset: number
 }
 
-
-export const DateTimePicker: React.FC<DateTimePickerProps> = React.memo(({
-  label,
-  dateValue,
-  timeValue,
-  onDateChange,
-  onTimeChange,
-  onUtcOffsetChange,
-  id,
-  initialUtcOffset
-}) => {
+export const DateTimePicker: React.FC<DateTimePickerProps> = React.memo(
+  ({ label, dateValue, timeValue, onDateChange, onTimeChange, onUtcOffsetChange, id, initialUtcOffset }) => {
     const handleDateChange = useCallback(
       (value: string) => {
         onDateChange(value)
@@ -42,28 +33,32 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = React.memo(({
     )
 
     return (
-      <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor={`${id}-date`} className="text-right">
+      <div className="grid grid-cols-4 items-center gap-3">
+        <Label htmlFor={`${id}-date`} className="text-right text-sm">
           {label}
         </Label>
-        <div className="col-span-3 flex flex-col gap-2">
-          <div className="flex gap-2">
-            <Input
-              id={`${id}-date`}
-              type="date"
-              value={dateValue}
-              onChange={(e) => handleDateChange(e.target.value)}
-              className="flex-1"
-            />
-            <Input
-              id={`${id}-time`}
-              type="time"
-              value={timeValue}
-              onChange={(e) => handleTimeChange(e.target.value)}
-              className="flex-1"
-            />
-          </div>
-          <TimezoneSelector label="" value={initialUtcOffset} onChange={onUtcOffsetChange} id={`${id}-timezone`} />
+        <div className="col-span-3 flex gap-1 items-center">
+          <Input
+            id={`${id}-date`}
+            type="date"
+            value={dateValue}
+            onChange={(e) => handleDateChange(e.target.value)}
+            className="w-32 text-sm"
+          />
+          <Input
+            id={`${id}-time`}
+            type="time"
+            value={timeValue}
+            onChange={(e) => handleTimeChange(e.target.value)}
+            className="w-20 text-sm"
+          />
+          <TimezoneSelector
+            label=""
+            value={initialUtcOffset}
+            onChange={onUtcOffsetChange}
+            id={`${id}-timezone`}
+            compact={true}
+          />
         </div>
       </div>
     )

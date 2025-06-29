@@ -12,7 +12,7 @@ import { toast } from "../components/ui/use-toast"
 import { Checkbox } from "../components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
 import { DateTimePicker } from "../components/DateTimePicker"
-import { CopyIcon } from 'lucide-react'
+import { CopyIcon } from "lucide-react"
 
 interface Segment {
   id: number
@@ -40,6 +40,14 @@ interface SegmentType {
   iconSvg: string
 }
 
+interface UserPreference {
+  preferredUtcOffset: number
+}
+
+interface User {
+  userPreference: UserPreference
+}
+
 interface SegmentModalProps {
   isOpen: boolean
   onClose: () => void
@@ -63,6 +71,23 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
   const [selectedOptions, setSelectedOptions] = useState<number[]>([])
   const [sameAsStartTime, setSameAsStartTime] = useState(false)
   const [isDuplicateMode, setIsDuplicateMode] = useState(false)
+  const [userPreferredOffset, setUserPreferredOffset] = useState<number>(0)
+
+  // Fetch user preferences
+  const fetchUserPreferences = useCallback(async () => {
+    try {
+      const response = await fetch("/api/account/info")
+      if (!response.ok) {
+        throw new Error("Failed to fetch user preferences")
+      }
+      const userData: User = await response.json()
+      setUserPreferredOffset(userData.userPreference?.preferredUtcOffset || 0)
+    } catch (err) {
+      console.error("Error fetching user preferences:", err)
+      // Default to UTC if we can't fetch user preferences
+      setUserPreferredOffset(0)
+    }
+  }, [])
 
   // extract dateValue from a date in format 2024-12-31
   const getDateValue = (date: Date, offset: number) => {
@@ -86,6 +111,10 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     }
     return String(tempDate.getHours()).padStart(2, "0") + ":" + String(tempDate.getMinutes()).padStart(2, "0")
   }
+
+  useEffect(() => {
+    fetchUserPreferences()
+  }, [fetchUserPreferences])
 
   useEffect(() => {
     // Reset duplicate mode when modal opens/closes or segment changes
@@ -117,19 +146,20 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
 
       fetchConnectedOptions(segment.id)
     } else {
+      // For new segments, use user's preferred offset as default
       setName("")
       setStartDate("")
       setStartTime("")
       setEndDate("")
       setEndTime("")
-      setStartDateTimeUtcOffset(0)
-      setEndDateTimeUtcOffset(0)
+      setStartDateTimeUtcOffset(userPreferredOffset)
+      setEndDateTimeUtcOffset(userPreferredOffset)
       setCost("")
       setSegmentTypeId(null)
       setSelectedOptions([])
       setSameAsStartTime(false)
     }
-  }, [segment])
+  }, [segment, userPreferredOffset])
 
   useEffect(() => {
     fetchOptions()
@@ -323,15 +353,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>{isCreateMode ? "Create Segment" : "Edit Segment"}</DialogTitle>
-            {segment && !isDuplicateMode && (
-              <Button variant="outline" size="sm" onClick={handleDuplicateSegment} className="ml-2 bg-transparent">
-                <CopyIcon className="h-4 w-4 mr-1" />
-                Duplicate
-              </Button>
-            )}
-          </div>
+          <DialogTitle>{isCreateMode ? "Create Segment" : "Edit Segment"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-4 items-center gap-4">
@@ -439,7 +461,16 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
           )}
 
           <DialogFooter>
-            <Button type="submit">{isCreateMode ? "Create segment" : "Save changes"}</Button>
+            <div className="flex justify-between w-full">
+              <div>
+                {segment && !isDuplicateMode && (
+                  <Button type="button" variant="outline" size="sm" onClick={handleDuplicateSegment}>
+                    <CopyIcon className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <Button type="submit">{isCreateMode ? "Create segment" : "Save changes"}</Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
