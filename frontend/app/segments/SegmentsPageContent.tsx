@@ -72,20 +72,14 @@ function SegmentCard({
               )}
             </div>
             <CardTitle className="text-lg">{segment.name}</CardTitle>
-            <CardDescription className="mt-2">
-              <div className="space-y-1">
-                <div>
-                  {formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset)}
+            <div className="mt-2 text-sm text-muted-foreground space-y-1">
+                <div className="space-y-1">
+                  <div>{formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset)}</div>
+                  <div>{formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset)}</div>
+                  <div>${segment.cost.toFixed(2)}</div>
+                  <div className="text-xs text-muted-foreground">Times shown in {getTimezoneDisplayText()}</div>
                 </div>
-                <div>
-                  {formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset)}
-                </div>
-                <div>
-                  ${segment.cost.toFixed(2)}
-                </div>
-                <div className="text-xs text-muted-foreground">Times shown in {getTimezoneDisplayText()}</div>
               </div>
-            </CardDescription>
           </div>
           <div className="flex space-x-2 ml-4">
             <Button variant="ghost" size="sm" onClick={() => onEdit(segment)}>
@@ -205,19 +199,19 @@ export default function SegmentsPage() {
     setEditingSegment(null)
   }
 
-  const handleSaveSegment = async (segmentData: Omit<Segment, "id">) => {
+  const handleSaveSegment = async (segmentData: Omit<Segment, "id">, isUpdate: boolean, originalSegmentId?: number) => {
     try {
       let response
 
-      if (editingSegment) {
+      if (isUpdate && originalSegmentId) {
         // Update existing segment
         response = await fetch(`/api/Segment/UpdateSegment?tripId=${tripId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...segmentData, id: editingSegment.id }),
+          body: JSON.stringify({ ...segmentData, id: originalSegmentId }),
         })
       } else {
-        // Create new segment
+        // Create new segment (including duplicates)
         response = await fetch(`/api/Segment/CreateSegment?tripId=${tripId}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },

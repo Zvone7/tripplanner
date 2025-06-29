@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog"
 import { Button } from "../components/ui/button"
@@ -10,40 +12,41 @@ import { toast } from "../components/ui/use-toast"
 import { Checkbox } from "../components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
 import { DateTimePicker } from "../components/DateTimePicker"
+import { CopyIcon } from 'lucide-react'
 
 interface Segment {
-  id: number;
-  tripId: number;
-  startDateTimeUtc: string;
-  startDateTimeUtcOffset: number;
-  endDateTimeUtc: string;
-  endDateTimeUtcOffset: number;
-  name: string;
-  cost: number;
-  segmentTypeId: number;
+  id: number
+  tripId: number
+  startDateTimeUtc: string
+  startDateTimeUtcOffset: number
+  endDateTimeUtc: string
+  endDateTimeUtcOffset: number
+  name: string
+  cost: number
+  segmentTypeId: number
 }
 
 interface Option {
-  id: number;
-  name: string;
+  id: number
+  name: string
 }
 
 interface SegmentType {
-  id: number;
-  shortName: string;
-  name: string;
-  description: string;
-  color: string;
-  iconSvg: string;
+  id: number
+  shortName: string
+  name: string
+  description: string
+  color: string
+  iconSvg: string
 }
 
 interface SegmentModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (segment: Omit<Segment, "id">) => void;
-  segment?: Segment | null;
-  tripId: number;
-  segmentTypes: SegmentType[];
+  isOpen: boolean
+  onClose: () => void
+  onSave: (segment: Omit<Segment, "id">, isUpdate: boolean, originalSegmentId?: number) => void
+  segment?: Segment | null
+  tripId: number
+  segmentTypes: SegmentType[]
 }
 
 export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId, segmentTypes }: SegmentModalProps) {
@@ -58,38 +61,60 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
   const [segmentTypeId, setSegmentTypeId] = useState<number | null>(null)
   const [options, setOptions] = useState<Option[]>([])
   const [selectedOptions, setSelectedOptions] = useState<number[]>([])
+  const [sameAsStartTime, setSameAsStartTime] = useState(false)
+  const [isDuplicateMode, setIsDuplicateMode] = useState(false)
 
   // extract dateValue from a date in format 2024-12-31
   const getDateValue = (date: Date, offset: number) => {
-    var tempDate = new Date(date);
-    if(offset!==0){
+    var tempDate = new Date(date)
+    if (offset !== 0) {
       tempDate.setHours(tempDate.getHours() + offset)
     }
-    return date.getFullYear() + "-" + (tempDate.getMonth() + 1).toString().padStart(2, "0") + "-" + tempDate.getDate().toString().padStart(2, "0")
+    return (
+      date.getFullYear() +
+      "-" +
+      (tempDate.getMonth() + 1).toString().padStart(2, "0") +
+      "-" +
+      tempDate.getDate().toString().padStart(2, "0")
+    )
   }
-  const getTimeValie = (date: Date, offset: number) =>{ 
-    var tempDate = new Date(date);
-    if(offset!==0){
+
+  const getTimeValie = (date: Date, offset: number) => {
+    var tempDate = new Date(date)
+    if (offset !== 0) {
       tempDate.setHours(tempDate.getHours() + offset)
     }
     return String(tempDate.getHours()).padStart(2, "0") + ":" + String(tempDate.getMinutes()).padStart(2, "0")
   }
 
   useEffect(() => {
+    // Reset duplicate mode when modal opens/closes or segment changes
+    setIsDuplicateMode(false)
+
     if (segment) {
       setName(segment.name)
       const startDateTime = new Date(segment.startDateTimeUtc)
       setStartDate(getDateValue(startDateTime, segment.startDateTimeUtcOffset))
       setStartTime(getTimeValie(startDateTime, segment.startDateTimeUtcOffset))
       setStartDateTimeUtcOffset(segment.startDateTimeUtcOffset)
-      
       const endDateTime = new Date(segment.endDateTimeUtc)
       setEndDate(getDateValue(endDateTime, segment.endDateTimeUtcOffset))
       setEndTime(getTimeValie(endDateTime, segment.endDateTimeUtcOffset))
       setEndDateTimeUtcOffset(segment.endDateTimeUtcOffset)
-      
       setCost(segment.cost.toString())
       setSegmentTypeId(segment.segmentTypeId)
+
+      // Check if end time is same as start time
+      const startDateTimeStr =
+        getDateValue(startDateTime, segment.startDateTimeUtcOffset) +
+        getTimeValie(startDateTime, segment.startDateTimeUtcOffset)
+      const endDateTimeStr =
+        getDateValue(endDateTime, segment.endDateTimeUtcOffset) +
+        getTimeValie(endDateTime, segment.endDateTimeUtcOffset)
+      setSameAsStartTime(
+        startDateTimeStr === endDateTimeStr && segment.startDateTimeUtcOffset === segment.endDateTimeUtcOffset,
+      )
+
       fetchConnectedOptions(segment.id)
     } else {
       setName("")
@@ -102,6 +127,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       setCost("")
       setSegmentTypeId(null)
       setSelectedOptions([])
+      setSameAsStartTime(false)
     }
   }, [segment])
 
@@ -113,36 +139,63 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
   useEffect(() => {
     // Only update end date/time if they are empty and start date/time has a value
     if (startDate && startTime && !endDate && !endTime) {
-      setEndDate(startDate);
-      setEndTime(startTime);
-      setEndDateTimeUtcOffset(startDateTimeUtcOffset);
+      setEndDate(startDate)
+      setEndTime(startTime)
+      setEndDateTimeUtcOffset(startDateTimeUtcOffset)
     }
-  }, [startDate, startTime, startDateTimeUtcOffset]);
+  }, [startDate, startTime, startDateTimeUtcOffset])
+
+  // Effect to handle "same as start time" checkbox
+  useEffect(() => {
+    if (sameAsStartTime) {
+      setEndDate(startDate)
+      setEndTime(startTime)
+      setEndDateTimeUtcOffset(startDateTimeUtcOffset)
+    }
+  }, [sameAsStartTime, startDate, startTime, startDateTimeUtcOffset])
 
   // Custom handlers for start date/time changes
   const handleStartDateChange = (value: string) => {
-    setStartDate(value);
+    setStartDate(value)
     // If end date is empty, set it to match start date
     if (!endDate) {
-      setEndDate(value);
+      setEndDate(value)
     }
-  };
+    // If "same as start time" is checked, sync end date
+    if (sameAsStartTime) {
+      setEndDate(value)
+    }
+  }
 
   const handleStartTimeChange = (value: string) => {
-    setStartTime(value);
+    setStartTime(value)
     // If end time is empty, set it to match start time
     if (!endTime) {
-      setEndTime(value);
+      setEndTime(value)
     }
-  };
+    // If "same as start time" is checked, sync end time
+    if (sameAsStartTime) {
+      setEndTime(value)
+    }
+  }
 
   const handleStartUtcOffsetChange = (value: number) => {
-    setStartDateTimeUtcOffset(value);
+    setStartDateTimeUtcOffset(value)
     // If end time is empty, set its offset to match start offset
     if (!endTime) {
-      setEndDateTimeUtcOffset(value);
+      setEndDateTimeUtcOffset(value)
     }
-  };
+    // If "same as start time" is checked, sync end offset
+    if (sameAsStartTime) {
+      setEndDateTimeUtcOffset(value)
+    }
+  }
+
+  const handleDuplicateSegment = () => {
+    setName(`DUPLICATE ${name}`)
+    setIsDuplicateMode(true) // Switch to duplicate/create mode
+    setSelectedOptions([]) // Clear selected options for new segment
+  }
 
   const fetchOptions = async () => {
     try {
@@ -178,32 +231,53 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     }
   }
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault()
-  
-    if (segmentTypeId === null) {
-      toast({
-        title: "Error",
-        description: "Please select a segment type.",
-      })
-      return
-    }
-    
-    await onSave({
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
+      if (segmentTypeId === null) {
+        toast({
+          title: "Error",
+          description: "Please select a segment type.",
+        })
+        return
+      }
+
+      const segmentData = {
+        tripId,
+        name,
+        startDateTimeUtc: `${startDate}T${startTime}:00.000Z`,
+        endDateTimeUtc: `${endDate}T${endTime}:00.000Z`,
+        startDateTimeUtcOffset,
+        endDateTimeUtcOffset,
+        cost: Number.parseFloat(cost),
+        segmentTypeId,
+      }
+
+      // Pass whether this is an update and the original segment ID
+      const isUpdate = segment && !isDuplicateMode
+      await onSave(segmentData, !!isUpdate, segment?.id)
+
+      // Only update connected options if we're editing an existing segment (not duplicating)
+      if (segment && !isDuplicateMode) {
+        await handleUpdateConnectedOptions()
+      }
+    },
+    [
       tripId,
       name,
-      startDateTimeUtc: `${startDate}T${startTime}:00.000Z`,
-      endDateTimeUtc: `${endDate}T${endTime}:00.000Z`,
+      startDate,
+      startTime,
+      endDate,
+      endTime,
       startDateTimeUtcOffset,
       endDateTimeUtcOffset,
-      cost: parseFloat(cost),
+      cost,
       segmentTypeId,
-    })
-  
-    if (segment) {
-      await handleUpdateConnectedOptions()
-    }
-  }, [tripId, name, startDate, startTime, endDate, endTime, startDateTimeUtcOffset, endDateTimeUtcOffset, cost, segmentTypeId, onSave])
+      onSave,
+      segment,
+      isDuplicateMode,
+    ],
+  )
 
   const handleUpdateConnectedOptions = async () => {
     if (!segment) return
@@ -239,39 +313,41 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
   }
 
   const handleOptionToggle = (optionId: number) => {
-    setSelectedOptions(prev =>
-      prev.includes(optionId)
-        ? prev.filter(id => id !== optionId)
-        : [...prev, optionId]
-    )
+    setSelectedOptions((prev) => (prev.includes(optionId) ? prev.filter((id) => id !== optionId) : [...prev, optionId]))
   }
+
+  // Determine if we're in create mode (no segment or duplicate mode)
+  const isCreateMode = !segment || isDuplicateMode
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{segment ? "Edit Segment" : "Create Segment"}</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>{isCreateMode ? "Create Segment" : "Edit Segment"}</DialogTitle>
+            {segment && !isDuplicateMode && (
+              <Button variant="outline" size="sm" onClick={handleDuplicateSegment} className="ml-2 bg-transparent">
+                <CopyIcon className="h-4 w-4 mr-1" />
+                Duplicate
+              </Button>
+            )}
+          </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
               Name
             </Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="col-span-3"
-              required
-            />
+            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" required />
           </div>
+
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="segmentType" className="text-right">
               Segment Type
             </Label>
             <Select
               value={segmentTypeId?.toString() || ""}
-              onValueChange={(value) => setSegmentTypeId(parseInt(value))}
+              onValueChange={(value) => setSegmentTypeId(Number.parseInt(value))}
             >
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select a segment type" />
@@ -288,6 +364,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
               </SelectContent>
             </Select>
           </div>
+
           <DateTimePicker
             label="Start"
             dateValue={startDate}
@@ -298,16 +375,35 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
             id="start"
             initialUtcOffset={startDateTimeUtcOffset}
           />
-          <DateTimePicker
-            label="End"
-            dateValue={endDate}
-            timeValue={endTime}
-            onDateChange={setEndDate}
-            onTimeChange={setEndTime}
-            onUtcOffsetChange={setEndDateTimeUtcOffset}
-            id="end"
-            initialUtcOffset={endDateTimeUtcOffset}
-          />
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right"></Label>
+            <div className="col-span-3 flex items-center space-x-2">
+              <Checkbox
+                id="sameAsStartTime"
+                checked={sameAsStartTime}
+                onCheckedChange={(checked) => setSameAsStartTime(checked as boolean)}
+              />
+              <Label htmlFor="sameAsStartTime" className="text-sm">
+                Same as start time
+              </Label>
+            </div>
+          </div>
+
+          {/* Only show end time picker if "same as start time" is not checked */}
+          {!sameAsStartTime && (
+            <DateTimePicker
+              label="End"
+              dateValue={endDate}
+              timeValue={endTime}
+              onDateChange={setEndDate}
+              onTimeChange={setEndTime}
+              onUtcOffsetChange={setEndDateTimeUtcOffset}
+              id="end"
+              initialUtcOffset={endDateTimeUtcOffset}
+            />
+          )}
+
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="cost" className="text-right">
               Cost
@@ -322,11 +418,11 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
               step="0.01"
             />
           </div>
-          {segment && (
+
+          {/* Only show connected options if we're editing an existing segment (not creating or duplicating) */}
+          {segment && !isDuplicateMode && (
             <div className="grid grid-cols-4 items-start gap-4">
-              <Label className="text-right pt-2">
-                Connected Options
-              </Label>
+              <Label className="text-right pt-2">Connected Options</Label>
               <ScrollArea className="h-[200px] col-span-3 border rounded-md p-4">
                 {options.map((option) => (
                   <div key={option.id} className="flex items-center space-x-2 mb-2">
@@ -341,8 +437,9 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
               </ScrollArea>
             </div>
           )}
+
           <DialogFooter>
-            <Button type="submit">Save changes</Button>
+            <Button type="submit">{isCreateMode ? "Create segment" : "Save changes"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
