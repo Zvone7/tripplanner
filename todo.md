@@ -1,4 +1,4 @@
-- merge save changes and update connected into single button
-- Check mobile responsivenessness (it's a word)
+- add comment for segment to store links
+- add location to segment (start, end destination (same as start))
 - Investigate possible booking.com integration
 - Investigate possible google flights/skyscanner integration

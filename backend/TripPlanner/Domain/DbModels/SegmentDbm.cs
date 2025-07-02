@@ -10,4 +10,5 @@ public class SegmentDbm{
     public string name { get; set; }
     public decimal cost { get; set; }
     public int segment_type_id { get; set; }
+    public string comment { get; set; }
 }
