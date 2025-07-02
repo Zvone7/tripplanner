@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import type { JSX } from "react" // Import JSX to fix the undeclared variable error
 
 import { useState, useEffect, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog"
@@ -8,6 +9,7 @@ import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
 import { ScrollArea } from "../components/ui/scroll-area"
+import { Textarea } from "../components/ui/textarea"
 import { toast } from "../components/ui/use-toast"
 import { Checkbox } from "../components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
@@ -24,6 +26,7 @@ interface Segment {
   name: string
   cost: number
   segmentTypeId: number
+  comment: string
 }
 
 interface Option {
@@ -57,6 +60,80 @@ interface SegmentModalProps {
   segmentTypes: SegmentType[]
 }
 
+// Component to render text with clickable links (supports both plain URLs and Markdown-style links)
+const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
+  // Regex for Markdown-style links: [text](url)
+  const markdownLinkRegex = /\[([^\]]+)\]\(([^\)]+)\)/g;
+  // Regex for plain URLs
+  const urlRegex = /(https?:\/\/[^\s]+)/g
+
+  let processedText = text
+  const linkReplacements: { placeholder: string; element: JSX.Element }[] = []
+  let replacementIndex = 0
+
+  // First, process Markdown-style links
+  processedText = processedText.replace(markdownLinkRegex, (match, linkText, url) => {
+    const placeholder = `__LINK_${replacementIndex}__`
+    linkReplacements.push({
+      placeholder,
+      element: (
+        <a
+          key={`md-${replacementIndex}`}
+          href={url.trim()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:text-blue-800 underline"
+        >
+          {linkText}
+        </a>
+      ),
+    })
+    replacementIndex++
+    return placeholder
+  })
+
+  // Then, process remaining plain URLs (that weren't part of Markdown links)
+  processedText = processedText.replace(urlRegex, (match) => {
+    // Check if this URL is already part of a placeholder (from Markdown processing)
+    if (processedText.includes(`](${match})`)) {
+      return match // Don't process URLs that are part of Markdown links
+    }
+
+    const placeholder = `__LINK_${replacementIndex}__`
+    linkReplacements.push({
+      placeholder,
+      element: (
+        <a
+          key={`url-${replacementIndex}`}
+          href={match}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:text-blue-800 underline"
+        >
+          {match}
+        </a>
+      ),
+    })
+    replacementIndex++
+    return placeholder
+  })
+
+  // Split the text by placeholders and reconstruct with React elements
+  const parts = processedText.split(/(__LINK_\d+__)/g)
+
+  return (
+    <div className="whitespace-pre-wrap">
+      {parts.map((part, index) => {
+        const linkReplacement = linkReplacements.find((lr) => lr.placeholder === part)
+        if (linkReplacement) {
+          return linkReplacement.element
+        }
+        return <span key={index}>{part}</span>
+      })}
+    </div>
+  )
+}
+
 export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId, segmentTypes }: SegmentModalProps) {
   const [name, setName] = useState("")
   const [startDate, setStartDate] = useState("")
@@ -66,6 +143,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
   const [startDateTimeUtcOffset, setStartDateTimeUtcOffset] = useState(0)
   const [endDateTimeUtcOffset, setEndDateTimeUtcOffset] = useState(0)
   const [cost, setCost] = useState("")
+  const [comment, setComment] = useState("")
   const [segmentTypeId, setSegmentTypeId] = useState<number | null>(null)
   const [options, setOptions] = useState<Option[]>([])
   const [selectedOptions, setSelectedOptions] = useState<number[]>([])
@@ -131,6 +209,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       setEndTime(getTimeValie(endDateTime, segment.endDateTimeUtcOffset))
       setEndDateTimeUtcOffset(segment.endDateTimeUtcOffset)
       setCost(segment.cost.toString())
+      setComment(segment.comment || "")
       setSegmentTypeId(segment.segmentTypeId)
 
       // Check if end time is same as start time
@@ -155,6 +234,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       setStartDateTimeUtcOffset(userPreferredOffset)
       setEndDateTimeUtcOffset(userPreferredOffset)
       setCost("")
+      setComment("")
       setSegmentTypeId(null)
       setSelectedOptions([])
       setSameAsStartTime(false)
@@ -281,6 +361,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
         endDateTimeUtcOffset,
         cost: Number.parseFloat(cost),
         segmentTypeId,
+        comment,
       }
 
       // Pass whether this is an update and the original segment ID
@@ -303,6 +384,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       endDateTimeUtcOffset,
       cost,
       segmentTypeId,
+      comment,
       onSave,
       segment,
       isDuplicateMode,
@@ -351,28 +433,28 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[400px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isCreateMode ? "Create Segment" : "Edit Segment"}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="grid grid-cols-4 items-center gap-3">
+            <Label htmlFor="name" className="text-right text-sm">
               Name
             </Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" required />
           </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="segmentType" className="text-right">
-              Segment Type
+          <div className="grid grid-cols-4 items-center gap-3">
+            <Label htmlFor="segmentType" className="text-right text-sm">
+              Type
             </Label>
             <Select
               value={segmentTypeId?.toString() || ""}
               onValueChange={(value) => setSegmentTypeId(Number.parseInt(value))}
             >
               <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Select a segment type" />
+                <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
                 {segmentTypes.map((type) => (
@@ -398,7 +480,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
             initialUtcOffset={startDateTimeUtcOffset}
           />
 
-          <div className="grid grid-cols-4 items-center gap-4">
+          <div className="grid grid-cols-4 items-center gap-3">
             <Label className="text-right"></Label>
             <div className="col-span-3 flex items-center space-x-2">
               <Checkbox
@@ -426,8 +508,8 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
             />
           )}
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="cost" className="text-right">
+          <div className="grid grid-cols-4 items-center gap-3">
+            <Label htmlFor="cost" className="text-right text-sm">
               Cost
             </Label>
             <Input
@@ -441,11 +523,34 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
             />
           </div>
 
+          <div className="grid grid-cols-4 items-start gap-3">
+            <Label htmlFor="comment" className="text-right text-sm pt-2">
+              Comment
+            </Label>
+            <div className="col-span-3 space-y-2">
+              <Textarea
+                id="comment"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Add notes, links, or other details...
+Use [Link Text](URL) for custom link text
+Or paste URLs directly: https://example.com"
+                className="min-h-[80px] text-sm"
+              />
+              {comment && (
+                <div className="p-2 bg-muted rounded-md text-sm">
+                  <div className="text-xs text-muted-foreground mb-1">Preview:</div>
+                  <CommentDisplay text={comment} />
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Only show connected options if we're editing an existing segment (not creating or duplicating) */}
           {segment && !isDuplicateMode && (
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label className="text-right pt-2">Connected Options</Label>
-              <ScrollArea className="h-[200px] col-span-3 border rounded-md p-4">
+            <div className="grid grid-cols-4 items-start gap-3">
+              <Label className="text-right pt-2 text-sm">Options</Label>
+              <ScrollArea className="h-[150px] col-span-3 border rounded-md p-3">
                 {options.map((option) => (
                   <div key={option.id} className="flex items-center space-x-2 mb-2">
                     <Checkbox
@@ -453,14 +558,16 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
                       checked={selectedOptions.includes(option.id)}
                       onCheckedChange={() => handleOptionToggle(option.id)}
                     />
-                    <Label htmlFor={`option-${option.id}`}>{option.name}</Label>
+                    <Label htmlFor={`option-${option.id}`} className="text-sm">
+                      {option.name}
+                    </Label>
                   </div>
                 ))}
               </ScrollArea>
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="pt-4">
             <div className="flex justify-between w-full">
               <div>
                 {segment && !isDuplicateMode && (
@@ -469,7 +576,9 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
                   </Button>
                 )}
               </div>
-              <Button type="submit">{isCreateMode ? "Create segment" : "Save changes"}</Button>
+              <Button type="submit" size="sm">
+                {isCreateMode ? "Create" : "Save"}
+              </Button>
             </div>
           </DialogFooter>
         </form>

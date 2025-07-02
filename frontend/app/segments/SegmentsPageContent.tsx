@@ -20,6 +20,7 @@ interface Segment {
   name: string
   cost: number
   segmentTypeId: number
+  comment: string
 }
 
 interface SegmentType {
