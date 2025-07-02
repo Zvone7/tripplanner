@@ -112,3 +112,12 @@ CREATE TABLE user_preference (
 );
 
 CREATE UNIQUE INDEX idx_user_preference_app_user_id ON user_preference(app_user_id);
+
+GO
+
+alter table segment add comment NVARCHAR(MAX) NULL;
+
+-- todo later:
+-- modify segment table to have a start_destination and end_destination (nullable) which are both strings up to 100 characters
+-- ALTER TABLE segment ADD start_destination NVARCHAR(100) NOT NULL;
+-- ALTER TABLE segment ADD end_destination NVARCHAR(100) NULL;

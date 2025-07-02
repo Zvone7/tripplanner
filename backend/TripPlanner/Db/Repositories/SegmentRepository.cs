@@ -45,7 +45,8 @@ public class SegmentRepository
                        "end_datetime_utc_offset, "+
                        "name, " +
                        "cost, " +
-                       "segment_type_id" +
+                       "segment_type_id," +
+                       "comment" +
                        ") VALUES (" +
                        "@trip_id, " +
                        "@start_datetime_utc, " +
@@ -54,7 +55,8 @@ public class SegmentRepository
                        "@end_datetime_utc_offset, " +
                        "@name, " +
                        "@cost, " +
-                       "@segment_type_id" +
+                       "@segment_type_id," +
+                       "@comment" +
                        ")";
         await db.ExecuteAsync(sqlQuery, segment);
     }
@@ -70,7 +72,8 @@ public class SegmentRepository
                        "end_datetime_utc_offset = @end_datetime_utc_offset, " +
                        "name = @name, " +
                        "cost = @cost, " +
-                       "segment_type_id = @segment_type_id " +
+                       "segment_type_id = @segment_type_id, " +
+                       "comment = @comment " +
                        "WHERE id = @id";
         await db.ExecuteAsync(sqlQuery, segment);
     }
