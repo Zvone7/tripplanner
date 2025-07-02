@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import type { JSX } from "react"
+import type { JSX } from "react" // Import JSX to fix the undeclared variable error
 
 import { useState, useEffect, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog"
@@ -62,11 +62,8 @@ interface SegmentModalProps {
 
 // Component to render text with clickable links (supports both plain URLs and Markdown-style links)
 const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
-  console.log("Rendering CommentDisplay with text:", text)
   // Regex for Markdown-style links: [text](url)
   const markdownLinkRegex = /\[([^\]]+)\]\(([^\)]+)\)/g;
-
-
   // Regex for plain URLs
   const urlRegex = /(https?:\/\/[^\s]+)/g
 
@@ -76,7 +73,6 @@ const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
 
   // First, process Markdown-style links
   processedText = processedText.replace(markdownLinkRegex, (match, linkText, url) => {
-    console.log("Processing Markdown link:", match, linkText, url)
     const placeholder = `__LINK_${replacementIndex}__`
     linkReplacements.push({
       placeholder,
@@ -98,7 +94,6 @@ const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
 
   // Then, process remaining plain URLs (that weren't part of Markdown links)
   processedText = processedText.replace(urlRegex, (match) => {
-    console.log("Processing plain URL:", match)
     // Check if this URL is already part of a placeholder (from Markdown processing)
     if (processedText.includes(`](${match})`)) {
       return match // Don't process URLs that are part of Markdown links
