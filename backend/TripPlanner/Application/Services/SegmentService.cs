@@ -33,7 +33,8 @@ public class SegmentService
             StartDateTimeUtc = s.start_datetime_utc,
             StartDateTimeUtcOffset = s.start_datetime_utc_offset,
             TripId = s.trip_id,
-            SegmentTypeId = s.segment_type_id
+            SegmentTypeId = s.segment_type_id,
+            Comment = s.comment
         }).ToList();
         return result;
     }
@@ -51,7 +52,8 @@ public class SegmentService
                 StartDateTimeUtc = s.start_datetime_utc,
                 StartDateTimeUtcOffset = s.start_datetime_utc_offset,
                 TripId = s.trip_id,
-                SegmentTypeId = s.segment_type_id
+                SegmentTypeId = s.segment_type_id,
+                Comment = s.comment
             })
             .OrderBy(s => s.StartDateTimeUtc)
             .ToList();
@@ -71,7 +73,8 @@ public class SegmentService
             StartDateTimeUtc = segment.start_datetime_utc,
             StartDateTimeUtcOffset = segment.start_datetime_utc_offset,
             TripId = segment.trip_id,
-            SegmentTypeId = segment.segment_type_id
+            SegmentTypeId = segment.segment_type_id,
+            Comment = segment.comment
         };
         return result;
     }
@@ -89,7 +92,8 @@ public class SegmentService
             end_datetime_utc_offset = segment.EndDateTimeUtcOffset,
             name = segment.Name,
             cost = segment.Cost,
-            segment_type_id = segment.SegmentTypeId
+            segment_type_id = segment.SegmentTypeId,
+            comment = segment.Comment
         }, cancellationToken);
     }
 
@@ -107,7 +111,8 @@ public class SegmentService
             end_datetime_utc_offset = segment.EndDateTimeUtcOffset,
             name = segment.Name,
             cost = segment.Cost,
-            segment_type_id = segment.SegmentTypeId
+            segment_type_id = segment.SegmentTypeId,
+            comment = segment.Comment
         }, cancellationToken);
 
         await UpdateOptionsRelatedBySegmentIdAsync(segment.Id, cancellationToken);
