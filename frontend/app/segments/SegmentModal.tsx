@@ -1,20 +1,24 @@
-"use client"
+// components/SegmentModal.tsx
+"use client";
 
 import type React from "react"
-import type { JSX } from "react" // Import JSX to fix the undeclared variable error
+import type { JSX } from "react"
 
 import { useState, useEffect, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
-import { ScrollArea } from "../components/ui/scroll-area"
-import { Textarea } from "../components/ui/textarea"
-import { toast } from "../components/ui/use-toast"
-import { Checkbox } from "../components/ui/checkbox"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
-import { DateTimePicker } from "../components/DateTimePicker"
+import { ScrollArea } from "../components/ui/scroll-area";
+import { Textarea } from "../components/ui/textarea";
+import { toast } from "../components/ui/use-toast";
+import { Checkbox } from "../components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { CopyIcon } from "lucide-react"
+
+import { RangeDateTimePicker, type RangeDateTimePickerValue } from "../components/RangeDateTimePicker"
+
+import { localToUtcMs, utcMsToIso, utcIsoToLocalInput } from "../lib/utils"
 
 interface Segment {
   id: number
@@ -60,26 +64,22 @@ interface SegmentModalProps {
   segmentTypes: SegmentType[]
 }
 
-// Component to render text with clickable links (supports both plain URLs and Markdown-style links)
 const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
-  // Regex for Markdown-style links: [text](url)
   const markdownLinkRegex = /\[([^\]]+)\]\(([^\)]+)\)/g;
-  // Regex for plain URLs
   const urlRegex = /(https?:\/\/[^\s]+)/g
 
   let processedText = text
   const linkReplacements: { placeholder: string; element: JSX.Element }[] = []
   let replacementIndex = 0
 
-  // First, process Markdown-style links
-  processedText = processedText.replace(markdownLinkRegex, (match, linkText, url) => {
+  processedText = processedText.replace(markdownLinkRegex, (_match, linkText, url) => {
     const placeholder = `__LINK_${replacementIndex}__`
     linkReplacements.push({
       placeholder,
       element: (
         <a
           key={`md-${replacementIndex}`}
-          href={url.trim()}
+          href={String(url).trim()}
           target="_blank"
           rel="noopener noreferrer"
           className="text-blue-600 hover:text-blue-800 underline"
@@ -87,19 +87,14 @@ const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
           {linkText}
         </a>
       ),
-    })
+    });
     replacementIndex++
     return placeholder
   })
 
-  // Then, process remaining plain URLs (that weren't part of Markdown links)
+  // Plain URLs (that weren't part of markdown)
   processedText = processedText.replace(urlRegex, (match) => {
-    // Check if this URL is already part of a placeholder (from Markdown processing)
-    if (processedText.includes(`](${match})`)) {
-      return match // Don't process URLs that are part of Markdown links
-    }
-
-    const placeholder = `__LINK_${replacementIndex}__`
+    const placeholder = `__LINK_${replacementIndex}__`;
     linkReplacements.push({
       placeholder,
       element: (
@@ -113,323 +108,235 @@ const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
           {match}
         </a>
       ),
-    })
-    replacementIndex++
-    return placeholder
-  })
+    });
+    replacementIndex++;
+    return placeholder;
+  });
 
-  // Split the text by placeholders and reconstruct with React elements
-  const parts = processedText.split(/(__LINK_\d+__)/g)
+  const parts = processedText.split(/(__LINK_\d+__)/g);
 
   return (
     <div className="whitespace-pre-wrap">
       {parts.map((part, index) => {
-        const linkReplacement = linkReplacements.find((lr) => lr.placeholder === part)
-        if (linkReplacement) {
-          return linkReplacement.element
-        }
+        const linkReplacement = linkReplacements.find((lr) => lr.placeholder === part);
+        if (linkReplacement) return linkReplacement.element;
         return <span key={index}>{part}</span>
       })}
     </div>
-  )
-}
+  );
+};
 
-export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId, segmentTypes }: SegmentModalProps) {
+export default function SegmentModal({
+  isOpen,
+  onClose,
+  onSave,
+  segment,
+  tripId,
+  segmentTypes,
+}: SegmentModalProps) {
   const [name, setName] = useState("")
-  const [startDate, setStartDate] = useState("")
-  const [startTime, setStartTime] = useState("")
-  const [endDate, setEndDate] = useState("")
-  const [endTime, setEndTime] = useState("")
-  const [startDateTimeUtcOffset, setStartDateTimeUtcOffset] = useState(0)
-  const [endDateTimeUtcOffset, setEndDateTimeUtcOffset] = useState(0)
+  const [range, setRange] = useState<RangeDateTimePickerValue>({
+    startLocal: "",
+    endLocal: null, // null => same as start
+    startOffsetH: 0,
+    endOffsetH: null, // null => same as start offset
+  });
   const [cost, setCost] = useState("")
   const [comment, setComment] = useState("")
   const [segmentTypeId, setSegmentTypeId] = useState<number | null>(null)
   const [options, setOptions] = useState<Option[]>([])
   const [selectedOptions, setSelectedOptions] = useState<number[]>([])
-  const [sameAsStartTime, setSameAsStartTime] = useState(false)
   const [isDuplicateMode, setIsDuplicateMode] = useState(false)
   const [userPreferredOffset, setUserPreferredOffset] = useState<number>(0)
 
-  // Fetch user preferences
+  // Fetch user preferences (preferred offset)
   const fetchUserPreferences = useCallback(async () => {
     try {
-      const response = await fetch("/api/account/info")
-      if (!response.ok) {
-        throw new Error("Failed to fetch user preferences")
-      }
-      const userData: User = await response.json()
-      setUserPreferredOffset(userData.userPreference?.preferredUtcOffset || 0)
+      const response = await fetch("/api/account/info");
+      if (!response.ok) throw new Error("Failed to fetch user preferences");
+      const userData: User = await response.json();
+      setUserPreferredOffset(userData.userPreference?.preferredUtcOffset ?? 0);
     } catch (err) {
-      console.error("Error fetching user preferences:", err)
-      // Default to UTC if we can't fetch user preferences
-      setUserPreferredOffset(0)
+      console.error("Error fetching user preferences:", err);
+      setUserPreferredOffset(0);
     }
-  }, [])
-
-  // extract dateValue from a date in format 2024-12-31
-  const getDateValue = (date: Date, offset: number) => {
-    var tempDate = new Date(date)
-    if (offset !== 0) {
-      tempDate.setHours(tempDate.getHours() + offset)
-    }
-    return (
-      date.getFullYear() +
-      "-" +
-      (tempDate.getMonth() + 1).toString().padStart(2, "0") +
-      "-" +
-      tempDate.getDate().toString().padStart(2, "0")
-    )
-  }
-
-  const getTimeValie = (date: Date, offset: number) => {
-    var tempDate = new Date(date)
-    if (offset !== 0) {
-      tempDate.setHours(tempDate.getHours() + offset)
-    }
-    return String(tempDate.getHours()).padStart(2, "0") + ":" + String(tempDate.getMinutes()).padStart(2, "0")
-  }
+  }, []);
 
   useEffect(() => {
-    fetchUserPreferences()
-  }, [fetchUserPreferences])
+    fetchUserPreferences();
+  }, [fetchUserPreferences]);
 
   useEffect(() => {
-    // Reset duplicate mode when modal opens/closes or segment changes
+    fetchOptions();
+  }, [tripId]);
+
+  useEffect(() => {
     setIsDuplicateMode(false)
 
     if (segment) {
       setName(segment.name)
-      const startDateTime = new Date(segment.startDateTimeUtc)
-      setStartDate(getDateValue(startDateTime, segment.startDateTimeUtcOffset))
-      setStartTime(getTimeValie(startDateTime, segment.startDateTimeUtcOffset))
-      setStartDateTimeUtcOffset(segment.startDateTimeUtcOffset)
-      const endDateTime = new Date(segment.endDateTimeUtc)
-      setEndDate(getDateValue(endDateTime, segment.endDateTimeUtcOffset))
-      setEndTime(getTimeValie(endDateTime, segment.endDateTimeUtcOffset))
-      setEndDateTimeUtcOffset(segment.endDateTimeUtcOffset)
-      setCost(segment.cost.toString())
-      setComment(segment.comment || "")
-      setSegmentTypeId(segment.segmentTypeId)
 
-      // Check if end time is same as start time
-      const startDateTimeStr =
-        getDateValue(startDateTime, segment.startDateTimeUtcOffset) +
-        getTimeValie(startDateTime, segment.startDateTimeUtcOffset)
-      const endDateTimeStr =
-        getDateValue(endDateTime, segment.endDateTimeUtcOffset) +
-        getTimeValie(endDateTime, segment.endDateTimeUtcOffset)
-      setSameAsStartTime(
-        startDateTimeStr === endDateTimeStr && segment.startDateTimeUtcOffset === segment.endDateTimeUtcOffset,
-      )
+      const sOff = segment.startDateTimeUtcOffset ?? 0;
+      const eOff = segment.endDateTimeUtcOffset ?? sOff;
 
-      fetchConnectedOptions(segment.id)
+      // Build local inputs from stored UTC + offsets
+      const startLocal = utcIsoToLocalInput(segment.startDateTimeUtc, sOff);
+      const endLocalRaw = utcIsoToLocalInput(segment.endDateTimeUtc, eOff);
+
+      // If same-stamp and same-offset, collapse end into "same as start"
+      const endIsSame =
+        segment.endDateTimeUtc === segment.startDateTimeUtc && eOff === sOff;
+
+      setRange({
+        startLocal,
+        endLocal: endIsSame ? null : endLocalRaw,
+        startOffsetH: sOff,
+        endOffsetH: endIsSame ? null : eOff,
+      });
+
+      setCost(String(segment.cost));
+      setComment(segment.comment || "");
+      setSegmentTypeId(segment.segmentTypeId);
+
+      fetchConnectedOptions(segment.id);
     } else {
-      // For new segments, use user's preferred offset as default
-      setName("")
-      setStartDate("")
-      setStartTime("")
-      setEndDate("")
-      setEndTime("")
-      setStartDateTimeUtcOffset(userPreferredOffset)
-      setEndDateTimeUtcOffset(userPreferredOffset)
-      setCost("")
-      setComment("")
-      setSegmentTypeId(null)
-      setSelectedOptions([])
-      setSameAsStartTime(false)
+      // New segment → seed from user pref
+      setName("");
+      setRange({
+        startLocal: "",
+        endLocal: null,
+        startOffsetH: userPreferredOffset ?? 0,
+        endOffsetH: null,
+      });
+      setCost("");
+      setComment("");
+      setSegmentTypeId(null);
+      setSelectedOptions([]);
     }
-  }, [segment, userPreferredOffset])
-
-  useEffect(() => {
-    fetchOptions()
-  }, [tripId])
-
-  // Add this new effect to sync end date/time with start date/time
-  useEffect(() => {
-    // Only update end date/time if they are empty and start date/time has a value
-    if (startDate && startTime && !endDate && !endTime) {
-      setEndDate(startDate)
-      setEndTime(startTime)
-      setEndDateTimeUtcOffset(startDateTimeUtcOffset)
-    }
-  }, [startDate, startTime, startDateTimeUtcOffset])
-
-  // Effect to handle "same as start time" checkbox
-  useEffect(() => {
-    if (sameAsStartTime) {
-      setEndDate(startDate)
-      setEndTime(startTime)
-      setEndDateTimeUtcOffset(startDateTimeUtcOffset)
-    }
-  }, [sameAsStartTime, startDate, startTime, startDateTimeUtcOffset])
-
-  // Custom handlers for start date/time changes
-  const handleStartDateChange = (value: string) => {
-    setStartDate(value)
-    // If end date is empty, set it to match start date
-    if (!endDate) {
-      setEndDate(value)
-    }
-    // If "same as start time" is checked, sync end date
-    if (sameAsStartTime) {
-      setEndDate(value)
-    }
-  }
-
-  const handleStartTimeChange = (value: string) => {
-    setStartTime(value)
-    // If end time is empty, set it to match start time
-    if (!endTime) {
-      setEndTime(value)
-    }
-    // If "same as start time" is checked, sync end time
-    if (sameAsStartTime) {
-      setEndTime(value)
-    }
-  }
-
-  const handleStartUtcOffsetChange = (value: number) => {
-    setStartDateTimeUtcOffset(value)
-    // If end time is empty, set its offset to match start offset
-    if (!endTime) {
-      setEndDateTimeUtcOffset(value)
-    }
-    // If "same as start time" is checked, sync end offset
-    if (sameAsStartTime) {
-      setEndDateTimeUtcOffset(value)
-    }
-  }
-
-  const handleDuplicateSegment = () => {
-    setName(`DUPLICATE ${name}`)
-    setIsDuplicateMode(true) // Switch to duplicate/create mode
-    setSelectedOptions([]) // Clear selected options for new segment
-  }
+  }, [segment, userPreferredOffset]);
 
   const fetchOptions = async () => {
     try {
-      const response = await fetch(`/api/Option/GetOptionsByTripId?tripId=${tripId}`)
-      if (!response.ok) {
-        throw new Error("Failed to fetch options")
-      }
-      const data = await response.json()
-      setOptions(data)
+      const response = await fetch(`/api/Option/GetOptionsByTripId?tripId=${tripId}`);
+      if (!response.ok) throw new Error("Failed to fetch options");
+      const data = await response.json();
+      setOptions(data);
     } catch (error) {
-      console.error("Error fetching options:", error)
+      console.error("Error fetching options:", error);
       toast({
         title: "Error",
         description: "Failed to fetch options. Please try again.",
-      })
+      });
     }
-  }
+  };
 
   const fetchConnectedOptions = async (segmentId: number) => {
     try {
-      const response = await fetch(`/api/Segment/GetConnectedOptions?tripId=${tripId}&segmentId=${segmentId}`)
-      if (!response.ok) {
-        throw new Error("Failed to fetch connected options")
-      }
-      const data = await response.json()
-      setSelectedOptions(data.map((option: Option) => option.id))
+      const response = await fetch(`/api/Segment/GetConnectedOptions?tripId=${tripId}&segmentId=${segmentId}`);
+      if (!response.ok) throw new Error("Failed to fetch connected options");
+      const data = await response.json();
+      setSelectedOptions(data.map((option: Option) => option.id));
     } catch (error) {
-      console.error("Error fetching connected options:", error)
+      console.error("Error fetching connected options:", error);
       toast({
         title: "Error",
         description: "Failed to fetch connected options. Please try again.",
-      })
+      });
     }
-  }
-
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault()
-      if (segmentTypeId === null) {
-        toast({
-          title: "Error",
-          description: "Please select a segment type.",
-        })
-        return
-      }
-
-      const segmentData = {
-        tripId,
-        name,
-        startDateTimeUtc: `${startDate}T${startTime}:00.000Z`,
-        endDateTimeUtc: `${endDate}T${endTime}:00.000Z`,
-        startDateTimeUtcOffset,
-        endDateTimeUtcOffset,
-        cost: Number.parseFloat(cost),
-        segmentTypeId,
-        comment,
-      }
-
-      // Pass whether this is an update and the original segment ID
-      const isUpdate = segment && !isDuplicateMode
-      await onSave(segmentData, !!isUpdate, segment?.id)
-
-      // Only update connected options if we're editing an existing segment (not duplicating)
-      if (segment && !isDuplicateMode) {
-        await handleUpdateConnectedOptions()
-      }
-    },
-    [
-      tripId,
-      name,
-      startDate,
-      startTime,
-      endDate,
-      endTime,
-      startDateTimeUtcOffset,
-      endDateTimeUtcOffset,
-      cost,
-      segmentTypeId,
-      comment,
-      onSave,
-      segment,
-      isDuplicateMode,
-    ],
-  )
+  };
 
   const handleUpdateConnectedOptions = async () => {
-    if (!segment) return
-
+    if (!segment) return;
     try {
       const response = await fetch(`/api/Segment/UpdateConnectedOptions?tripId=${tripId}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           SegmentId: segment.id,
           OptionIds: selectedOptions,
           TripId: tripId,
         }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to update connected options")
-      }
-
-      toast({
-        title: "Success",
-        description: "Connected options updated successfully",
-      })
+      });
+      if (!response.ok) throw new Error("Failed to update connected options");
+      toast({ title: "Success", description: "Connected options updated successfully" });
     } catch (error) {
-      console.error("Error updating connected options:", error)
-      toast({
-        title: "Error",
-        description: "Failed to update connected options. Please try again.",
-      })
+      console.error("Error updating connected options:", error);
+      toast({ title: "Error", description: "Failed to update connected options. Please try again." });
     }
-  }
+  };
 
   const handleOptionToggle = (optionId: number) => {
-    setSelectedOptions((prev) => (prev.includes(optionId) ? prev.filter((id) => id !== optionId) : [...prev, optionId]))
-  }
+    setSelectedOptions((prev) =>
+      prev.includes(optionId) ? prev.filter((id) => id !== optionId) : [...prev, optionId]
+    );
+  };
 
-  // Determine if we're in create mode (no segment or duplicate mode)
-  const isCreateMode = !segment || isDuplicateMode
+  const handleDuplicateSegment = () => {
+    setName((n) => `DUPLICATE ${n}`);
+    setIsDuplicateMode(true);
+    setSelectedOptions([]);
+  };
+
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+
+      if (segmentTypeId === null) {
+        toast({ title: "Error", description: "Please select a segment type." });
+        return;
+      }
+
+      if (!range.startLocal) {
+        toast({ title: "Error", description: "Please choose a start date and time." });
+        return;
+      }
+
+      const startUtcMs = localToUtcMs(range.startLocal, range.startOffsetH);
+      if (!Number.isFinite(startUtcMs)) {
+        toast({ title: "Error", description: "Invalid start date/time." });
+        return;
+      }
+      const startIso = utcMsToIso(startUtcMs);
+
+      // End: if null => same as start
+      const effEndOffset = range.endOffsetH ?? range.startOffsetH;
+      const endLocalUsed = range.endLocal ?? range.startLocal;
+      const endUtcMs = localToUtcMs(endLocalUsed, effEndOffset);
+      if (!Number.isFinite(endUtcMs)) {
+        toast({ title: "Error", description: "Invalid end date/time." });
+        return;
+      }
+
+      if (endUtcMs < startUtcMs) {
+        toast({ title: "Error", description: "End must be at or after start." });
+        return;
+      }
+
+      const endIso = utcMsToIso(endUtcMs);
+
+      const payload = {
+        tripId,
+        name,
+        startDateTimeUtc: startIso,
+        endDateTimeUtc: endIso,
+        startDateTimeUtcOffset: range.startOffsetH,
+        endDateTimeUtcOffset: effEndOffset,
+        cost: Number.parseFloat(cost),
+        segmentTypeId,
+        comment,
+      };
+
+      const isUpdate = segment && !isDuplicateMode;
+      await onSave(payload, !!isUpdate, segment?.id);
+
+      if (segment && !isDuplicateMode) {
+        await handleUpdateConnectedOptions();
+      }
+    },
+    [segmentTypeId, range, tripId, name, cost, comment, segment, isDuplicateMode, onSave]
+  );
+
+  const isCreateMode = !segment || isDuplicateMode;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -437,12 +344,19 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
         <DialogHeader>
           <DialogTitle>{isCreateMode ? "Create Segment" : "Edit Segment"}</DialogTitle>
         </DialogHeader>
+
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-4 items-center gap-3">
             <Label htmlFor="name" className="text-right text-sm">
               Name
             </Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" required />
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="col-span-3"
+              required
+            />
           </div>
 
           <div className="grid grid-cols-4 items-center gap-3">
@@ -460,7 +374,10 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
                 {segmentTypes.map((type) => (
                   <SelectItem key={type.id} value={type.id.toString()}>
                     <div className="flex items-center">
-                      <div dangerouslySetInnerHTML={{ __html: type.iconSvg }} className="w-4 h-4 mr-2" />
+                      <div
+                        dangerouslySetInnerHTML={{ __html: type.iconSvg }}
+                        className="w-4 h-4 mr-2"
+                      />
                       {type.name}
                     </div>
                   </SelectItem>
@@ -469,44 +386,15 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
             </Select>
           </div>
 
-          <DateTimePicker
-            label="Start"
-            dateValue={startDate}
-            timeValue={startTime}
-            onDateChange={handleStartDateChange}
-            onTimeChange={handleStartTimeChange}
-            onUtcOffsetChange={handleStartUtcOffsetChange}
-            id="start"
-            initialUtcOffset={startDateTimeUtcOffset}
+          {/* Single range-aware picker */}
+          <RangeDateTimePicker
+            id="segment-when"
+            label="When"
+            value={range}
+            onChange={setRange}
+            allowDifferentOffsets={true}  // set to false if you want one offset for both
+            compact={true}
           />
-
-          <div className="grid grid-cols-4 items-center gap-3">
-            <Label className="text-right"></Label>
-            <div className="col-span-3 flex items-center space-x-2">
-              <Checkbox
-                id="sameAsStartTime"
-                checked={sameAsStartTime}
-                onCheckedChange={(checked) => setSameAsStartTime(checked as boolean)}
-              />
-              <Label htmlFor="sameAsStartTime" className="text-sm">
-                Same as start time
-              </Label>
-            </div>
-          </div>
-
-          {/* Only show end time picker if "same as start time" is not checked */}
-          {!sameAsStartTime && (
-            <DateTimePicker
-              label="End"
-              dateValue={endDate}
-              timeValue={endTime}
-              onDateChange={setEndDate}
-              onTimeChange={setEndTime}
-              onUtcOffsetChange={setEndDateTimeUtcOffset}
-              id="end"
-              initialUtcOffset={endDateTimeUtcOffset}
-            />
-          )}
 
           <div className="grid grid-cols-4 items-center gap-3">
             <Label htmlFor="cost" className="text-right text-sm">
@@ -532,9 +420,9 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
                 id="comment"
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder="Add notes, links, or other details...
+                placeholder={`Add notes, links, or other details...
 Use [Link Text](URL) for custom link text
-Or paste URLs directly: https://example.com"
+Or paste URLs directly: https://example.com`}
                 className="min-h-[80px] text-sm"
               />
               {comment && (
@@ -546,7 +434,7 @@ Or paste URLs directly: https://example.com"
             </div>
           </div>
 
-          {/* Only show connected options if we're editing an existing segment (not creating or duplicating) */}
+          {/* Only show connected options for editing existing segments */}
           {segment && !isDuplicateMode && (
             <div className="grid grid-cols-4 items-start gap-3">
               <Label className="text-right pt-2 text-sm">Options</Label>
@@ -571,7 +459,7 @@ Or paste URLs directly: https://example.com"
             <div className="flex justify-between w-full">
               <div>
                 {segment && !isDuplicateMode && (
-                  <Button type="button" variant="outline" size="sm" onClick={handleDuplicateSegment}>
+                  <Button type="button" variant="outline" size="sm" onClick={handleDuplicateSegment} title="Duplicate">
                     <CopyIcon className="h-4 w-4" />
                   </Button>
                 )}
@@ -584,5 +472,5 @@ Or paste URLs directly: https://example.com"
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
