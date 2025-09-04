@@ -82,12 +82,13 @@ export const RangeDateTimePicker: React.FC<RangeDateTimePickerProps> = React.mem
           </Label>
           <div className="col-span-3 flex items-center gap-2">
             <Input
-              id={`${id}-start`}
-              type="datetime-local"
-              value={startLocal}
-              onChange={(e) => onChange({ ...value, startLocal: e.target.value })}
-              className="w-56 text-sm"
+            id={`${id}-start`}
+            type="datetime-local"
+            value={startLocal}
+            onChange={(e) => onChange({ ...value, startLocal: e.target.value })}
+            className="w-full md:w-56 text-sm"
             />
+
             <TimezoneSelector
               label=""
               value={startOffsetH}
@@ -103,70 +104,79 @@ export const RangeDateTimePicker: React.FC<RangeDateTimePickerProps> = React.mem
 
         {/* End controls */}
         {endLocal === null ? (
-          // Collapsed state: a small affordance to add end time
-          <div className={grid}>
+        // Collapsed state
+        <div className={grid}>
             <Label className="text-right text-sm" />
             <div className="col-span-3">
-              <Button
+            <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  onChange({
+                onChange({
                     ...value,
-                    // default end = start when first expanded
                     endLocal: value.startLocal || "",
                     endOffsetH: allowDifferentOffsets ? value.startOffsetH : null,
-                  })
+                })
                 }
-              >
+            >
                 + Add end time
-              </Button>
+            </Button>
             </div>
-          </div>
+        </div>
         ) : (
-          <div className="space-y-2">
+        <div className="space-y-2">
             <div className={grid}>
-              <Label htmlFor={`${id}-end`} className="text-right text-sm">
+            <Label htmlFor={`${id}-end`} className="text-right text-sm">
                 End
-              </Label>
-              <div className="col-span-3 flex items-center gap-2">
+            </Label>
+            <div className="col-span-3 flex items-center gap-2">
                 <Input
-                  id={`${id}-end`}
-                  type="datetime-local"
-                  value={endLocal}
-                  min={endMinLocal}
-                  onChange={(e) => onChange({ ...value, endLocal: e.target.value })}
-                  className="w-56 text-sm"
+                id={`${id}-end`}
+                type="datetime-local"
+                value={endLocal}
+                min={endMinLocal}
+                onChange={(e) => onChange({ ...value, endLocal: e.target.value })}
+                className="w-full md:w-56 text-sm"
                 />
                 {allowDifferentOffsets ? (
-                  <TimezoneSelector
+                <TimezoneSelector
                     label=""
                     value={effEndOffset}
                     onChange={(utcOffset) => onChange({ ...value, endOffsetH: utcOffset })}
                     id={`${id}-end-tz`}
                     compact
-                  />
+                />
                 ) : (
-                  <div className="text-xs text-muted-foreground">UTC{startOffsetH >= 0 ? "+" : ""}{startOffsetH}</div>
+                <div className="text-xs text-muted-foreground">
+                    UTC{startOffsetH >= 0 ? "+" : ""}{startOffsetH}
+                </div>
                 )}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onChange({ ...value, endLocal: null, endOffsetH: null })}
-                >
-                  Clear end
-                </Button>
-              </div>
             </div>
+            </div>
+
+            {/* Clear end button placed below end inputs, left-aligned */}
             <div className={grid}>
-              <Label className="text-right text-xs text-muted-foreground" />
-              <div className="col-span-3 text-xs text-muted-foreground">
-                End must be at the same time or after start (in absolute time).
-              </div>
+            <Label className="text-right text-sm" />
+            <div className="col-span-3">
+                <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onChange({ ...value, endLocal: null, endOffsetH: null })}
+                >
+                Clear end
+                </Button>
             </div>
-          </div>
+            </div>
+
+            <div className={grid}>
+            <Label className="text-right text-xs text-muted-foreground" />
+            <div className="col-span-3 text-xs text-muted-foreground">
+                End must be at the same time or after start.
+            </div>
+            </div>
+        </div>
         )}
       </div>
     );

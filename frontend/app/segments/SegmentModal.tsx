@@ -340,12 +340,15 @@ export default function SegmentModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[400px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[400px] w-[95vw] p-0">
+        <DialogHeader className="px-4 pt-4 pb-4">
           <DialogTitle>{isCreateMode ? "Create Segment" : "Edit Segment"}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form
+          onSubmit={handleSubmit}
+          className="max-h-[85vh] overflow-y-auto px-4 pt-2 pb-[calc(env(safe-area-inset-bottom,0)+88px)] space-y-3"
+        >
           <div className="grid grid-cols-4 items-center gap-3">
             <Label htmlFor="name" className="text-right text-sm">
               Name
@@ -386,13 +389,12 @@ export default function SegmentModal({
             </Select>
           </div>
 
-          {/* Single range-aware picker */}
           <RangeDateTimePicker
             id="segment-when"
             label="When"
             value={range}
             onChange={setRange}
-            allowDifferentOffsets={true}  // set to false if you want one offset for both
+            allowDifferentOffsets={true}
             compact={true}
           />
 
@@ -408,6 +410,7 @@ export default function SegmentModal({
               className="col-span-3"
               required
               step="0.01"
+              inputMode="decimal"
             />
           </div>
 
@@ -434,7 +437,6 @@ Or paste URLs directly: https://example.com`}
             </div>
           </div>
 
-          {/* Only show connected options for editing existing segments */}
           {segment && !isDuplicateMode && (
             <div className="grid grid-cols-4 items-start gap-3">
               <Label className="text-right pt-2 text-sm">Options</Label>
@@ -455,20 +457,25 @@ Or paste URLs directly: https://example.com`}
             </div>
           )}
 
-          <DialogFooter className="pt-4">
-            <div className="flex justify-between w-full">
-              <div>
-                {segment && !isDuplicateMode && (
-                  <Button type="button" variant="outline" size="sm" onClick={handleDuplicateSegment} title="Duplicate">
-                    <CopyIcon className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-              <Button type="submit" size="sm">
-                {isCreateMode ? "Create" : "Save"}
-              </Button>
+        <DialogFooter
+          className="sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t px-4 py-3"
+        >
+          <div className="flex justify-between w-full">
+            <div>
+              {segment && !isDuplicateMode && (
+                <Button type="button" variant="outline" size="sm" onClick={handleDuplicateSegment} title="Duplicate">
+                  <CopyIcon className="h-4 w-4" />
+                </Button>
+              )}
             </div>
-          </DialogFooter>
+            <Button type="submit" size="sm" formAction="" form="noop" onClick={(e) => {
+              const form = (e.currentTarget.closest('[role="dialog"]') as HTMLElement)?.querySelector('form') as HTMLFormElement | null;
+              form?.requestSubmit();
+            }}>
+              {isCreateMode ? "Create" : "Save"}
+            </Button>
+          </div>
+        </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
