@@ -8,4 +8,14 @@ public class OptionDto
     public DateTime? StartDateTimeUtc { get; set; }
     public DateTime? EndDateTimeUtc { get; set; }
     public decimal TotalCost { get; set; }
+    public decimal CostPerDay { get; set; }
+    public int TotalDays { get; set; }
+    public Dictionary<CostType, decimal> CostPerType { get; set; } = new();
+}
+
+public enum CostType
+{
+    Accommodation,
+    Transport,
+    Other
 }

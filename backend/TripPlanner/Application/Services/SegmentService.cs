@@ -137,7 +137,8 @@ public class SegmentService
         {
             foreach (var option in segmentOptions)
             {
-                await _optionService_.RecalculateOptionStateAsync(option.Id, cancellationToken);
+                var optionFinal = await _optionService_.RecalculateOptionStateAsync(option.Id, cancellationToken);
+                await _optionService_.UpdateAsync(optionFinal, cancellationToken);
             }
         }
     }
