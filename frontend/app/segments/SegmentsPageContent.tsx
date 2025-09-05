@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
@@ -9,36 +9,9 @@ import { Button } from "../components/ui/button"
 import { PlusIcon, TrashIcon, ListIcon, EditIcon } from "lucide-react"
 import SegmentModal from "../segments/SegmentModal"
 import { formatDateWithUserOffset } from "../utils/formatters"
-
-interface Segment {
-  id: number
-  tripId: number
-  startDateTimeUtc: string
-  startDateTimeUtcOffset: number
-  endDateTimeUtc: string
-  endDateTimeUtcOffset: number
-  name: string
-  cost: number
-  segmentTypeId: number
-  comment: string
-}
-
-interface SegmentType {
-  id: number
-  shortName: string
-  name: string
-  description: string
-  color: string
-  iconSvg: string
-}
-
-interface UserPreference {
-  preferredUtcOffset: number
-}
-
-interface User {
-  userPreference: UserPreference
-}
+import { OptionBadge } from "../components/OptionBadge"
+import type { Segment, SegmentType, Option } from "../types/segment";
+import type { User } from "../types/user";
 
 // Mobile Card Component
 function SegmentCard({
@@ -47,12 +20,14 @@ function SegmentCard({
   userPreferredOffset,
   onEdit,
   onDelete,
+  connectedOptions,
 }: {
   segment: Segment
   segmentType: SegmentType | undefined
   userPreferredOffset: number
   onEdit: (segment: Segment) => void
   onDelete: (segmentId: number) => void
+  connectedOptions: Option[]
 }) {
   const getTimezoneDisplayText = () => {
     if (userPreferredOffset === 0) return "UTC"
@@ -73,15 +48,25 @@ function SegmentCard({
               )}
             </div>
             <CardTitle className="text-lg">{segment.name}</CardTitle>
+
+            <div className="mt-2 flex flex-wrap gap-1">
+              {connectedOptions?.map((option) => (
+                <OptionBadge key={option.id} id={option.id} name={option.name} />
+              ))}
+            </div>
+
+
+
             <div className="mt-2 text-sm text-muted-foreground space-y-1">
-                <div className="space-y-1">
-                  <div>{formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset)}</div>
-                  <div>{formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset)}</div>
-                  <div>${segment.cost.toFixed(2)}</div>
-                  <div className="text-xs text-muted-foreground">Times shown in {getTimezoneDisplayText()}</div>
-                </div>
+              <div className="space-y-1">
+                <div>{formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset)}</div>
+                <div>{formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset)}</div>
+                <div>${segment.cost.toFixed(2)}</div>
+                <div className="text-xs text-muted-foreground">Times shown in {getTimezoneDisplayText()}</div>
               </div>
+            </div>
           </div>
+
           <div className="flex space-x-2 ml-4">
             <Button variant="ghost" size="sm" onClick={() => onEdit(segment)}>
               <EditIcon className="h-4 w-4" />
@@ -112,6 +97,8 @@ export default function SegmentsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingSegment, setEditingSegment] = useState<Segment | null | undefined>(null)
   const [tripName, setTripName] = useState<string>("")
+  const [connectedBySegment, setConnectedBySegment] = useState<Record<number, Option[]>>({})
+
   const searchParams = useSearchParams()
   const tripId = searchParams.get("tripId")
   const router = useRouter()
@@ -119,14 +106,11 @@ export default function SegmentsPage() {
   const fetchUserPreferences = useCallback(async () => {
     try {
       const response = await fetch("/api/account/info")
-      if (!response.ok) {
-        throw new Error("Failed to fetch user preferences")
-      }
+      if (!response.ok) throw new Error("Failed to fetch user preferences")
       const userData: User = await response.json()
       setUserPreferredOffset(userData.userPreference?.preferredUtcOffset || 0)
     } catch (err) {
       console.error("Error fetching user preferences:", err)
-      // Default to UTC if we can't fetch user preferences
       setUserPreferredOffset(0)
     }
   }, [])
@@ -135,9 +119,7 @@ export default function SegmentsPage() {
     if (!tripId) return
     try {
       const response = await fetch(`/api/trip/gettripbyid?tripId=${tripId}`)
-      if (!response.ok) {
-        throw new Error("Failed to fetch trip details")
-      }
+      if (!response.ok) throw new Error("Failed to fetch trip details")
       const data = await response.json()
       setTripName(data.name)
     } catch (err) {
@@ -149,9 +131,7 @@ export default function SegmentsPage() {
   const fetchSegmentTypes = useCallback(async () => {
     try {
       const response = await fetch("/api/Segment/GetSegmentTypes")
-      if (!response.ok) {
-        throw new Error("Failed to fetch segment types")
-      }
+      if (!response.ok) throw new Error("Failed to fetch segment types")
       const data = await response.json()
       setSegmentTypes(data)
     } catch (err) {
@@ -165,9 +145,7 @@ export default function SegmentsPage() {
     setIsLoading(true)
     try {
       const response = await fetch(`/api/Segment/GetSegmentsByTripId?tripId=${tripId}`)
-      if (!response.ok) {
-        throw new Error("Failed to fetch segments")
-      }
+      if (!response.ok) throw new Error("Failed to fetch segments")
       const data = await response.json()
       setSegments(data)
     } catch (err) {
@@ -177,6 +155,45 @@ export default function SegmentsPage() {
       setIsLoading(false)
     }
   }, [tripId])
+
+  // After segments load, fetch their connected options in parallel
+  useEffect(() => {
+    if (!segments.length || !tripId) return
+
+    let cancelled = false
+
+    ;(async () => {
+      try {
+        const results = await Promise.allSettled(
+          segments.map(async (seg) => {
+            const res = await fetch(`/api/Segment/GetConnectedOptions?tripId=${tripId}&segmentId=${seg.id}`)
+            if (!res.ok) throw new Error(`Failed for segment ${seg.id}`)
+            const options: Option[] = await res.json()
+            return { segmentId: seg.id, options }
+          })
+        )
+
+        if (cancelled) return
+
+        const map: Record<number, Option[]> = {}
+        for (const r of results) {
+          if (r.status === "fulfilled") {
+            map[r.value.segmentId] = r.value.options
+          } else {
+            // leave empty on failure; don't block UI
+            console.warn("Connected options fetch failed:", r.reason)
+          }
+        }
+        setConnectedBySegment(map)
+      } catch (e) {
+        console.error("Batch fetch connected options failed:", e)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [segments, tripId])
 
   useEffect(() => {
     fetchUserPreferences()
@@ -203,29 +220,24 @@ export default function SegmentsPage() {
   const handleSaveSegment = async (segmentData: Omit<Segment, "id">, isUpdate: boolean, originalSegmentId?: number) => {
     try {
       let response
-
       if (isUpdate && originalSegmentId) {
-        // Update existing segment
         response = await fetch(`/api/Segment/UpdateSegment?tripId=${tripId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...segmentData, id: originalSegmentId }),
         })
       } else {
-        // Create new segment (including duplicates)
         response = await fetch(`/api/Segment/CreateSegment?tripId=${tripId}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(segmentData),
         })
       }
-
-      if (!response.ok) {
-        throw new Error("Failed to save segment")
-      }
+      if (!response.ok) throw new Error("Failed to save segment")
 
       handleCloseModal()
       await fetchSegments()
+      // re-fetch connected options for freshness (optional; the segment modal already updates connections)
     } catch (err) {
       console.error("Error saving segment:", err)
       setError("An error occurred while saving the segment")
@@ -238,11 +250,7 @@ export default function SegmentsPage() {
         const response = await fetch(`/api/Segment/DeleteSegment?tripId=${tripId}&segmentId=${segmentId}`, {
           method: "DELETE",
         })
-
-        if (!response.ok) {
-          throw new Error("Failed to delete segment")
-        }
-
+        if (!response.ok) throw new Error("Failed to delete segment")
         await fetchSegments()
       } catch (err) {
         console.error("Error deleting segment:", err)
@@ -277,6 +285,7 @@ export default function SegmentsPage() {
           </Button>
         </div>
       </CardHeader>
+
       <CardContent>
         {isLoading ? (
           <LoadingSkeleton />
@@ -284,13 +293,14 @@ export default function SegmentsPage() {
           <p className="text-center text-red-500">{error}</p>
         ) : (
           <>
-            {/* Desktop Table View - Hidden on mobile */}
+            {/* Desktop Table View */}
             <div className="hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Type</TableHead>
                     <TableHead>Name</TableHead>
+                    <TableHead>Options</TableHead>
                     <TableHead>Start Time ({getTimezoneDisplayText()})</TableHead>
                     <TableHead>End Time ({getTimezoneDisplayText()})</TableHead>
                     <TableHead>Cost</TableHead>
@@ -300,6 +310,7 @@ export default function SegmentsPage() {
                 <TableBody>
                   {segments.map((segment) => {
                     const segmentType = segmentTypes.find((st) => st.id === segment.segmentTypeId)
+                    const connected = connectedBySegment[segment.id] || []
                     return (
                       <TableRow
                         key={segment.id}
@@ -315,6 +326,17 @@ export default function SegmentsPage() {
                           )}
                         </TableCell>
                         <TableCell className="font-medium">{segment.name}</TableCell>
+
+                        {/* Options dots */}
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {connected?.map((option, idx) => (
+                              <OptionBadge key={option.id} id={option.id} name={option.name} />
+                            ))}
+                          </div>
+                        </TableCell>
+
+
                         <TableCell>{formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset)}</TableCell>
                         <TableCell>{formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset)}</TableCell>
                         <TableCell>${segment.cost.toFixed(2)}</TableCell>
@@ -339,10 +361,11 @@ export default function SegmentsPage() {
               </Table>
             </div>
 
-            {/* Mobile Card View - Hidden on desktop */}
+            {/* Mobile Card View */}
             <div className="md:hidden">
               {segments.map((segment) => {
                 const segmentType = segmentTypes.find((st) => st.id === segment.segmentTypeId)
+                const connected = connectedBySegment[segment.id] || []
                 return (
                   <SegmentCard
                     key={segment.id}
@@ -351,6 +374,7 @@ export default function SegmentsPage() {
                     userPreferredOffset={userPreferredOffset}
                     onEdit={handleEditSegment}
                     onDelete={handleDeleteSegment}
+                    connectedOptions={connected}
                   />
                 )
               })}
@@ -358,6 +382,7 @@ export default function SegmentsPage() {
           </>
         )}
       </CardContent>
+
       <SegmentModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}

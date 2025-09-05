@@ -3,10 +3,9 @@
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
 import { Skeleton } from "../components/ui/skeleton"
 import { Button } from "../components/ui/button"
-import { PencilIcon, PlusIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, EditIcon, EyeIcon } from "lucide-react"
+import { PlusIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, EditIcon, EyeIcon } from "lucide-react"
 import TripModal from "./TripModal"
 import { formatDateStr } from "../utils/formatters"
 
@@ -19,7 +18,7 @@ interface Trip {
   endTime: string | null
 }
 
-// Mobile Card Component
+// Reusable Trip Card (used on all breakpoints)
 function TripCard({
   trip,
   onEdit,
@@ -34,13 +33,20 @@ function TripCard({
   onViewSegments: (tripId: number) => void
 }) {
   return (
-    <Card className="mb-4 cursor-pointer hover:bg-muted/50" onClick={() => onViewOptions(trip.id)}>
+    <Card
+      className="cursor-pointer transition-shadow hover:shadow-sm border"
+      onClick={() => onViewOptions(trip.id)}
+      role="button"
+      aria-label={`Open ${trip.name}`}
+    >
       <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
-          <div className="flex-1">
-            <CardTitle className="text-lg">{trip.name}</CardTitle>
-            <div className="mt-2 text-sm text-muted-foreground space-y-1">
-              <div>{trip.description}</div>
+        <div className="flex justify-between items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-base font-semibold tracking-tight">
+              {trip.name}
+            </CardTitle>
+            <div className="mt-1 text-sm text-muted-foreground space-y-1">
+              {trip.description && <div className="line-clamp-2">{trip.description}</div>}
               <div>
                 <span className="font-medium">Start:</span> {formatDateStr(trip.startTime)}
               </div>
@@ -49,34 +55,33 @@ function TripCard({
               </div>
             </div>
           </div>
-          <div className="flex flex-col space-y-1 ml-4">
+
+          {/* Actions (don’t trigger card click) */}
+          <div className="flex flex-col space-y-1 ml-1 shrink-0">
             <Button
               variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation()
-                onEdit(trip)
-              }}
+              size="icon"
+              onClick={(e) => { e.stopPropagation(); onEdit(trip) }}
+              aria-label="Edit trip"
+              title="Edit trip"
             >
               <EditIcon className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation()
-                onViewSegments(trip.id)
-              }}
+              size="icon"
+              onClick={(e) => { e.stopPropagation(); onViewSegments(trip.id) }}
+              aria-label="View segments"
+              title="View segments"
             >
               <EyeIcon className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation()
-                onDelete(trip.id)
-              }}
+              size="icon"
+              onClick={(e) => { e.stopPropagation(); onDelete(trip.id) }}
+              aria-label="Delete trip"
+              title="Delete trip"
             >
               <TrashIcon className="h-4 w-4" />
             </Button>
@@ -87,7 +92,7 @@ function TripCard({
   )
 }
 
-// Trip Section Component (for both current and past trips)
+// Section wrapper with collapsible header
 function TripSection({
   title,
   trips,
@@ -109,95 +114,29 @@ function TripSection({
 }) {
   return (
     <div className="mt-4">
-      <div
-        className="flex items-center justify-between cursor-pointer mb-2 p-2 border border-gray-300 hover:bg-gray-200 rounded-md transition-colors"
+      <button
+        type="button"
         onClick={onToggle}
+        className="w-full flex items-center justify-between mb-2 p-2 rounded-md border bg-card text-card-foreground hover:bg-muted/60 transition-colors"
+        aria-expanded={isOpen}
       >
-        <h3 className="text-lg font-medium">{title}</h3>
-        <Button variant="ghost" size="sm">
-          {isOpen ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
-        </Button>
-      </div>
+        <h3 className="text-lg font-semibold">{title}</h3>
+        <ChevronDownIcon className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      </button>
 
       {isOpen && (
-        <>
-          {/* Desktop Table View - Hidden on mobile */}
-          <div className="hidden md:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Start</TableHead>
-                  <TableHead>End</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {trips.map((trip) => (
-                  <TableRow
-                    key={trip.id}
-                    className="cursor-pointer hover:bg-muted"
-                    onClick={() => onViewOptions(trip.id)}
-                  >
-                    <TableCell className="font-medium">{trip.name}</TableCell>
-                    <TableCell>{trip.description}</TableCell>
-                    <TableCell>{formatDateStr(trip.startTime)}</TableCell>
-                    <TableCell>{formatDateStr(trip.endTime)}</TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <div className="flex flex-col space-y-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onEdit(trip)
-                          }}
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onViewSegments(trip.id)
-                          }}
-                        >
-                          <EyeIcon className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onDelete(trip.id)
-                          }}
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Mobile Card View - Hidden on desktop */}
-          <div className="md:hidden">
-            {trips.map((trip) => (
-              <TripCard
-                key={trip.id}
-                trip={trip}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onViewOptions={onViewOptions}
-                onViewSegments={onViewSegments}
-              />
-            ))}
-          </div>
-        </>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {trips.map((trip) => (
+            <TripCard
+              key={trip.id}
+              trip={trip}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onViewOptions={onViewOptions}
+              onViewSegments={onViewSegments}
+            />
+          ))}
+        </div>
       )}
     </div>
   )
@@ -219,11 +158,8 @@ export default function TripList() {
     setIsLoading(true)
     try {
       const response = await fetch("/api/trip/getalltrips")
-      if (!response.ok) {
-        console.log("response:", response)
-        throw new Error("Failed to fetch trips")
-      }
-      const data = await response.json()
+      if (!response.ok) throw new Error("Failed to fetch trips")
+      const data: Trip[] = await response.json()
       setTrips(data)
     } catch (err) {
       setError("An error occurred while fetching trips")
@@ -233,39 +169,31 @@ export default function TripList() {
     }
   }, [])
 
-  useEffect(() => {
-    fetchTrips()
-  }, [fetchTrips])
+  useEffect(() => { fetchTrips() }, [fetchTrips])
 
   useEffect(() => {
     if (!trips.length) return
-
     const now = new Date()
+
     const current: Trip[] = []
     const old: Trip[] = []
 
-    trips.forEach((trip: Trip) => {
+    for (const trip of trips) {
       if (!trip.startTime || !trip.endTime) {
         current.push(trip)
-        return
+        continue
       }
-
       const endTime = new Date(trip.endTime)
       const startTime = new Date(trip.startTime)
-
-      if (endTime < now && startTime < now) {
-        old.push(trip)
-      } else {
-        current.push(trip)
-      }
-    })
+      if (endTime < now && startTime < now) old.push(trip)
+      else current.push(trip)
+    }
 
     current.sort((a, b) => {
       if (!a.startTime) return 1
       if (!b.startTime) return -1
       return new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
     })
-
     old.sort((a, b) => {
       if (!a.startTime) return 1
       if (!b.startTime) return -1
@@ -280,12 +208,10 @@ export default function TripList() {
     setEditingTrip(trip)
     setIsModalOpen(true)
   }
-
   const handleCreateTrip = () => {
     setEditingTrip(null)
     setIsModalOpen(true)
   }
-
   const handleCloseModal = () => {
     setIsModalOpen(false)
     setEditingTrip(null)
@@ -293,30 +219,21 @@ export default function TripList() {
 
   const handleSaveTrip = async (tripData: Omit<Trip, "id">) => {
     try {
-      let response
-
+      let response: Response
       if (editingTrip) {
-        // Update existing trip
-        const updatedTripData = { ...tripData, id: editingTrip.id }
-        console.log("updatedTripData:", updatedTripData)
         response = await fetch(`/api/trip/updatetrip?tripId=${editingTrip.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updatedTripData),
+          body: JSON.stringify({ ...tripData, id: editingTrip.id }),
         })
       } else {
-        // Create new trip
         response = await fetch("/api/trip/createtrip", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(tripData),
         })
       }
-
-      if (!response.ok) {
-        throw new Error("Failed to save trip")
-      }
-
+      if (!response.ok) throw new Error("Failed to save trip")
       handleCloseModal()
       await fetchTrips()
     } catch (err) {
@@ -326,35 +243,24 @@ export default function TripList() {
   }
 
   const handleDeleteTrip = async (tripId: number) => {
-    if (window.confirm("Are you sure you want to delete this trip?")) {
-      try {
-        const response = await fetch(`/api/trip/deletetrip?tripId=${tripId}`, {
-          method: "DELETE",
-        })
-
-        if (!response.ok) {
-          throw new Error("Failed to delete trip")
-        }
-
-        await fetchTrips()
-      } catch (err) {
-        console.error("Error deleting trip:", err)
-        setError("An error occurred while deleting the trip")
-      }
+    if (!window.confirm("Are you sure you want to delete this trip?")) return
+    try {
+      const response = await fetch(`/api/trip/deletetrip?tripId=${tripId}`, { method: "DELETE" })
+      if (!response.ok) throw new Error("Failed to delete trip")
+      await fetchTrips()
+    } catch (err) {
+      console.error("Error deleting trip:", err)
+      setError("An error occurred while deleting the trip")
     }
   }
 
-  const handleViewOptions = (tripId: number) => {
-    router.push(`/options?tripId=${tripId}`)
-  }
-
-  const handleViewSegments = (tripId: number) => {
-    router.push(`/segments?tripId=${tripId}`)
-  }
+  const handleViewOptions = (tripId: number) => router.push(`/options?tripId=${tripId}`)
+  const handleViewSegments = (tripId: number) => router.push(`/segments?tripId=${tripId}`)
 
   return (
     <div>
       <TripModal isOpen={isModalOpen} onClose={handleCloseModal} onSave={handleSaveTrip} trip={editingTrip} />
+
       <Card className="w-full max-w-4xl mx-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
@@ -364,6 +270,7 @@ export default function TripList() {
             <PlusIcon className="h-4 w-4" />
           </Button>
         </CardHeader>
+
         <CardContent>
           {isLoading ? (
             <LoadingSkeleton />
@@ -405,8 +312,8 @@ export default function TripList() {
 function LoadingSkeleton() {
   return (
     <div className="space-y-2">
-      {[...Array(5)].map((_, i) => (
-        <Skeleton key={i} className="w-full h-12" />
+      {[...Array(6)].map((_, i) => (
+        <Skeleton key={i} className="w-full h-20" />
       ))}
     </div>
   )

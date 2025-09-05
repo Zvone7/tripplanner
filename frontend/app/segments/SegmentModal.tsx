@@ -1,79 +1,35 @@
 // components/SegmentModal.tsx
 "use client";
 
-import type React from "react"
-import type { JSX } from "react"
+import type React from "react";
+import type { JSX } from "react";
 
-import { useState, useEffect, useCallback } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog"
-import { Button } from "../components/ui/button"
-import { Input } from "../components/ui/input"
-import { Label } from "../components/ui/label"
+import { useState, useEffect, useCallback } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 import { ScrollArea } from "../components/ui/scroll-area";
 import { Textarea } from "../components/ui/textarea";
 import { toast } from "../components/ui/use-toast";
 import { Checkbox } from "../components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { CopyIcon } from "lucide-react"
-
-import { RangeDateTimePicker, type RangeDateTimePickerValue } from "../components/RangeDateTimePicker"
-
-import { localToUtcMs, utcMsToIso, utcIsoToLocalInput } from "../lib/utils"
-
-interface Segment {
-  id: number
-  tripId: number
-  startDateTimeUtc: string
-  startDateTimeUtcOffset: number
-  endDateTimeUtc: string
-  endDateTimeUtcOffset: number
-  name: string
-  cost: number
-  segmentTypeId: number
-  comment: string
-}
-
-interface Option {
-  id: number
-  name: string
-}
-
-interface SegmentType {
-  id: number
-  shortName: string
-  name: string
-  description: string
-  color: string
-  iconSvg: string
-}
-
-interface UserPreference {
-  preferredUtcOffset: number
-}
-
-interface User {
-  userPreference: UserPreference
-}
-
-interface SegmentModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onSave: (segment: Omit<Segment, "id">, isUpdate: boolean, originalSegmentId?: number) => void
-  segment?: Segment | null
-  tripId: number
-  segmentTypes: SegmentType[]
-}
+import { CopyIcon } from "lucide-react";
+import type { SegmentModalProps, Option } from "../types/segment";
+import type { User } from "../types/user";
+import { RangeDateTimePicker, type RangeDateTimePickerValue } from "../components/RangeDateTimePicker";
+import { localToUtcMs, utcMsToIso, utcIsoToLocalInput } from "../lib/utils";
 
 const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
   const markdownLinkRegex = /\[([^\]]+)\]\(([^\)]+)\)/g;
-  const urlRegex = /(https?:\/\/[^\s]+)/g
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
 
-  let processedText = text
-  const linkReplacements: { placeholder: string; element: JSX.Element }[] = []
-  let replacementIndex = 0
+  let processedText = text;
+  const linkReplacements: { placeholder: string; element: JSX.Element }[] = [];
+  let replacementIndex = 0;
 
   processedText = processedText.replace(markdownLinkRegex, (_match, linkText, url) => {
-    const placeholder = `__LINK_${replacementIndex}__`
+    const placeholder = `__LINK_${replacementIndex}__`;
     linkReplacements.push({
       placeholder,
       element: (
@@ -88,11 +44,10 @@ const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
         </a>
       ),
     });
-    replacementIndex++
-    return placeholder
-  })
+    replacementIndex++;
+    return placeholder;
+  });
 
-  // Plain URLs (that weren't part of markdown)
   processedText = processedText.replace(urlRegex, (match) => {
     const placeholder = `__LINK_${replacementIndex}__`;
     linkReplacements.push({
@@ -120,7 +75,7 @@ const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
       {parts.map((part, index) => {
         const linkReplacement = linkReplacements.find((lr) => lr.placeholder === part);
         if (linkReplacement) return linkReplacement.element;
-        return <span key={index}>{part}</span>
+        return <span key={index}>{part}</span>;
       })}
     </div>
   );
@@ -134,20 +89,26 @@ export default function SegmentModal({
   tripId,
   segmentTypes,
 }: SegmentModalProps) {
-  const [name, setName] = useState("")
+  const [name, setName] = useState("");
   const [range, setRange] = useState<RangeDateTimePickerValue>({
     startLocal: "",
     endLocal: null, // null => same as start
     startOffsetH: 0,
     endOffsetH: null, // null => same as start offset
   });
-  const [cost, setCost] = useState("")
-  const [comment, setComment] = useState("")
-  const [segmentTypeId, setSegmentTypeId] = useState<number | null>(null)
-  const [options, setOptions] = useState<Option[]>([])
-  const [selectedOptions, setSelectedOptions] = useState<number[]>([])
-  const [isDuplicateMode, setIsDuplicateMode] = useState(false)
-  const [userPreferredOffset, setUserPreferredOffset] = useState<number>(0)
+  const [cost, setCost] = useState("");
+  const [comment, setComment] = useState("");
+  const [segmentTypeId, setSegmentTypeId] = useState<number | null>(null);
+  const [options, setOptions] = useState<Option[]>([]);
+  const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
+  const [optionsTouched, setOptionsTouched] = useState(false); // prevent async overwrite
+  const [isDuplicateMode, setIsDuplicateMode] = useState(false);
+  const [userPreferredOffset, setUserPreferredOffset] = useState<number>(0);
+
+  // DEBUG watch
+  useEffect(() => {
+    console.log("[selectedOptions changed]", selectedOptions);
+  }, [selectedOptions]);
 
   // Fetch user preferences (preferred offset)
   const fetchUserPreferences = useCallback(async () => {
@@ -171,21 +132,19 @@ export default function SegmentModal({
   }, [tripId]);
 
   useEffect(() => {
-    setIsDuplicateMode(false)
+    setIsDuplicateMode(false);
+    setOptionsTouched(false); // reset when opening/changing segment
 
     if (segment) {
-      setName(segment.name)
+      setName(segment.name);
 
       const sOff = segment.startDateTimeUtcOffset ?? 0;
       const eOff = segment.endDateTimeUtcOffset ?? sOff;
 
-      // Build local inputs from stored UTC + offsets
       const startLocal = utcIsoToLocalInput(segment.startDateTimeUtc, sOff);
       const endLocalRaw = utcIsoToLocalInput(segment.endDateTimeUtc, eOff);
 
-      // If same-stamp and same-offset, collapse end into "same as start"
-      const endIsSame =
-        segment.endDateTimeUtc === segment.startDateTimeUtc && eOff === sOff;
+      const endIsSame = segment.endDateTimeUtc === segment.startDateTimeUtc && eOff === sOff;
 
       setRange({
         startLocal,
@@ -234,8 +193,15 @@ export default function SegmentModal({
     try {
       const response = await fetch(`/api/Segment/GetConnectedOptions?tripId=${tripId}&segmentId=${segmentId}`);
       if (!response.ok) throw new Error("Failed to fetch connected options");
-      const data = await response.json();
-      setSelectedOptions(data.map((option: Option) => option.id));
+      const data: Option[] = await response.json();
+      const ids = data.map((o) => Number(o.id));
+
+      if (!optionsTouched) {
+        console.log("[fetchConnectedOptions] setSelectedOptions ->", ids);
+        setSelectedOptions(ids);
+      } else {
+        console.log("[fetchConnectedOptions] skipped setSelectedOptions (user already touched)");
+      }
     } catch (error) {
       console.error("Error fetching connected options:", error);
       toast({
@@ -245,30 +211,46 @@ export default function SegmentModal({
     }
   };
 
-  const handleUpdateConnectedOptions = async () => {
+  // Checked-aware change (true only means checked)
+  const handleOptionChange = (optionId: number, checkedState: boolean | "indeterminate") => {
+    const checked = checkedState === true;
+    setOptionsTouched(true);
+
+    setSelectedOptions((prev) => {
+      let next: number[];
+      if (checked) {
+        next = prev.includes(optionId) ? prev : [...prev, optionId];
+      } else {
+        next = prev.includes(optionId) ? prev.filter((id) => id !== optionId) : prev;
+      }
+      console.log("[handleOptionChange]", { optionId, checked, prev, next });
+      return next;
+    });
+  };
+
+  // Accept explicit array to avoid stale reads
+  const handleUpdateConnectedOptions = async (optionIds: number[]) => {
     if (!segment) return;
+    console.log("[handleUpdateConnectedOptions] sending OptionIds:", optionIds);
+
     try {
       const response = await fetch(`/api/Segment/UpdateConnectedOptions?tripId=${tripId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           SegmentId: segment.id,
-          OptionIds: selectedOptions,
+          OptionIds: optionIds,
           TripId: tripId,
         }),
+        credentials: "include", // if using cookie auth
       });
       if (!response.ok) throw new Error("Failed to update connected options");
+
       toast({ title: "Success", description: "Connected options updated successfully" });
     } catch (error) {
       console.error("Error updating connected options:", error);
       toast({ title: "Error", description: "Failed to update connected options. Please try again." });
     }
-  };
-
-  const handleOptionToggle = (optionId: number) => {
-    setSelectedOptions((prev) =>
-      prev.includes(optionId) ? prev.filter((id) => id !== optionId) : [...prev, optionId]
-    );
   };
 
   const handleDuplicateSegment = () => {
@@ -298,7 +280,6 @@ export default function SegmentModal({
       }
       const startIso = utcMsToIso(startUtcMs);
 
-      // End: if null => same as start
       const effEndOffset = range.endOffsetH ?? range.startOffsetH;
       const endLocalUsed = range.endLocal ?? range.startLocal;
       const endUtcMs = localToUtcMs(endLocalUsed, effEndOffset);
@@ -327,13 +308,36 @@ export default function SegmentModal({
       };
 
       const isUpdate = segment && !isDuplicateMode;
-      await onSave(payload, !!isUpdate, segment?.id);
 
-      if (segment && !isDuplicateMode) {
-        await handleUpdateConnectedOptions();
+      // Capture the latest IDs *before any awaits*
+      const optionIds = selectedOptions.map(Number);
+      console.log("[handleSubmit] optionIds at submit:", optionIds);
+
+      try {
+        // Update connected options first during edit so modal isn't unmounted prematurely
+        if (isUpdate && segment) {
+          await handleUpdateConnectedOptions(optionIds);
+        }
+
+        await onSave(payload, !!isUpdate, segment?.id);
+        // parent closes modal after onSave resolves
+      } catch (err) {
+        console.error("Save flow failed:", err);
+        toast({ title: "Error", description: "Failed to save segment." });
       }
     },
-    [segmentTypeId, range, tripId, name, cost, comment, segment, isDuplicateMode, onSave]
+    [
+      segmentTypeId,
+      range,
+      tripId,
+      name,
+      cost,
+      comment,
+      segment,
+      isDuplicateMode,
+      onSave,
+      selectedOptions, // keep closure fresh
+    ]
   );
 
   const isCreateMode = !segment || isDuplicateMode;
@@ -349,6 +353,7 @@ export default function SegmentModal({
           onSubmit={handleSubmit}
           className="max-h-[85vh] overflow-y-auto px-4 pt-2 pb-[calc(env(safe-area-inset-bottom,0)+88px)] space-y-3"
         >
+          {/* Name */}
           <div className="grid grid-cols-4 items-center gap-3">
             <Label htmlFor="name" className="text-right text-sm">
               Name
@@ -362,6 +367,7 @@ export default function SegmentModal({
             />
           </div>
 
+          {/* Type */}
           <div className="grid grid-cols-4 items-center gap-3">
             <Label htmlFor="segmentType" className="text-right text-sm">
               Type
@@ -389,6 +395,7 @@ export default function SegmentModal({
             </Select>
           </div>
 
+          {/* Range picker */}
           <RangeDateTimePicker
             id="segment-when"
             label="When"
@@ -398,6 +405,7 @@ export default function SegmentModal({
             compact={true}
           />
 
+          {/* Cost */}
           <div className="grid grid-cols-4 items-center gap-3">
             <Label htmlFor="cost" className="text-right text-sm">
               Cost
@@ -414,6 +422,7 @@ export default function SegmentModal({
             />
           </div>
 
+          {/* Comment */}
           <div className="grid grid-cols-4 items-start gap-3">
             <Label htmlFor="comment" className="text-right text-sm pt-2">
               Comment
@@ -437,6 +446,7 @@ Or paste URLs directly: https://example.com`}
             </div>
           </div>
 
+          {/* Options (edit only) */}
           {segment && !isDuplicateMode && (
             <div className="grid grid-cols-4 items-start gap-3">
               <Label className="text-right pt-2 text-sm">Options</Label>
@@ -445,8 +455,8 @@ Or paste URLs directly: https://example.com`}
                   <div key={option.id} className="flex items-center space-x-2 mb-2">
                     <Checkbox
                       id={`option-${option.id}`}
-                      checked={selectedOptions.includes(option.id)}
-                      onCheckedChange={() => handleOptionToggle(option.id)}
+                      checked={selectedOptions.includes(Number(option.id))}
+                      onCheckedChange={(checked) => handleOptionChange(Number(option.id), checked)}
                     />
                     <Label htmlFor={`option-${option.id}`} className="text-sm">
                       {option.name}
@@ -457,25 +467,21 @@ Or paste URLs directly: https://example.com`}
             </div>
           )}
 
-        <DialogFooter
-          className="sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t px-4 py-3"
-        >
-          <div className="flex justify-between w-full">
-            <div>
-              {segment && !isDuplicateMode && (
-                <Button type="button" variant="outline" size="sm" onClick={handleDuplicateSegment} title="Duplicate">
-                  <CopyIcon className="h-4 w-4" />
-                </Button>
-              )}
+          {/* Sticky footer */}
+          <DialogFooter className="sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t px-4 py-3">
+            <div className="flex justify-between w-full">
+              <div>
+                {segment && !isDuplicateMode && (
+                  <Button type="button" variant="outline" size="sm" onClick={handleDuplicateSegment} title="Duplicate">
+                    <CopyIcon className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <Button type="submit" size="sm">
+                {isCreateMode ? "Create" : "Save"}
+              </Button>
             </div>
-            <Button type="submit" size="sm" formAction="" form="noop" onClick={(e) => {
-              const form = (e.currentTarget.closest('[role="dialog"]') as HTMLElement)?.querySelector('form') as HTMLFormElement | null;
-              form?.requestSubmit();
-            }}>
-              {isCreateMode ? "Create" : "Save"}
-            </Button>
-          </div>
-        </DialogFooter>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
