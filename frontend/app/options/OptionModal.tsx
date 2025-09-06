@@ -215,33 +215,68 @@ export default function OptionModal({
                         />
 
                         <div className="flex-1 min-w-0">
-                          {/* Row 1: Type + Name */}
-                          <div className="flex items-center gap-2 min-w-0">
-                            {segmentType && (
-                              <>
-                                <div
-                                  dangerouslySetInnerHTML={{ __html: segmentType.iconSvg }}
-                                  className="w-4 h-4 shrink-0"
-                                />
-                                <span className="text-xs text-muted-foreground shrink-0">
-                                  {segmentType.name}
-                                </span>
-                              </>
-                            )}
-                            <span className="text-sm font-medium truncate">{segment.name}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 min-w-0">
+                              {(() => {
+                                const st = segmentTypes.find((x) => x.id === segment.segmentTypeId);
+                                if (!st) return null;
+
+                                const icon = st.iconSvg; // string | undefined
+                                return (
+                                  <>
+                                    {icon ? (
+                                      <div
+                                        className="w-4 h-4 shrink-0"
+                                        // icon is truthy here ⇒ treated as string
+                                        dangerouslySetInnerHTML={{ __html: icon }}
+                                      />
+                                    ) : null}
+                                    <span className="text-xs text-muted-foreground shrink-0">{st.name}</span>
+                                  </>
+                                );
+                              })()}
+                              <span className="text-sm font-medium truncate">{segment.name}</span>
+                            </div>
                           </div>
 
-                          {/* Row 2: Start time */}
+
                           <div className="text-xs text-muted-foreground mt-1">
-                            {start} - {end}
+                            {(() => {
+                              const start = segment.startDateTimeUtc
+                                ? formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset, false) // short date (incl. year), no time
+                                : "—";
+                              const startLoc =
+                                (segment as any).startLocation ??
+                                (segment as any).StartLocation ??
+                                null;
+                              const startCity = startLoc?.name ? ` (${startLoc.name})` : "";
+                              return <>Start: {start}{startCity}</>;
+                            })()}
                           </div>
 
-                          {/* Row 3: Cost */}
+                          {/* Row 3: End (date + city) */}
                           <div className="text-xs text-muted-foreground">
-                            {cost}
+                            {(() => {
+                              const end = segment.endDateTimeUtc
+                                ? formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset, false) // short date (incl. year), no time
+                                : "—";
+                              const endLoc =
+                                (segment as any).endLocation ??
+                                (segment as any).EndLocation ??
+                                null;
+                              const endCity = endLoc?.name ? ` (${endLoc.name})` : "";
+                              return <>End: {end}{endCity}</>;
+                            })()}
+                          </div>
+
+                          <div className="text-xs text-muted-foreground">
+                            {typeof segment.cost === "number" && !Number.isNaN(segment.cost)
+                              ? `$${segment.cost.toFixed(2)}`
+                              : "—"}
                           </div>
                         </div>
                       </label>
+
                     );
                   })}
                 </ScrollArea>

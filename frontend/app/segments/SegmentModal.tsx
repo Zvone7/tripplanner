@@ -457,20 +457,22 @@ export default function SegmentModal({
             </Select>
           </div>
 
+          <Label className="text-center text-lg font-medium mt-2"> Times </Label>
           {/* When */}
           <RangeDateTimePicker
             id="segment-when"
-            label="When"
+            label=""
             value={range}
             onChange={setRange}
             allowDifferentOffsets
             compact
           />
 
+          <Label className="text-center text-lg font-medium mt-2"> Locations </Label>
           {/* Where */}
           <RangeLocationPicker
             id="segment-where"
-            label="Locations"
+            label=""
             value={locRange}
             onChange={setLocRange}
             compact

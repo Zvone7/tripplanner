@@ -269,7 +269,7 @@ export const RangeLocationPicker: React.FC<RangeLocationPickerProps> = React.mem
         {/* Start location */}
         <div className={grid}>
           <Label htmlFor={`${id}-start`} className="text-right text-sm">
-            {label}
+            Start
           </Label>
           <div className="col-span-3 flex items-center gap-2">
             <Autocomplete
@@ -326,9 +326,10 @@ export const RangeLocationPicker: React.FC<RangeLocationPickerProps> = React.mem
                   type="button"
                   variant="outline"
                   size="sm"
+                  color="destructive"
                   onClick={() => onChange({ ...value, end: null })}
                 >
-                  Clear end
+                  Remove end time
                 </Button>
               </div>
             </div>

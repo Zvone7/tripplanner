@@ -146,7 +146,12 @@ function SegmentDiagram({ segments }: { segments: ConnectedSegment[] }) {
             title={`${segment.segmentType.name} - ${segment.name}`}
           >
             <div className="relative z-10 flex items-center justify-center w-8 h-8">
-              <div dangerouslySetInnerHTML={{ __html: segment.segmentType.iconSvg }} className="w-6 h-6" />
+              {segment.segmentType.iconSvg ? (
+                <div
+                  className="w-6 h-6"
+                  dangerouslySetInnerHTML={{ __html: segment.segmentType.iconSvg as string }}
+                />
+              ) : null}
             </div>
           </div>
         </div>
@@ -168,7 +173,16 @@ function OptionCard({
   onDelete: (optionId: number) => void;
 }) {
   return (
-    <Card className="hover:shadow-sm transition-shadow border">
+    <Card
+      className="hover:shadow-sm transition-shadow border cursor-pointer"
+      onClick={() => onEdit(option)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onEdit(option);
+      }}
+      aria-label={`Edit option ${option.name}`}
+    >
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <div className="flex-1 min-w-0">
@@ -176,7 +190,6 @@ function OptionCard({
               {option.name}
             </CardTitle>
 
-            {/* Use a div instead of CardDescription to avoid <div> inside <p> */}
             <div className="mt-1 text-sm text-muted-foreground">
               <div>{option.startDateTimeUtc ? formatDateStr(option.startDateTimeUtc) : "N/A"}</div>
               <div>{option.endDateTimeUtc ? formatDateStr(option.endDateTimeUtc) : "N/A"}</div>
@@ -184,7 +197,15 @@ function OptionCard({
           </div>
 
           <div className="flex space-x-1 ml-4 shrink-0">
-            <Button variant="ghost" size="icon" onClick={() => onEdit(option)} aria-label="Edit option">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(option);
+              }}
+              aria-label="Edit option"
+            >
               <EditIcon className="h-4 w-4" />
             </Button>
             <Button
@@ -209,6 +230,7 @@ function OptionCard({
     </Card>
   );
 }
+
 
 
 /* ----------------------------------- Page ----------------------------------- */
