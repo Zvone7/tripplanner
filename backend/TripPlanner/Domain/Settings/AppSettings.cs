@@ -10,10 +10,17 @@ public class AppSettings
     public string BuildNumber { get; set; }
     public DateTime AppStartedUtc { get; set; }
     public GoogleAuthSettings GoogleAuthSettings { get; set; }
+    public LocationIqOptions LocationIq { get; set; }
 }
 
 public class GoogleAuthSettings
 {
     public string ClientId { get; set; }
     public string ClientSecret { get; set; }
+}
+
+public sealed class LocationIqOptions
+{
+    public string Token { get; set; } = string.Empty;
+    public string? BaseUrl { get; set; }
 }

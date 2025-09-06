@@ -1,6 +1,7 @@
 using Application.Services;
 using Azure.Identity;
 using Db.Repositories;
+using Domain.Services;
 using Domain.Settings;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -117,6 +118,8 @@ public class Program
         builder.Services.AddScoped<SegmentService>();
         builder.Services.AddScoped<UserService>();
         builder.Services.AddScoped<TripAccessFilterAttribute>();
+        builder.Services.AddScoped<ILocationIqClient, LocationIqClient>();
+        builder.Services.AddHttpClient();
     }
 
     private static void SetupRepositories(WebApplicationBuilder builder)
@@ -126,6 +129,7 @@ public class Program
         builder.Services.AddScoped<SegmentRepository>();
         builder.Services.AddScoped<UserRepository>();
         builder.Services.AddScoped<UserPreferenceRepository>();
+        builder.Services.AddScoped<LocationRepository>();
     }
 
     private static void SetupAuthNAuth(WebApplicationBuilder builder, AppSettings appSettings)

@@ -11,3 +11,9 @@ CREATE TABLE segment (
     FOREIGN KEY (trip_id) REFERENCES trip(id),
     FOREIGN KEY (segment_type_id) REFERENCES segment_type(id)
 );
+
+ALTER TABLE segment
+ADD start_location_id INT NULL,
+    end_location_id INT NULL,
+    FOREIGN KEY (start_location_id) REFERENCES location(id),
+    FOREIGN KEY (end_location_id) REFERENCES location(id);

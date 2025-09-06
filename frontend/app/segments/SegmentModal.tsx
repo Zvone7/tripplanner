@@ -15,10 +15,32 @@ import { toast } from "../components/ui/use-toast";
 import { Checkbox } from "../components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { CopyIcon } from "lucide-react";
-import type { SegmentModalProps, Option } from "../types/segment";
-import type { User } from "../types/user";
-import { RangeDateTimePicker, type RangeDateTimePickerValue } from "../components/RangeDateTimePicker";
+import { toLocationDto, normalizeLocation } from "../lib/mapping";
+
+// types
+import type {
+  SegmentModalProps,
+  OptionRef as Option,
+  User,
+  SegmentSave,
+  LocationOption,
+  LocationDto,
+  SegmentType,
+} from "../types/models";
+
+import {
+  RangeDateTimePicker,
+  type RangeDateTimePickerValue,
+} from "../components/RangeDateTimePicker";
+
+import {
+  RangeLocationPicker,
+  type RangeLocationPickerValue,
+} from "../components/RangeLocationPicker";
+
 import { localToUtcMs, utcMsToIso, utcIsoToLocalInput } from "../lib/utils";
+
+/* ------------------------- comment preview helper ------------------------- */
 
 const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
   const markdownLinkRegex = /\[([^\]]+)\]\(([^\)]+)\)/g;
@@ -81,6 +103,8 @@ const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
   );
 };
 
+/* ------------------------------- main modal ------------------------------- */
+
 export default function SegmentModal({
   isOpen,
   onClose,
@@ -96,6 +120,14 @@ export default function SegmentModal({
     startOffsetH: 0,
     endOffsetH: null, // null => same as start offset
   });
+  
+  const segTypes: SegmentType[] = segmentTypes;
+  // NEW: locations range state
+  const [locRange, setLocRange] = useState<RangeLocationPickerValue>({
+    start: null,
+    end: null, // null => no end
+  });
+
   const [cost, setCost] = useState("");
   const [comment, setComment] = useState("");
   const [segmentTypeId, setSegmentTypeId] = useState<number | null>(null);
@@ -105,10 +137,7 @@ export default function SegmentModal({
   const [isDuplicateMode, setIsDuplicateMode] = useState(false);
   const [userPreferredOffset, setUserPreferredOffset] = useState<number>(0);
 
-  // DEBUG watch
-  useEffect(() => {
-    console.log("[selectedOptions changed]", selectedOptions);
-  }, [selectedOptions]);
+  useEffect(() => {}, [selectedOptions]);
 
   // Fetch user preferences (preferred offset)
   const fetchUserPreferences = useCallback(async () => {
@@ -157,6 +186,16 @@ export default function SegmentModal({
       setComment(segment.comment || "");
       setSegmentTypeId(segment.segmentTypeId);
 
+      // Prefill locations if backend provides them
+      const startLocRaw = (segment as any)?.startLocation;
+      const endLocRaw = (segment as any)?.endLocation;
+
+      console.log("prefilling locations:", { segment, startLocRaw, endLocRaw });
+      setLocRange({
+        start: normalizeLocation(startLocRaw),
+        end: normalizeLocation(endLocRaw),
+      });
+
       fetchConnectedOptions(segment.id);
     } else {
       // New segment → seed from user pref
@@ -166,6 +205,10 @@ export default function SegmentModal({
         endLocal: null,
         startOffsetH: userPreferredOffset ?? 0,
         endOffsetH: null,
+      });
+      setLocRange({
+        start: null,
+        end: null,
       });
       setCost("");
       setComment("");
@@ -191,13 +234,14 @@ export default function SegmentModal({
 
   const fetchConnectedOptions = async (segmentId: number) => {
     try {
-      const response = await fetch(`/api/Segment/GetConnectedOptions?tripId=${tripId}&segmentId=${segmentId}`);
+      const response = await fetch(
+        `/api/Segment/GetConnectedOptions?tripId=${tripId}&segmentId=${segmentId}`
+      );
       if (!response.ok) throw new Error("Failed to fetch connected options");
       const data: Option[] = await response.json();
       const ids = data.map((o) => Number(o.id));
 
       if (!optionsTouched) {
-        console.log("[fetchConnectedOptions] setSelectedOptions ->", ids);
         setSelectedOptions(ids);
       } else {
         console.log("[fetchConnectedOptions] skipped setSelectedOptions (user already touched)");
@@ -242,7 +286,7 @@ export default function SegmentModal({
           OptionIds: optionIds,
           TripId: tripId,
         }),
-        credentials: "include", // if using cookie auth
+        credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to update connected options");
 
@@ -257,6 +301,7 @@ export default function SegmentModal({
     setName((n) => `DUPLICATE ${n}`);
     setIsDuplicateMode(true);
     setSelectedOptions([]);
+    setLocRange({ start: null, end: null });
   };
 
   const handleSubmit = useCallback(
@@ -295,7 +340,11 @@ export default function SegmentModal({
 
       const endIso = utcMsToIso(endUtcMs);
 
-      const payload = {
+      var startConverted = toLocationDto(locRange.start);
+      console.log("locRange.start:", locRange.start);
+      console.log("startConverted:", startConverted);
+
+      const payload: SegmentSave = {
         tripId,
         name,
         startDateTimeUtc: startIso,
@@ -305,22 +354,23 @@ export default function SegmentModal({
         cost: Number.parseFloat(cost),
         segmentTypeId,
         comment,
+        StartLocation: toLocationDto(locRange.start),
+        EndLocation: toLocationDto(locRange.end),
       };
 
-      const isUpdate = segment && !isDuplicateMode;
+      const isUpdate = !!segment && !isDuplicateMode;
 
       // Capture the latest IDs *before any awaits*
       const optionIds = selectedOptions.map(Number);
       console.log("[handleSubmit] optionIds at submit:", optionIds);
+      console.log("[handleSubmit] StartLocation:", payload.StartLocation);
+      console.log("[handleSubmit] EndLocation:", payload.EndLocation);
 
       try {
-        // Update connected options first during edit so modal isn't unmounted prematurely
         if (isUpdate && segment) {
           await handleUpdateConnectedOptions(optionIds);
         }
-
-        await onSave(payload, !!isUpdate, segment?.id);
-        // parent closes modal after onSave resolves
+        await onSave(payload, isUpdate, segment?.id);
       } catch (err) {
         console.error("Save flow failed:", err);
         toast({ title: "Error", description: "Failed to save segment." });
@@ -336,7 +386,8 @@ export default function SegmentModal({
       segment,
       isDuplicateMode,
       onSave,
-      selectedOptions, // keep closure fresh
+      selectedOptions,
+      locRange,
     ]
   );
 
@@ -380,13 +431,15 @@ export default function SegmentModal({
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
-                {segmentTypes.map((type) => (
+                {segmentTypes.map((type: SegmentType) => (
                   <SelectItem key={type.id} value={type.id.toString()}>
                     <div className="flex items-center">
-                      <div
-                        dangerouslySetInnerHTML={{ __html: type.iconSvg }}
-                        className="w-4 h-4 mr-2"
-                      />
+                      {type.iconSvg ? (
+                        <div
+                          dangerouslySetInnerHTML={{ __html: type.iconSvg }}
+                          className="w-4 h-4 mr-2"
+                        />
+                      ) : null}
                       {type.name}
                     </div>
                   </SelectItem>
@@ -395,14 +448,23 @@ export default function SegmentModal({
             </Select>
           </div>
 
-          {/* Range picker */}
+          {/* When */}
           <RangeDateTimePicker
             id="segment-when"
             label="When"
             value={range}
             onChange={setRange}
-            allowDifferentOffsets={true}
-            compact={true}
+            allowDifferentOffsets
+            compact
+          />
+
+          {/* Where */}
+          <RangeLocationPicker
+            id="segment-where"
+            label="Locations"
+            value={locRange}
+            onChange={setLocRange}
+            compact
           />
 
           {/* Cost */}
@@ -472,7 +534,13 @@ Or paste URLs directly: https://example.com`}
             <div className="flex justify-between w-full">
               <div>
                 {segment && !isDuplicateMode && (
-                  <Button type="button" variant="outline" size="sm" onClick={handleDuplicateSegment} title="Duplicate">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDuplicateSegment}
+                    title="Duplicate"
+                  >
                     <CopyIcon className="h-4 w-4" />
                   </Button>
                 )}
