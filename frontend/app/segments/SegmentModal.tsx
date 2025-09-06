@@ -102,19 +102,22 @@ const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
   );
 };
 
-/* ------------------------- centered divider header ------------------------- */
+/* --------------------- simple animated collapsible header --------------------- */
 
-function SectionHeader({
+function Collapsible({
   title,
   open,
   onToggle,
+  children,
 }: {
   title: string;
   open: boolean;
   onToggle: () => void;
+  children: React.ReactNode;
 }) {
   return (
     <div className="my-3">
+      {/* Centered divider header */}
       <div className="relative flex items-center">
         <div className="w-full border-t" />
         <button
@@ -124,9 +127,18 @@ function SectionHeader({
           className="mx-3 inline-flex items-center gap-2 px-2 py-1 text-sm text-muted-foreground hover:text-foreground rounded-md bg-background"
         >
           <span className="font-medium">{title}</span>
-          <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
+          <ChevronDown
+            className={`h-4 w-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          />
         </button>
         <div className="w-full border-t" />
+      </div>
+
+      {/* Animated content using CSS grid rows (no extra deps) */}
+      <div
+        className={`grid transition-[grid-template-rows] duration-200 ease-out ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+      >
+        <div className="overflow-hidden">{children}</div>
       </div>
     </div>
   );
@@ -145,9 +157,9 @@ export default function SegmentModal({
   const [name, setName] = useState("");
   const [range, setRange] = useState<RangeDateTimePickerValue>({
     startLocal: "",
-    endLocal: null, // null => same as start
+    endLocal: null,
     startOffsetH: 0,
-    endOffsetH: null, // null => same as start offset
+    endOffsetH: null,
   });
 
   // Keep prefilled locations to re-attach ids later
@@ -156,7 +168,7 @@ export default function SegmentModal({
 
   const [locRange, setLocRange] = useState<RangeLocationPickerValue>({
     start: null,
-    end: null, // null => no end
+    end: null,
   });
 
   const [cost, setCost] = useState("");
@@ -164,13 +176,14 @@ export default function SegmentModal({
   const [segmentTypeId, setSegmentTypeId] = useState<number | null>(null);
   const [options, setOptions] = useState<Option[]>([]);
   const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
-  const [optionsTouched, setOptionsTouched] = useState(false); // prevent async overwrite
+  const [optionsTouched, setOptionsTouched] = useState(false);
   const [isDuplicateMode, setIsDuplicateMode] = useState(false);
   const [userPreferredOffset, setUserPreferredOffset] = useState<number>(0);
 
   // collapsible toggles
   const [timesOpen, setTimesOpen] = useState(true);
   const [locationsOpen, setLocationsOpen] = useState(true);
+  const [additionalOptionsOpen, setAdditionalOptionsOpen] = useState(true);
 
   // Fetch user preferences (preferred offset)
   const fetchUserPreferences = useCallback(async () => {
@@ -179,8 +192,7 @@ export default function SegmentModal({
       if (!response.ok) throw new Error("Failed to fetch user preferences");
       const userData: User = await response.json();
       setUserPreferredOffset(userData.userPreference?.preferredUtcOffset ?? 0);
-    } catch (err) {
-      console.error("Error fetching user preferences:", err);
+    } catch {
       setUserPreferredOffset(0);
     }
   }, []);
@@ -195,7 +207,7 @@ export default function SegmentModal({
 
   useEffect(() => {
     setIsDuplicateMode(false);
-    setOptionsTouched(false); // reset when opening/changing segment
+    setOptionsTouched(false);
 
     if (segment) {
       setName(segment.name);
@@ -234,13 +246,12 @@ export default function SegmentModal({
         end: endNorm ?? null,
       });
 
-      // open sections when editing existing
-      setTimesOpen(true);
-      setLocationsOpen(true);
+      setTimesOpen(false);
+      setLocationsOpen(false);
+      setAdditionalOptionsOpen(false);
 
       fetchConnectedOptions(segment.id);
     } else {
-      // New segment → seed from user pref
       setName("");
       setRange({
         startLocal: "",
@@ -250,18 +261,15 @@ export default function SegmentModal({
       });
       setPrefilledStart(null);
       setPrefilledEnd(null);
-      setLocRange({
-        start: null,
-        end: null,
-      });
+      setLocRange({ start: null, end: null });
       setCost("");
       setComment("");
       setSegmentTypeId(null);
       setSelectedOptions([]);
 
-      // open sections by default
-      setTimesOpen(true);
-      setLocationsOpen(true);
+      setTimesOpen(false);
+      setLocationsOpen(false);
+      setAdditionalOptionsOpen(false);
     }
   }, [segment, userPreferredOffset]);
 
@@ -273,53 +281,33 @@ export default function SegmentModal({
       setOptions(data);
     } catch (error) {
       console.error("Error fetching options:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch options. Please try again.",
-      });
+      toast({ title: "Error", description: "Failed to fetch options. Please try again." });
     }
   };
 
   const fetchConnectedOptions = async (segmentId: number) => {
     try {
-      const response = await fetch(
-        `/api/Segment/GetConnectedOptions?tripId=${tripId}&segmentId=${segmentId}`
-      );
+      const response = await fetch(`/api/Segment/GetConnectedOptions?tripId=${tripId}&segmentId=${segmentId}`);
       if (!response.ok) throw new Error("Failed to fetch connected options");
       const data: Option[] = await response.json();
       const ids = data.map((o) => Number(o.id));
 
-      if (!optionsTouched) {
-        setSelectedOptions(ids);
-      } else {
-        console.log("[fetchConnectedOptions] skipped setSelectedOptions (user already touched)");
-      }
+      if (!optionsTouched) setSelectedOptions(ids);
     } catch (error) {
       console.error("Error fetching connected options:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch connected options. Please try again.",
-      });
+      toast({ title: "Error", description: "Failed to fetch connected options. Please try again." });
     }
   };
 
-  // Checked-aware change (true only means checked)
   const handleOptionChange = (optionId: number, checkedState: boolean | "indeterminate") => {
     const checked = checkedState === true;
     setOptionsTouched(true);
-
     setSelectedOptions((prev) => {
-      let next: number[];
-      if (checked) {
-        next = prev.includes(optionId) ? prev : [...prev, optionId];
-      } else {
-        next = prev.includes(optionId) ? prev.filter((id) => id !== optionId) : prev;
-      }
-      return next;
+      if (checked) return prev.includes(optionId) ? prev : [...prev, optionId];
+      return prev.includes(optionId) ? prev.filter((id) => id !== optionId) : prev;
     });
   };
 
-  // Accept explicit array to avoid stale reads
   const handleUpdateConnectedOptions = async (optionIds: number[]) => {
     if (!segment) return;
 
@@ -335,7 +323,6 @@ export default function SegmentModal({
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to update connected options");
-
       toast({ title: "Success", description: "Connected options updated successfully" });
     } catch (error) {
       console.error("Error updating connected options:", error);
@@ -360,7 +347,6 @@ export default function SegmentModal({
         toast({ title: "Error", description: "Please select a segment type." });
         return;
       }
-
       if (!range.startLocal) {
         toast({ title: "Error", description: "Please choose a start date and time." });
         return;
@@ -380,7 +366,6 @@ export default function SegmentModal({
         toast({ title: "Error", description: "Invalid end date/time." });
         return;
       }
-
       if (endUtcMs < startUtcMs) {
         toast({ title: "Error", description: "End must be at or after start." });
         return;
@@ -388,14 +373,8 @@ export default function SegmentModal({
 
       const endIso = utcMsToIso(endUtcMs);
 
-      const startForSave = locRange.start ? { ...locRange.start } : null;
-      if (startForSave !== null) {
-        startForSave.id = prefilledStart?.id;
-      }
-      const endForSave = locRange.end ? { ...locRange.end } : null;
-      if (endForSave !== null) {
-        endForSave.id = prefilledEnd?.id;
-      }
+      const startForSave = locRange.start ? { ...locRange.start, id: prefilledStart?.id } : null;
+      const endForSave = locRange.end ? { ...locRange.end, id: prefilledEnd?.id } : null;
 
       const payload: SegmentSave = {
         tripId,
@@ -412,13 +391,10 @@ export default function SegmentModal({
       };
 
       const isUpdate = !!segment && !isDuplicateMode;
-
       const optionIds = selectedOptions.map(Number);
 
       try {
-        if (isUpdate && segment) {
-          await handleUpdateConnectedOptions(optionIds);
-        }
+        if (isUpdate && segment) await handleUpdateConnectedOptions(optionIds);
         await onSave(payload, isUpdate, segment?.id);
       } catch (err) {
         console.error("Save flow failed:", err);
@@ -487,7 +463,7 @@ export default function SegmentModal({
                     <div className="flex items-center">
                       {type.iconSvg ? (
                         <div
-                          dangerouslySetInnerHTML={{ __html: type.iconSvg }}
+                          dangerouslySetInnerHTML={{ __html: type.iconSvg as string }}
                           className="w-4 h-4 mr-2"
                         />
                       ) : null}
@@ -516,9 +492,8 @@ export default function SegmentModal({
             />
           </div>
 
-          {/* Times (collapsible) */}
-          <SectionHeader title="Time" open={timesOpen} onToggle={() => setTimesOpen((o) => !o)} />
-          {timesOpen && (
+          {/* Times (animated) */}
+          <Collapsible title="Time" open={timesOpen} onToggle={() => setTimesOpen((o) => !o)}>
             <RangeDateTimePicker
               id="segment-when"
               label=""
@@ -527,11 +502,10 @@ export default function SegmentModal({
               allowDifferentOffsets
               compact
             />
-          )}
+          </Collapsible>
 
-          {/* Locations (collapsible) */}
-          <SectionHeader title="Location" open={locationsOpen} onToggle={() => setLocationsOpen((o) => !o)} />
-          {locationsOpen && (
+          {/* Locations (animated) */}
+          <Collapsible title="Location" open={locationsOpen} onToggle={() => setLocationsOpen((o) => !o)}>
             <RangeLocationPicker
               id="segment-where"
               label=""
@@ -539,31 +513,33 @@ export default function SegmentModal({
               onChange={setLocRange}
               compact
             />
-          )}
+          </Collapsible>
 
           {/* Comment */}
-          <div className="grid grid-cols-4 items-start gap-3">
-            <Label htmlFor="comment" className="text-right text-sm pt-2">
-              Comment
-            </Label>
-            <div className="col-span-3 space-y-2">
-              <Textarea
-                id="comment"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder={`Add notes, links, or other details...
-Use [Link Text](URL) for custom link text
-Or paste URLs directly: https://example.com`}
-                className="min-h-[150px] text-sm"
-              />
-              {comment && (
-                <div className="p-2 bg-muted rounded-md text-sm">
-                  <div className="text-xs text-muted-foreground mb-1">Preview:</div>
-                  <CommentDisplay text={comment} />
-                </div>
-              )}
+          <Collapsible title="More" open={additionalOptionsOpen} onToggle={() => setAdditionalOptionsOpen((o) => !o)}>
+            <div className="grid grid-cols-4 items-start gap-3">
+              <Label htmlFor="comment" className="text-right text-sm pt-2">
+                Comment
+              </Label>
+              <div className="col-span-3 space-y-2">
+                <Textarea
+                  id="comment"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder={`Add notes, links, or other details...
+  Use [Link Text](URL) for custom link text
+  Or paste URLs directly: https://example.com`}
+                  className="min-h-[120px] text-sm"
+                />
+                {comment && (
+                  <div className="p-2 bg-muted rounded-md text-sm">
+                    <div className="text-xs text-muted-foreground mb-1">Preview:</div>
+                    <CommentDisplay text={comment} />
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          </Collapsible>
 
           {/* Options (edit only) */}
           {segment && !isDuplicateMode && (
