@@ -1,13 +1,12 @@
 // components/RangeLocationPicker.tsx
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import type { LocationOption } from "../types/models";
-
 
 export interface RangeLocationPickerValue {
   start: LocationOption | null;
@@ -67,14 +66,37 @@ function Autocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const debounced = useDebounced(query, debounceMs);
 
+  const suppressNextSearchRef = useRef(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // close on outside click
+  useEffect(() => {
+    const onDocPointerDown = (e: PointerEvent) => {
+      const root = rootRef.current;
+      if (!root) return;
+      if (!root.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onDocPointerDown);
+    return () => document.removeEventListener("pointerdown", onDocPointerDown);
+  }, []);
+
   useEffect(() => {
     // keep input text aligned when parent changes selected externally
     if (selected) {
       setQuery(selected.formatted || selected.name);
+    } else {
+      setQuery("");
     }
-  }, [selected?.providerPlaceId]);
+  }, [selected?.providerPlaceId, selected?.name, selected?.formatted]);
 
   useEffect(() => {
+    if (suppressNextSearchRef.current) {
+      suppressNextSearchRef.current = false;
+      return;
+    }
+
     let cancelled = false;
     const q = debounced.trim();
     if (q.length < minChars) {
@@ -82,6 +104,7 @@ function Autocomplete({
       setOpen(false);
       return;
     }
+
     setLoading(true);
     (async () => {
       try {
@@ -93,7 +116,7 @@ function Autocomplete({
           setOpen(true);
           setFocusedIdx(list.length ? 0 : -1);
         }
-      } catch (e) {
+      } catch {
         if (!cancelled) {
           setItems([]);
           setOpen(false);
@@ -102,60 +125,37 @@ function Autocomplete({
         if (!cancelled) setLoading(false);
       }
     })();
+
     return () => {
       cancelled = true;
     };
   }, [debounced, minChars, searchEndpoint]);
 
-    const EPS = 1e-4; // ~11m latitude; small enough to avoid false positives
+  const selectItem = (itm: LocationOption) => {
+    onSelected(itm);
 
-    const sameCoords = (a?: LocationOption | null, b?: LocationOption | null) =>
-    !!a && !!b && Math.abs(a.lat - b.lat) < EPS && Math.abs(a.lng - b.lng) < EPS;
+    suppressNextSearchRef.current = true;
+    setQuery(itm.formatted || itm.name);
+    setItems([]);
+    setFocusedIdx(-1);
+    setOpen(false);
 
-    const sameNameCountry = (a?: LocationOption | null, b?: LocationOption | null) => {
-    if (!a || !b) return false;
-    const nameA = (a.name || "").trim().toLowerCase();
-    const nameB = (b.name || "").trim().toLowerCase();
-    const countryA = (a.country || "").trim().toLowerCase();
-    const countryB = (b.country || "").trim().toLowerCase();
-    return nameA && nameA === nameB && countryA === countryB && a.provider === b.provider;
-    };
-
-    const samePlace = (a?: LocationOption | null, b?: LocationOption | null) => {
-        if (!a || !b) return false;
-        // Strongest: both have providerPlaceId and they match
-        if (a.providerPlaceId && b.providerPlaceId) {
-            return a.provider === b.provider && a.providerPlaceId === b.providerPlaceId;
-        }
-        // Fallbacks when providerPlaceId is missing on one side
-        if (sameCoords(a, b)) return true;
-        if (sameNameCountry(a, b)) return true;
-        return false;
-    };
-
-    const selectItem = (itm: LocationOption) => {
-        const keepId = selected?.id && samePlace(selected, itm);
-        const augmented: LocationOption = keepId ? { ...itm, id: selected!.id } : itm;
-
-        // Debug logs so you can see the decision
-        // console.log("[Autocomplete.selectItem] selected(before):", selected);
-        // console.log("[Autocomplete.selectItem] picked(itm):", itm);
-        // console.log("[Autocomplete.selectItem] keepId?", !!keepId, "augmented:", augmented);
-
-        onSelected(augmented);
-        setQuery(augmented.formatted || augmented.name);
-        setOpen(false);
-    };
-
+    inputRef.current?.blur();
+  };
 
   const clearSelection = () => {
     onSelected(null);
+
+    // Avoid a new fetch due to empty string; also close the list
+    suppressNextSearchRef.current = true;
     setQuery("");
+    setItems([]);
+    setFocusedIdx(-1);
     setOpen(false);
   };
 
   return (
-    <div className="relative w-full md:w-80">
+     <div ref={rootRef} className="relative w-full md:w-80">
       <Input
         id={id}
         ref={inputRef}
@@ -166,6 +166,7 @@ function Autocomplete({
           setOpen(true);
         }}
         onFocus={() => {
+          // show existing list if we already have results
           if (items.length) setOpen(true);
         }}
         onKeyDown={(e) => {
@@ -186,6 +187,13 @@ function Autocomplete({
           }
         }}
         className="text-sm"
+        /* ---- block browser autofill/autocorrect/etc ---- */
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="none"
+        spellCheck={false}
+        // Some browsers still try to help: give it a throwaway name
+        name={`${id}-search-${Math.random().toString(36).slice(2)}`}
       />
 
       {selected && (
@@ -217,7 +225,7 @@ function Autocomplete({
                       role="option"
                       aria-selected={idx === focusedIdx}
                       onMouseDown={(e) => {
-                        e.preventDefault(); // keep focus
+                        e.preventDefault();
                         selectItem(itm);
                       }}
                       onMouseEnter={() => setFocusedIdx(idx)}
@@ -253,7 +261,6 @@ export const RangeLocationPicker: React.FC<RangeLocationPickerProps> = React.mem
     minChars = 2,
     debounceMs = 250,
   }) => {
-    console.log("RangeLocationPicker render", { value });
     const { start, end } = value;
     const grid = compact ? "grid grid-cols-4 items-center gap-2" : "grid grid-cols-4 items-center gap-3";
 
@@ -279,7 +286,6 @@ export const RangeLocationPicker: React.FC<RangeLocationPickerProps> = React.mem
 
         {/* End location (optional) */}
         {end === null ? (
-          // Collapsed state
           <div className={grid}>
             <Label className="text-right text-sm" />
             <div className="col-span-3">
