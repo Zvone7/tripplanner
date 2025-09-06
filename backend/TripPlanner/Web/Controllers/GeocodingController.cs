@@ -15,10 +15,6 @@ public class GeocodingController : ControllerBase
         _client = client;
     }
 
-    /// <summary>
-    /// Forward geocoding proxy for LocationIQ.
-    /// GET /api/geocode/search?q=Oslo%2C%20Norway&limit=8&countrycodes=no&lang=en
-    /// </summary>
     [HttpGet("search")]
     public async Task<ActionResult<IEnumerable<LocationSearchResult>>> Search(
         [FromQuery] string q,
@@ -38,7 +34,6 @@ public class GeocodingController : ControllerBase
             var results = await _client.ForwardGeocodeAsync(
                 query, limit, countrycodes, lang, ct);
 
-            // Normalize to your DB-ready shape
             var normalized = results.Select(LocationSearchResult.FromLocationIq).ToList();
             return Ok(normalized);
         }

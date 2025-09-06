@@ -221,13 +221,12 @@ export default function OptionModal({
                                 const st = segmentTypes.find((x) => x.id === segment.segmentTypeId);
                                 if (!st) return null;
 
-                                const icon = st.iconSvg; // string | undefined
+                                const icon = st.iconSvg;
                                 return (
                                   <>
                                     {icon ? (
                                       <div
                                         className="w-4 h-4 shrink-0"
-                                        // icon is truthy here ⇒ treated as string
                                         dangerouslySetInnerHTML={{ __html: icon }}
                                       />
                                     ) : null}
@@ -243,7 +242,7 @@ export default function OptionModal({
                           <div className="text-xs text-muted-foreground mt-1">
                             {(() => {
                               const start = segment.startDateTimeUtc
-                                ? formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset, false) // short date (incl. year), no time
+                                ? formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset, false)
                                 : "—";
                               const startLoc =
                                 (segment as any).startLocation ??
@@ -258,7 +257,7 @@ export default function OptionModal({
                           <div className="text-xs text-muted-foreground">
                             {(() => {
                               const end = segment.endDateTimeUtc
-                                ? formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset, false) // short date (incl. year), no time
+                                ? formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset, false)
                                 : "—";
                               const endLoc =
                                 (segment as any).endLocation ??

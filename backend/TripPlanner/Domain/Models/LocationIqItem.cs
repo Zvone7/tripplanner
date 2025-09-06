@@ -5,13 +5,13 @@ namespace Domain.Models;
 
 public sealed class LocationIqItem
 {
-    [JsonPropertyName("place_id")] public string? PlaceId { get; set; } // <-- string
+    [JsonPropertyName("place_id")] public string? PlaceId { get; set; }
     [JsonPropertyName("display_name")] public string? DisplayName { get; set; }
-    [JsonPropertyName("lat")] public string? Lat { get; set; } // API returns strings
+    [JsonPropertyName("lat")] public string? Lat { get; set; } 
     [JsonPropertyName("lon")] public string? Lon { get; set; }
 
     [JsonPropertyName("address")] public LocationIqAddress? Address { get; set; }
-    // If you ever need it:
+    
     // [JsonPropertyName("boundingbox")] public string[]? BoundingBox { get; set; }
 }
 

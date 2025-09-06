@@ -61,9 +61,3 @@ public class UserController(UserService userService) : Controller
     }
 
 }
-
-/* ----------------------------- Service + Options ----------------------------- */
-
-/* ---------------------------- Deserialization types --------------------------- */
-
-/* -------------------------- Normalized (DB-friendly) -------------------------- */
