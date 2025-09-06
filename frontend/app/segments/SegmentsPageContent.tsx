@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { Skeleton } from "../components/ui/skeleton";
 import { Button } from "../components/ui/button";
 import { PlusIcon, TrashIcon, ListIcon, EditIcon } from "lucide-react";
@@ -13,7 +12,7 @@ import { OptionBadge } from "../components/OptionBadge";
 
 import type { Segment, SegmentType, OptionRef, User, SegmentSave } from "../types/models";
 
-/* ------------------------- Mobile Card Component ------------------------- */
+/* ------------------------- Card Component ------------------------- */
 
 function SegmentCard({
   segment,
@@ -30,10 +29,11 @@ function SegmentCard({
   onDelete: (segmentId: number) => void;
   connectedOptions: OptionRef[];
 }) {
-  const getTimezoneDisplayText = () => (userPreferredOffset === 0 ? "UTC" : `UTC${userPreferredOffset >= 0 ? "+" : ""}${userPreferredOffset}`);
+  const getTimezoneDisplayText = () =>
+    userPreferredOffset === 0 ? "UTC" : `UTC${userPreferredOffset >= 0 ? "+" : ""}${userPreferredOffset}`;
 
   return (
-    <Card className="mb-4 cursor-pointer hover:bg-muted/50" onClick={() => onEdit(segment)}>
+    <Card className="cursor-pointer hover:bg-muted/50" onClick={() => onEdit(segment)}>
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <div className="flex-1">
@@ -66,7 +66,14 @@ function SegmentCard({
           </div>
 
           <div className="flex space-x-2 ml-4">
-            <Button variant="ghost" size="sm" onClick={() => onEdit(segment)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(segment);
+              }}
+            >
               <EditIcon className="h-4 w-4" />
             </Button>
             <Button
@@ -265,11 +272,8 @@ export default function SegmentsPage() {
     return <div>No trip ID provided</div>;
   }
 
-  const getTimezoneDisplayText = () =>
-    userPreferredOffset === 0 ? "UTC" : `UTC${userPreferredOffset >= 0 ? "+" : ""}${userPreferredOffset}`;
-
   return (
-    <Card className="w-full max-w-4xl mx-auto">
+    <Card className="w-full max-w-6xl mx-auto">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>Segments</CardTitle>
@@ -288,105 +292,27 @@ export default function SegmentsPage() {
 
       <CardContent>
         {isLoading ? (
-          <LoadingSkeleton />
+          <LoadingGridSkeleton />
         ) : error ? (
           <p className="text-center text-red-500">{error}</p>
         ) : (
-          <>
-            {/* Desktop Table View */}
-            <div className="hidden md:block">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Options</TableHead>
-                    <TableHead>Start Time ({getTimezoneDisplayText()})</TableHead>
-                    <TableHead>End Time ({getTimezoneDisplayText()})</TableHead>
-                    <TableHead>Cost</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {segments.map((segment) => {
-                    const segmentType = segmentTypes.find((st) => st.id === segment.segmentTypeId);
-                    const connected = connectedBySegment[segment.id] || [];
-                    return (
-                      <TableRow
-                        key={segment.id}
-                        className="cursor-pointer hover:bg-muted"
-                        onClick={() => handleEditSegment(segment)}
-                      >
-                        <TableCell>
-                          {segmentType && (
-                            <div className="flex items-center space-x-2">
-                              {segmentType.iconSvg ? (
-                                <div
-                                  dangerouslySetInnerHTML={{ __html: segmentType.iconSvg }}
-                                  className="w-6 h-6"
-                                />
-                              ) : null}
-                              <span>{segmentType.name}</span>
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="font-medium">{segment.name}</TableCell>
-
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {connected?.map((option) => (
-                              <OptionBadge key={option.id} id={option.id} name={option.name} />
-                            ))}
-                          </div>
-                        </TableCell>
-
-                        <TableCell>
-                          {formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset)}
-                        </TableCell>
-                        <TableCell>
-                          {formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset)}
-                        </TableCell>
-                        <TableCell>${segment.cost.toFixed(2)}</TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteSegment(segment.id);
-                              }}
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Mobile Card View */}
-            <div className="md:hidden">
-              {segments.map((segment) => {
-                const segmentType = segmentTypes.find((st) => st.id === segment.segmentTypeId);
-                const connected = connectedBySegment[segment.id] || [];
-                return (
-                  <SegmentCard
-                    key={segment.id}
-                    segment={segment}
-                    segmentType={segmentType}
-                    userPreferredOffset={userPreferredOffset}
-                    onEdit={handleEditSegment}
-                    onDelete={handleDeleteSegment}
-                    connectedOptions={connected}
-                  />
-                );
-              })}
-            </div>
-          </>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {segments.map((segment) => {
+              const segmentType = segmentTypes.find((st) => st.id === segment.segmentTypeId);
+              const connected = connectedBySegment[segment.id] || [];
+              return (
+                <SegmentCard
+                  key={segment.id}
+                  segment={segment}
+                  segmentType={segmentType}
+                  userPreferredOffset={userPreferredOffset}
+                  onEdit={handleEditSegment}
+                  onDelete={handleDeleteSegment}
+                  connectedOptions={connected}
+                />
+              );
+            })}
+          </div>
         )}
       </CardContent>
 
@@ -402,11 +328,11 @@ export default function SegmentsPage() {
   );
 }
 
-function LoadingSkeleton() {
+function LoadingGridSkeleton() {
   return (
-    <div className="space-y-2">
-      {[...Array(5)].map((_, i) => (
-        <Skeleton key={i} className="w-full h-12" />
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {[...Array(6)].map((_, i) => (
+        <Skeleton key={i} className="h-40 w-full" />
       ))}
     </div>
   );
