@@ -32,6 +32,18 @@ function SegmentCard({
   const getTimezoneDisplayText = () =>
     userPreferredOffset === 0 ? "UTC" : `UTC${userPreferredOffset >= 0 ? "+" : ""}${userPreferredOffset}`;
 
+  // location can arrive as startLocation/endLocation or StartLocation/EndLocation
+  const startLoc = (segment as any).startLocation ?? (segment as any).StartLocation ?? null;
+  const endLoc   = (segment as any).endLocation   ?? (segment as any).EndLocation   ?? null;
+
+  const fmtLoc = (loc: any | null) => {
+    if (!loc) return "";
+    const name = loc.name ?? "";
+    const country = loc.country ?? "";
+    const label = country ? `${name}, ${country}` : name;
+    return label ? ` (${label})` : "";
+  };
+
   return (
     <Card className="cursor-pointer hover:bg-muted/50" onClick={() => onEdit(segment)}>
       <CardHeader className="pb-3">
@@ -57,10 +69,18 @@ function SegmentCard({
 
             <div className="mt-2 text-sm text-muted-foreground space-y-1">
               <div className="space-y-1">
-                <div>{formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset)}</div>
-                <div>{formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset)}</div>
+                <div>
+                  {formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset)}
+                  {fmtLoc(startLoc)}
+                </div>
+                <div>
+                  {formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset)}
+                  {fmtLoc(endLoc)}
+                </div>
                 <div>${segment.cost.toFixed(2)}</div>
-                <div className="text-xs text-muted-foreground">Times shown in {getTimezoneDisplayText()}</div>
+                <div className="text-xs text-muted-foreground">
+                  Times shown in {getTimezoneDisplayText()}
+                </div>
               </div>
             </div>
           </div>
@@ -92,6 +112,7 @@ function SegmentCard({
     </Card>
   );
 }
+
 
 /* ----------------------------------- Page ----------------------------------- */
 
