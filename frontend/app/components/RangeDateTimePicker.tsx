@@ -163,7 +163,6 @@ export const RangeDateTimePicker: React.FC<RangeDateTimePickerProps> = React.mem
                 type="button"
                 variant="outline"
                 size="sm"
-                color="gray"
                 onClick={() => onChange({ ...value, endLocal: null, endOffsetH: null })}
                 >
                 Remove end time

@@ -14,7 +14,7 @@ import { Textarea } from "../components/ui/textarea";
 import { toast } from "../components/ui/use-toast";
 import { Checkbox } from "../components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { CopyIcon } from "lucide-react";
+import { CopyIcon, ChevronDown } from "lucide-react";
 import { toLocationDto, normalizeLocation } from "../lib/mapping";
 
 // types
@@ -102,6 +102,36 @@ const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
   );
 };
 
+/* ------------------------- centered divider header ------------------------- */
+
+function SectionHeader({
+  title,
+  open,
+  onToggle,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="my-3">
+      <div className="relative flex items-center">
+        <div className="w-full border-t" />
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className="mx-3 inline-flex items-center gap-2 px-2 py-1 text-sm text-muted-foreground hover:text-foreground rounded-md bg-background"
+        >
+          <span className="font-medium">{title}</span>
+          <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
+        <div className="w-full border-t" />
+      </div>
+    </div>
+  );
+}
+
 /* ------------------------------- main modal ------------------------------- */
 
 export default function SegmentModal({
@@ -137,6 +167,10 @@ export default function SegmentModal({
   const [optionsTouched, setOptionsTouched] = useState(false); // prevent async overwrite
   const [isDuplicateMode, setIsDuplicateMode] = useState(false);
   const [userPreferredOffset, setUserPreferredOffset] = useState<number>(0);
+
+  // collapsible toggles
+  const [timesOpen, setTimesOpen] = useState(true);
+  const [locationsOpen, setLocationsOpen] = useState(true);
 
   // Fetch user preferences (preferred offset)
   const fetchUserPreferences = useCallback(async () => {
@@ -200,6 +234,10 @@ export default function SegmentModal({
         end: endNorm ?? null,
       });
 
+      // open sections when editing existing
+      setTimesOpen(true);
+      setLocationsOpen(true);
+
       fetchConnectedOptions(segment.id);
     } else {
       // New segment → seed from user pref
@@ -220,6 +258,10 @@ export default function SegmentModal({
       setComment("");
       setSegmentTypeId(null);
       setSelectedOptions([]);
+
+      // open sections by default
+      setTimesOpen(true);
+      setLocationsOpen(true);
     }
   }, [segment, userPreferredOffset]);
 
@@ -346,11 +388,11 @@ export default function SegmentModal({
 
       const endIso = utcMsToIso(endUtcMs);
 
-      const startForSave = locRange.start;
+      const startForSave = locRange.start ? { ...locRange.start } : null;
       if (startForSave !== null) {
         startForSave.id = prefilledStart?.id;
       }
-      const endForSave = locRange.end;
+      const endForSave = locRange.end ? { ...locRange.end } : null;
       if (endForSave !== null) {
         endForSave.id = prefilledEnd?.id;
       }
@@ -457,27 +499,6 @@ export default function SegmentModal({
             </Select>
           </div>
 
-          <Label className="text-center text-lg font-medium mt-2"> Times </Label>
-          {/* When */}
-          <RangeDateTimePicker
-            id="segment-when"
-            label=""
-            value={range}
-            onChange={setRange}
-            allowDifferentOffsets
-            compact
-          />
-
-          <Label className="text-center text-lg font-medium mt-2"> Locations </Label>
-          {/* Where */}
-          <RangeLocationPicker
-            id="segment-where"
-            label=""
-            value={locRange}
-            onChange={setLocRange}
-            compact
-          />
-
           {/* Cost */}
           <div className="grid grid-cols-4 items-center gap-3">
             <Label htmlFor="cost" className="text-right text-sm">
@@ -495,6 +516,31 @@ export default function SegmentModal({
             />
           </div>
 
+          {/* Times (collapsible) */}
+          <SectionHeader title="Time" open={timesOpen} onToggle={() => setTimesOpen((o) => !o)} />
+          {timesOpen && (
+            <RangeDateTimePicker
+              id="segment-when"
+              label=""
+              value={range}
+              onChange={setRange}
+              allowDifferentOffsets
+              compact
+            />
+          )}
+
+          {/* Locations (collapsible) */}
+          <SectionHeader title="Location" open={locationsOpen} onToggle={() => setLocationsOpen((o) => !o)} />
+          {locationsOpen && (
+            <RangeLocationPicker
+              id="segment-where"
+              label=""
+              value={locRange}
+              onChange={setLocRange}
+              compact
+            />
+          )}
+
           {/* Comment */}
           <div className="grid grid-cols-4 items-start gap-3">
             <Label htmlFor="comment" className="text-right text-sm pt-2">
@@ -508,7 +554,7 @@ export default function SegmentModal({
                 placeholder={`Add notes, links, or other details...
 Use [Link Text](URL) for custom link text
 Or paste URLs directly: https://example.com`}
-                className="min-h-[80px] text-sm"
+                className="min-h-[150px] text-sm"
               />
               {comment && (
                 <div className="p-2 bg-muted rounded-md text-sm">
