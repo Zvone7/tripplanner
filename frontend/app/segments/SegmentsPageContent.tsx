@@ -11,7 +11,6 @@ import SegmentModal from "../segments/SegmentModal";
 import { formatDateWithUserOffset } from "../utils/formatters";
 import { OptionBadge } from "../components/OptionBadge";
 
-// ✅ use only models.ts
 import type { Segment, SegmentType, OptionRef, User, SegmentSave } from "../types/models";
 
 /* ------------------------- Mobile Card Component ------------------------- */
@@ -223,7 +222,6 @@ export default function SegmentsPage() {
     originalSegmentId?: number
   ) => {
     try {
-      console.log("segmentData:", segmentData);
       let response: Response;
       if (isUpdate && originalSegmentId) {
         response = await fetch(`/api/Segment/UpdateSegment?tripId=${tripId}`, {

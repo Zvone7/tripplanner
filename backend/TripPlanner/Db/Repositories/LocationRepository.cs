@@ -43,7 +43,7 @@ public class LocationRepository
                        "country = @country, " +
                        "country_code = @country_code, " +
                        "lat = @lat, " +
-                       "lng = @lng, " +
+                       "lng = @lng " +
                        "WHERE id = @id";
         await db.ExecuteAsync(sqlQuery, location);
     }

@@ -24,7 +24,6 @@ import type {
   User,
   SegmentSave,
   LocationOption,
-  LocationDto,
   SegmentType,
 } from "../types/models";
 
@@ -120,9 +119,11 @@ export default function SegmentModal({
     startOffsetH: 0,
     endOffsetH: null, // null => same as start offset
   });
-  
-  const segTypes: SegmentType[] = segmentTypes;
-  // NEW: locations range state
+
+  // Keep prefilled locations to re-attach ids later
+  const [prefilledStart, setPrefilledStart] = useState<LocationOption | null>(null);
+  const [prefilledEnd, setPrefilledEnd] = useState<LocationOption | null>(null);
+
   const [locRange, setLocRange] = useState<RangeLocationPickerValue>({
     start: null,
     end: null, // null => no end
@@ -136,8 +137,6 @@ export default function SegmentModal({
   const [optionsTouched, setOptionsTouched] = useState(false); // prevent async overwrite
   const [isDuplicateMode, setIsDuplicateMode] = useState(false);
   const [userPreferredOffset, setUserPreferredOffset] = useState<number>(0);
-
-  useEffect(() => {}, [selectedOptions]);
 
   // Fetch user preferences (preferred offset)
   const fetchUserPreferences = useCallback(async () => {
@@ -187,13 +186,18 @@ export default function SegmentModal({
       setSegmentTypeId(segment.segmentTypeId);
 
       // Prefill locations if backend provides them
-      const startLocRaw = (segment as any)?.startLocation;
-      const endLocRaw = (segment as any)?.endLocation;
+      const startLocRaw = (segment as any)?.startLocation ?? (segment as any)?.StartLocation;
+      const endLocRaw = (segment as any)?.endLocation ?? (segment as any)?.EndLocation;
 
-      console.log("prefilling locations:", { segment, startLocRaw, endLocRaw });
+      const startNorm = normalizeLocation(startLocRaw);
+      const endNorm = normalizeLocation(endLocRaw);
+
+      setPrefilledStart(startNorm ?? null);
+      setPrefilledEnd(endNorm ?? null);
+
       setLocRange({
-        start: normalizeLocation(startLocRaw),
-        end: normalizeLocation(endLocRaw),
+        start: startNorm ?? null,
+        end: endNorm ?? null,
       });
 
       fetchConnectedOptions(segment.id);
@@ -206,6 +210,8 @@ export default function SegmentModal({
         startOffsetH: userPreferredOffset ?? 0,
         endOffsetH: null,
       });
+      setPrefilledStart(null);
+      setPrefilledEnd(null);
       setLocRange({
         start: null,
         end: null,
@@ -267,7 +273,6 @@ export default function SegmentModal({
       } else {
         next = prev.includes(optionId) ? prev.filter((id) => id !== optionId) : prev;
       }
-      console.log("[handleOptionChange]", { optionId, checked, prev, next });
       return next;
     });
   };
@@ -275,7 +280,6 @@ export default function SegmentModal({
   // Accept explicit array to avoid stale reads
   const handleUpdateConnectedOptions = async (optionIds: number[]) => {
     if (!segment) return;
-    console.log("[handleUpdateConnectedOptions] sending OptionIds:", optionIds);
 
     try {
       const response = await fetch(`/api/Segment/UpdateConnectedOptions?tripId=${tripId}`, {
@@ -301,6 +305,8 @@ export default function SegmentModal({
     setName((n) => `DUPLICATE ${n}`);
     setIsDuplicateMode(true);
     setSelectedOptions([]);
+    setPrefilledStart(null);
+    setPrefilledEnd(null);
     setLocRange({ start: null, end: null });
   };
 
@@ -340,9 +346,14 @@ export default function SegmentModal({
 
       const endIso = utcMsToIso(endUtcMs);
 
-      var startConverted = toLocationDto(locRange.start);
-      console.log("locRange.start:", locRange.start);
-      console.log("startConverted:", startConverted);
+      const startForSave = locRange.start;
+      if (startForSave !== null) {
+        startForSave.id = prefilledStart?.id;
+      }
+      const endForSave = locRange.end;
+      if (endForSave !== null) {
+        endForSave.id = prefilledEnd?.id;
+      }
 
       const payload: SegmentSave = {
         tripId,
@@ -354,17 +365,13 @@ export default function SegmentModal({
         cost: Number.parseFloat(cost),
         segmentTypeId,
         comment,
-        StartLocation: toLocationDto(locRange.start),
-        EndLocation: toLocationDto(locRange.end),
+        StartLocation: toLocationDto(startForSave),
+        EndLocation: toLocationDto(endForSave),
       };
 
       const isUpdate = !!segment && !isDuplicateMode;
 
-      // Capture the latest IDs *before any awaits*
       const optionIds = selectedOptions.map(Number);
-      console.log("[handleSubmit] optionIds at submit:", optionIds);
-      console.log("[handleSubmit] StartLocation:", payload.StartLocation);
-      console.log("[handleSubmit] EndLocation:", payload.EndLocation);
 
       try {
         if (isUpdate && segment) {
@@ -388,6 +395,8 @@ export default function SegmentModal({
       onSave,
       selectedOptions,
       locRange,
+      prefilledStart,
+      prefilledEnd,
     ]
   );
 

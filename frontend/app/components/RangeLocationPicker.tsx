@@ -107,19 +107,44 @@ function Autocomplete({
     };
   }, [debounced, minChars, searchEndpoint]);
 
-  const selectItem = (itm: LocationOption) => {
-    const sameLogicalPlace =
-        selected &&
-        selected.provider === itm.provider &&
-        selected.providerPlaceId === itm.providerPlaceId;
+    const EPS = 1e-4; // ~11m latitude; small enough to avoid false positives
 
-    const augmented: LocationOption = sameLogicalPlace && selected?.id
-        ? { ...itm, id: selected.id }
-        : itm;
+    const sameCoords = (a?: LocationOption | null, b?: LocationOption | null) =>
+    !!a && !!b && Math.abs(a.lat - b.lat) < EPS && Math.abs(a.lng - b.lng) < EPS;
 
-    onSelected(augmented);
-    setQuery(augmented.formatted || augmented.name);
-    setOpen(false);
+    const sameNameCountry = (a?: LocationOption | null, b?: LocationOption | null) => {
+    if (!a || !b) return false;
+    const nameA = (a.name || "").trim().toLowerCase();
+    const nameB = (b.name || "").trim().toLowerCase();
+    const countryA = (a.country || "").trim().toLowerCase();
+    const countryB = (b.country || "").trim().toLowerCase();
+    return nameA && nameA === nameB && countryA === countryB && a.provider === b.provider;
+    };
+
+    const samePlace = (a?: LocationOption | null, b?: LocationOption | null) => {
+        if (!a || !b) return false;
+        // Strongest: both have providerPlaceId and they match
+        if (a.providerPlaceId && b.providerPlaceId) {
+            return a.provider === b.provider && a.providerPlaceId === b.providerPlaceId;
+        }
+        // Fallbacks when providerPlaceId is missing on one side
+        if (sameCoords(a, b)) return true;
+        if (sameNameCountry(a, b)) return true;
+        return false;
+    };
+
+    const selectItem = (itm: LocationOption) => {
+        const keepId = selected?.id && samePlace(selected, itm);
+        const augmented: LocationOption = keepId ? { ...itm, id: selected!.id } : itm;
+
+        // Debug logs so you can see the decision
+        // console.log("[Autocomplete.selectItem] selected(before):", selected);
+        // console.log("[Autocomplete.selectItem] picked(itm):", itm);
+        // console.log("[Autocomplete.selectItem] keepId?", !!keepId, "augmented:", augmented);
+
+        onSelected(augmented);
+        setQuery(augmented.formatted || augmented.name);
+        setOpen(false);
     };
 
 
@@ -228,6 +253,7 @@ export const RangeLocationPicker: React.FC<RangeLocationPickerProps> = React.mem
     minChars = 2,
     debounceMs = 250,
   }) => {
+    console.log("RangeLocationPicker render", { value });
     const { start, end } = value;
     const grid = compact ? "grid grid-cols-4 items-center gap-2" : "grid grid-cols-4 items-center gap-3";
 
