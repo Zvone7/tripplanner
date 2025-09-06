@@ -56,7 +56,9 @@ public class SegmentRepository
                        "@name, " +
                        "@cost, " +
                        "@segment_type_id," +
-                       "@comment" +
+                       "@comment, " +
+                       "@start_location_id, " +
+                       "@end_location_id " +
                        ")";
         await db.ExecuteAsync(sqlQuery, segment);
     }
@@ -73,7 +75,9 @@ public class SegmentRepository
                        "name = @name, " +
                        "cost = @cost, " +
                        "segment_type_id = @segment_type_id, " +
-                       "comment = @comment " +
+                       "comment = @comment, " +
+                       "start_location_id = @start_location_id, " +
+                       "end_location_id = @end_location_id " +
                        "WHERE id = @id";
         await db.ExecuteAsync(sqlQuery, segment);
     }
