@@ -12,4 +12,8 @@ public class SegmentDto
     public decimal Cost { get; set; }
     public int SegmentTypeId { get; set; }
     public string Comment { get; set; }
+    public int? StartLocationId { get; set; }
+    public int? EndLocationId { get; set; }
+    public LocationDto? StartLocation { get; set; }
+    public LocationDto? EndLocation { get; set; }
 }

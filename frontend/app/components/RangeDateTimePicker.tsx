@@ -78,7 +78,7 @@ export const RangeDateTimePicker: React.FC<RangeDateTimePickerProps> = React.mem
         {/* Group label */}
         <div className={grid}>
           <Label htmlFor={`${id}-start`} className="text-right text-sm">
-            {label}
+            Start
           </Label>
           <div className="col-span-3 flex items-center gap-2">
             <Input
@@ -165,7 +165,7 @@ export const RangeDateTimePicker: React.FC<RangeDateTimePickerProps> = React.mem
                 size="sm"
                 onClick={() => onChange({ ...value, endLocal: null, endOffsetH: null })}
                 >
-                Clear end
+                Remove end time
                 </Button>
             </div>
             </div>

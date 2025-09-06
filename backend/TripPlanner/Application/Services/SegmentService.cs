@@ -1,6 +1,7 @@
 using Domain.ActionModels;
 using Domain.DbModels;
 using Domain.Dtos;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Services;
 
@@ -8,16 +9,22 @@ public class SegmentService
 {
     private readonly SegmentRepository _segmentRepository_;
     private readonly OptionRepository _optionRepository_;
+    private readonly LocationRepository _locationRepository;
     private readonly OptionService _optionService_;
+    private readonly ILogger<SegmentService> _logger;
 
     public SegmentService(
         SegmentRepository segmentRepository,
         OptionRepository optionRepository,
-        OptionService optionService)
+        LocationRepository locationRepository,
+        OptionService optionService,
+        ILogger<SegmentService> logger)
     {
         _segmentRepository_ = segmentRepository;
         _optionRepository_ = optionRepository;
+        _locationRepository = locationRepository;
         _optionService_ = optionService;
+        _logger = logger;
     }
 
     public async Task<List<SegmentDto>> GetAllByOptionIdAsync(int optionId, CancellationToken cancellationToken)
@@ -34,8 +41,11 @@ public class SegmentService
             StartDateTimeUtcOffset = s.start_datetime_utc_offset,
             TripId = s.trip_id,
             SegmentTypeId = s.segment_type_id,
-            Comment = s.comment
+            Comment = s.comment,
+            StartLocationId = s.start_location_id,
+            EndLocationId = s.end_location_id,
         }).ToList();
+        await RetrieveLocationsForSegmentsAsync(result, cancellationToken);
         return result;
     }
 
@@ -53,29 +63,39 @@ public class SegmentService
                 StartDateTimeUtcOffset = s.start_datetime_utc_offset,
                 TripId = s.trip_id,
                 SegmentTypeId = s.segment_type_id,
-                Comment = s.comment
+                Comment = s.comment,
+                StartLocationId = s.start_location_id,
+                EndLocationId = s.end_location_id,
             })
             .OrderBy(s => s.StartDateTimeUtc)
             .ToList();
+
+        await RetrieveLocationsForSegmentsAsync(result, cancellationToken);
+
         return result;
     }
+
 
     public async Task<SegmentDto?> GetAsync(int segmentId, CancellationToken cancellationToken)
     {
         var segment = await _segmentRepository_.GetAsync(segmentId, cancellationToken);
-        var result = segment == null ? null : new SegmentDto
-        {
-            Id = segment.id,
-            Cost = segment.cost,
-            EndDateTimeUtc = segment.end_datetime_utc,
-            EndDateTimeUtcOffset = segment.end_datetime_utc_offset,
-            Name = segment.name,
-            StartDateTimeUtc = segment.start_datetime_utc,
-            StartDateTimeUtcOffset = segment.start_datetime_utc_offset,
-            TripId = segment.trip_id,
-            SegmentTypeId = segment.segment_type_id,
-            Comment = segment.comment
-        };
+        var result = segment == null
+            ? null
+            : new SegmentDto
+            {
+                Id = segment.id,
+                Cost = segment.cost,
+                EndDateTimeUtc = segment.end_datetime_utc,
+                EndDateTimeUtcOffset = segment.end_datetime_utc_offset,
+                Name = segment.name,
+                StartDateTimeUtc = segment.start_datetime_utc,
+                StartDateTimeUtcOffset = segment.start_datetime_utc_offset,
+                TripId = segment.trip_id,
+                SegmentTypeId = segment.segment_type_id,
+                Comment = segment.comment
+            };
+        if (result != null)
+            await RetrieveLocationsForSegmentAsync(result, cancellationToken);
         return result;
     }
 
@@ -83,6 +103,36 @@ public class SegmentService
     {
         var utcStart = ConvertWithOffset(segment.StartDateTimeUtc, segment.StartDateTimeUtcOffset);
         var utcEnd = ConvertWithOffset(segment.EndDateTimeUtc, segment.EndDateTimeUtcOffset);
+        LocationDbm startLocation = null;
+        LocationDbm endLocation = null;
+        if (segment.StartLocation != null)
+        {
+            startLocation = await _locationRepository.CreateAsync(new LocationDbm
+            {
+                name = segment.StartLocation.Name,
+                provider = segment.StartLocation.Provider,
+                provider_place_id = segment.StartLocation.ProviderPlaceId,
+                country_code = segment.StartLocation.CountryCode,
+                country = segment.StartLocation.Country,
+                lat = segment.StartLocation.Latitude,
+                lng = segment.StartLocation.Longitude,
+            }, cancellationToken);
+        }
+
+        if (segment.EndLocation != null)
+        {
+            endLocation = await _locationRepository.CreateAsync(new LocationDbm
+            {
+                name = segment.EndLocation.Name,
+                provider = segment.EndLocation.Provider,
+                provider_place_id = segment.EndLocation.ProviderPlaceId,
+                country_code = segment.EndLocation.CountryCode,
+                country = segment.EndLocation.Country,
+                lat = segment.EndLocation.Latitude,
+                lng = segment.EndLocation.Longitude,
+            }, cancellationToken);
+        }
+
         await _segmentRepository_.CreateAsync(new SegmentDbm
         {
             trip_id = segment.TripId,
@@ -93,29 +143,105 @@ public class SegmentService
             name = segment.Name,
             cost = segment.Cost,
             segment_type_id = segment.SegmentTypeId,
-            comment = segment.Comment
+            comment = segment.Comment,
+            start_location_id = startLocation?.id,
+            end_location_id = endLocation?.id
         }, cancellationToken);
     }
 
     public async Task UpdateAsync(SegmentDto segment, CancellationToken cancellationToken)
     {
-        var utcStart = ConvertWithOffset(segment.StartDateTimeUtc, segment.StartDateTimeUtcOffset);
-        var utcEnd = ConvertWithOffset(segment.EndDateTimeUtc, segment.EndDateTimeUtcOffset);
-        await _segmentRepository_.UpdateAsync(new SegmentDbm
+        try
         {
-            id = segment.Id,
-            trip_id = segment.TripId,
-            start_datetime_utc = utcStart,
-            start_datetime_utc_offset = segment.StartDateTimeUtcOffset,
-            end_datetime_utc = utcEnd,
-            end_datetime_utc_offset = segment.EndDateTimeUtcOffset,
-            name = segment.Name,
-            cost = segment.Cost,
-            segment_type_id = segment.SegmentTypeId,
-            comment = segment.Comment
-        }, cancellationToken);
+            var utcStart = ConvertWithOffset(segment.StartDateTimeUtc, segment.StartDateTimeUtcOffset);
+            var utcEnd = ConvertWithOffset(segment.EndDateTimeUtc, segment.EndDateTimeUtcOffset);
+            if (segment.StartLocation != null)
+            {
+                if (segment.StartLocation.Id == 0)
+                {
+                    var startLocation = await _locationRepository.CreateAsync(new LocationDbm
+                    {
+                        name = segment.StartLocation.Name,
+                        provider = segment.StartLocation.Provider,
+                        provider_place_id = segment.StartLocation.ProviderPlaceId,
+                        country_code = segment.StartLocation.CountryCode,
+                        country = segment.StartLocation.Country,
+                        lat = segment.StartLocation.Latitude,
+                        lng = segment.StartLocation.Longitude,
+                    }, cancellationToken);
+                    segment.StartLocation.Id = startLocation.id;
+                }
+                else
+                {
+                    await _locationRepository.UpdateAsync(new LocationDbm
+                    {
+                        id = segment.StartLocation.Id,
+                        name = segment.StartLocation.Name,
+                        provider = segment.StartLocation.Provider,
+                        provider_place_id = segment.StartLocation.ProviderPlaceId,
+                        country_code = segment.StartLocation.CountryCode,
+                        country = segment.StartLocation.Country,
+                        lat = segment.StartLocation.Latitude,
+                        lng = segment.StartLocation.Longitude,
+                    }, cancellationToken);
+                }
+            }
 
-        await UpdateOptionsRelatedBySegmentIdAsync(segment.Id, cancellationToken);
+            if (segment.EndLocation != null)
+            {
+                if (segment.EndLocation.Id == 0)
+                {
+                    var endLocation = await _locationRepository.CreateAsync(new LocationDbm
+                    {
+                        name = segment.EndLocation.Name,
+                        provider = segment.EndLocation.Provider,
+                        provider_place_id = segment.EndLocation.ProviderPlaceId,
+                        country_code = segment.EndLocation.CountryCode,
+                        country = segment.EndLocation.Country,
+                        lat = segment.EndLocation.Latitude,
+                        lng = segment.EndLocation.Longitude,
+                    }, cancellationToken);
+                    segment.EndLocation.Id = endLocation.id;
+                }
+                else
+                {
+                    await _locationRepository.UpdateAsync(new LocationDbm
+                    {
+                        id = segment.EndLocation.Id,
+                        name = segment.EndLocation.Name,
+                        provider = segment.EndLocation.Provider,
+                        provider_place_id = segment.EndLocation.ProviderPlaceId,
+                        country_code = segment.EndLocation.CountryCode,
+                        country = segment.EndLocation.Country,
+                        lat = segment.EndLocation.Latitude,
+                        lng = segment.EndLocation.Longitude,
+                    }, cancellationToken);
+                }
+            }
+
+            await _segmentRepository_.UpdateAsync(new SegmentDbm
+            {
+                id = segment.Id,
+                trip_id = segment.TripId,
+                start_datetime_utc = utcStart,
+                start_datetime_utc_offset = segment.StartDateTimeUtcOffset,
+                end_datetime_utc = utcEnd,
+                end_datetime_utc_offset = segment.EndDateTimeUtcOffset,
+                name = segment.Name,
+                cost = segment.Cost,
+                segment_type_id = segment.SegmentTypeId,
+                comment = segment.Comment,
+                start_location_id = segment.StartLocation?.Id,
+                end_location_id = segment.EndLocation?.Id,
+            }, cancellationToken);
+
+            await UpdateOptionsRelatedBySegmentIdAsync(segment.Id, cancellationToken);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error updating segment");
+            throw;
+        }
     }
 
     public async Task DeleteAsync(int segmentId, CancellationToken cancellationToken)
@@ -156,6 +282,7 @@ public class SegmentService
             }).ToList();
             return result;
         }
+
         return new List<OptionDto>();
     }
 
@@ -182,4 +309,49 @@ public class SegmentService
         var utc = new DateTime(converted.Ticks, DateTimeKind.Utc);
         return utc;
     }
+
+    #region Location
+
+    private async Task RetrieveLocationsForSegmentsAsync(List<SegmentDto> segments, CancellationToken cancellationToken)
+    {
+        foreach (var segment in segments.Where(s => s.StartLocationId != null || s.EndLocationId != null))
+        {
+            await RetrieveLocationsForSegmentAsync(segment, cancellationToken);
+        }
+    }
+
+    private async Task RetrieveLocationsForSegmentAsync(SegmentDto segment, CancellationToken cancellationToken)
+    {
+        if (segment.StartLocationId != null)
+        {
+            var startLocation = await _locationRepository.GetAsync(segment.StartLocationId.Value, cancellationToken);
+            segment.StartLocation = new LocationDto
+            {
+                Id = startLocation.id,
+                Name = startLocation.name,
+                Country = startLocation.country,
+                CountryCode = startLocation.country_code,
+                ProviderPlaceId = startLocation.provider_place_id,
+                Provider = startLocation.provider,
+                Latitude = startLocation.lat,
+                Longitude = startLocation.lng,
+            };
+        }
+
+        if (segment.EndLocationId != null)
+        {
+            var endLocation = await _locationRepository.GetAsync(segment.EndLocationId.Value, cancellationToken);
+            segment.EndLocation = new LocationDto
+            {
+                Id = endLocation.id,
+                Name = endLocation.name,
+                Country = endLocation.country,
+                CountryCode = endLocation.country_code,
+                Latitude = endLocation.lat,
+                Longitude = endLocation.lng,
+            };
+        }
+    }
+
+    #endregion
 }
