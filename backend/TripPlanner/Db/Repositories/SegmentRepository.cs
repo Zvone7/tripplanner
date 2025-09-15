@@ -45,8 +45,10 @@ public class SegmentRepository
                        "end_datetime_utc_offset, "+
                        "name, " +
                        "cost, " +
-                       "segment_type_id," +
-                       "comment" +
+                       "segment_type_id, " +
+                       "comment, " +
+                       "start_location_id, " +
+                       "end_location_id" +
                        ") VALUES (" +
                        "@trip_id, " +
                        "@start_datetime_utc, " +

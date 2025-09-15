@@ -35,7 +35,6 @@ export function UserInfo() {
           setUser(userData)
         }
 
-        // If unauthorized and not on "/" or "/status", force redirect
         if (res.status === 401 && window.location.pathname !== "/" && window.location.pathname !== "/status") {
           window.location.href = "/"
         }
@@ -57,7 +56,7 @@ export function UserInfo() {
       })
 
       if (res.ok) {
-        setUser(null) // clear local state
+        setUser(null)
         router.push("/")
       } else {
         console.error("Logout failed")
@@ -70,7 +69,7 @@ export function UserInfo() {
   }
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-4 group">
       {user && (
         <TooltipProvider>
           <Tooltip>
@@ -96,8 +95,8 @@ export function UserInfo() {
         disabled={isLoggingOut}
         className="flex items-center gap-1 text-xs"
       >
+        <span className=" opacity-0 group-hover:opacity-100 transition-opacity">Logout</span>
         <LogOut className="w-3 h-3" />
-        <span>Logout</span>
       </Button>
     </div>
   )
