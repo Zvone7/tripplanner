@@ -1,22 +1,22 @@
 // components/SegmentModal.tsx
-"use client";
+"use client"
 
-import type React from "react";
-import type { JSX } from "react";
+import type React from "react"
+import type { JSX } from "react"
 
-import { useState, useEffect, useCallback } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { ScrollArea } from "../components/ui/scroll-area";
-import { Textarea } from "../components/ui/textarea";
-import { toast } from "../components/ui/use-toast";
-import { Checkbox } from "../components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { CopyIcon } from "lucide-react";
-import { toLocationDto, normalizeLocation } from "../lib/mapping";
-import { Collapsible } from "../components/Collapsible";
+import { useState, useEffect, useCallback } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog"
+import { Button } from "../components/ui/button"
+import { Input } from "../components/ui/input"
+import { Label } from "../components/ui/label"
+import { ScrollArea } from "../components/ui/scroll-area"
+import { Textarea } from "../components/ui/textarea"
+import { toast } from "../components/ui/use-toast"
+import { Checkbox } from "../components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
+import { CopyIcon } from "lucide-react"
+import { toLocationDto, normalizeLocation } from "../lib/mapping"
+import { Collapsible } from "../components/Collapsible"
 
 // types
 import type {
@@ -26,32 +26,26 @@ import type {
   SegmentSave,
   LocationOption,
   SegmentType,
-} from "../types/models";
+} from "../types/models"
 
-import {
-  RangeDateTimePicker,
-  type RangeDateTimePickerValue,
-} from "../components/RangeDateTimePicker";
+import { RangeDateTimePicker, type RangeDateTimePickerValue } from "../components/RangeDateTimePicker"
 
-import {
-  RangeLocationPicker,
-  type RangeLocationPickerValue,
-} from "../components/RangeLocationPicker";
+import { RangeLocationPicker, type RangeLocationPickerValue } from "../components/RangeLocationPicker"
 
-import { localToUtcMs, utcMsToIso, utcIsoToLocalInput } from "../lib/utils";
+import { localToUtcMs, utcMsToIso, utcIsoToLocalInput } from "../lib/utils"
 
 /* ------------------------- comment preview helper ------------------------- */
 
 const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
-  const markdownLinkRegex = /\[([^\]]+)\]\(([^\)]+)\)/g;
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const markdownLinkRegex = /\[([^\]]+)\]$$([^$$]+)\)/g
+  const urlRegex = /(https?:\/\/[^\s]+)/g
 
-  let processedText = text;
-  const linkReplacements: { placeholder: string; element: JSX.Element }[] = [];
-  let replacementIndex = 0;
+  let processedText = text
+  const linkReplacements: { placeholder: string; element: JSX.Element }[] = []
+  let replacementIndex = 0
 
   processedText = processedText.replace(markdownLinkRegex, (_match, linkText, url) => {
-    const placeholder = `__LINK_${replacementIndex}__`;
+    const placeholder = `__LINK_${replacementIndex}__`
     linkReplacements.push({
       placeholder,
       element: (
@@ -65,13 +59,13 @@ const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
           {linkText}
         </a>
       ),
-    });
-    replacementIndex++;
-    return placeholder;
-  });
+    })
+    replacementIndex++
+    return placeholder
+  })
 
   processedText = processedText.replace(urlRegex, (match) => {
-    const placeholder = `__LINK_${replacementIndex}__`;
+    const placeholder = `__LINK_${replacementIndex}__`
     linkReplacements.push({
       placeholder,
       element: (
@@ -85,191 +79,183 @@ const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
           {match}
         </a>
       ),
-    });
-    replacementIndex++;
-    return placeholder;
-  });
+    })
+    replacementIndex++
+    return placeholder
+  })
 
-  const parts = processedText.split(/(__LINK_\d+__)/g);
+  const parts = processedText.split(/(__LINK_\d+__)/g)
 
   return (
     <div className="whitespace-pre-wrap">
       {parts.map((part, index) => {
-        const linkReplacement = linkReplacements.find((lr) => lr.placeholder === part);
-        if (linkReplacement) return linkReplacement.element;
-        return <span key={index}>{part}</span>;
+        const linkReplacement = linkReplacements.find((lr) => lr.placeholder === part)
+        if (linkReplacement) return linkReplacement.element
+        return <span key={index}>{part}</span>
       })}
     </div>
-  );
-};
-
+  )
+}
 
 /* ------------------------------- main modal ------------------------------- */
 
-export default function SegmentModal({
-  isOpen,
-  onClose,
-  onSave,
-  segment,
-  tripId,
-  segmentTypes,
-}: SegmentModalProps) {
-  const [name, setName] = useState("");
+export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId, segmentTypes }: SegmentModalProps) {
+  const [name, setName] = useState("")
   const [range, setRange] = useState<RangeDateTimePickerValue>({
     startLocal: "",
     endLocal: null,
     startOffsetH: 0,
     endOffsetH: null,
-  });
+  })
 
   // Keep prefilled locations to re-attach ids later
-  const [prefilledStart, setPrefilledStart] = useState<LocationOption | null>(null);
-  const [prefilledEnd, setPrefilledEnd] = useState<LocationOption | null>(null);
+  const [prefilledStart, setPrefilledStart] = useState<LocationOption | null>(null)
+  const [prefilledEnd, setPrefilledEnd] = useState<LocationOption | null>(null)
 
   const [locRange, setLocRange] = useState<RangeLocationPickerValue>({
     start: null,
     end: null,
-  });
+  })
 
-  const [cost, setCost] = useState("");
-  const [comment, setComment] = useState("");
-  const [segmentTypeId, setSegmentTypeId] = useState<number | null>(null);
-  const [options, setOptions] = useState<Option[]>([]);
-  const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
-  const [optionsTouched, setOptionsTouched] = useState(false);
-  const [isDuplicateMode, setIsDuplicateMode] = useState(false);
-  const [userPreferredOffset, setUserPreferredOffset] = useState<number>(0);
+  const [cost, setCost] = useState("")
+  const [comment, setComment] = useState("")
+  const [segmentTypeId, setSegmentTypeId] = useState<number | null>(null)
+  const [options, setOptions] = useState<Option[]>([])
+  const [selectedOptions, setSelectedOptions] = useState<number[]>([])
+  const [optionsTouched, setOptionsTouched] = useState(false)
+  const [isDuplicateMode, setIsDuplicateMode] = useState(false)
+  const [userPreferredOffset, setUserPreferredOffset] = useState<number>(0)
 
   // collapsible toggles
-  const [timesOpen, setTimesOpen] = useState(true);
-  const [locationsOpen, setLocationsOpen] = useState(true);
-  const [additionalOptionsOpen, setAdditionalOptionsOpen] = useState(true);
+  const [timesOpen, setTimesOpen] = useState(true)
+  const [locationsOpen, setLocationsOpen] = useState(true)
+  const [additionalOptionsOpen, setAdditionalOptionsOpen] = useState(true)
 
   // Fetch user preferences (preferred offset)
   const fetchUserPreferences = useCallback(async () => {
     try {
-      const response = await fetch("/api/account/info");
-      if (!response.ok) throw new Error("Failed to fetch user preferences");
-      const userData: User = await response.json();
-      setUserPreferredOffset(userData.userPreference?.preferredUtcOffset ?? 0);
+      const response = await fetch("/api/account/info")
+      if (!response.ok) throw new Error("Failed to fetch user preferences")
+      const userData: User = await response.json()
+      setUserPreferredOffset(userData.userPreference?.preferredUtcOffset ?? 0)
     } catch {
-      setUserPreferredOffset(0);
+      setUserPreferredOffset(0)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    fetchUserPreferences();
-  }, [fetchUserPreferences]);
+    fetchUserPreferences()
+  }, [fetchUserPreferences])
 
   useEffect(() => {
-    fetchOptions();
-  }, [tripId]);
+    fetchOptions()
+  }, [tripId])
 
   useEffect(() => {
-    setIsDuplicateMode(false);
-    setOptionsTouched(false);
+    setIsDuplicateMode(false)
+    setOptionsTouched(false)
 
     if (segment) {
-      setName(segment.name);
+      setName(segment.name)
 
-      const sOff = segment.startDateTimeUtcOffset ?? 0;
-      const eOff = segment.endDateTimeUtcOffset ?? sOff;
+      const sOff = segment.startDateTimeUtcOffset ?? 0
+      const eOff = segment.endDateTimeUtcOffset ?? sOff
 
-      const startLocal = utcIsoToLocalInput(segment.startDateTimeUtc, sOff);
-      const endLocalRaw = utcIsoToLocalInput(segment.endDateTimeUtc, eOff);
+      const startLocal = utcIsoToLocalInput(segment.startDateTimeUtc, sOff)
+      const endLocalRaw = utcIsoToLocalInput(segment.endDateTimeUtc, eOff)
 
-      const endIsSame = segment.endDateTimeUtc === segment.startDateTimeUtc && eOff === sOff;
+      const endIsSame = segment.endDateTimeUtc === segment.startDateTimeUtc && eOff === sOff
 
       setRange({
         startLocal,
         endLocal: endIsSame ? null : endLocalRaw,
         startOffsetH: sOff,
         endOffsetH: endIsSame ? null : eOff,
-      });
+      })
 
-      setCost(String(segment.cost));
-      setComment(segment.comment || "");
-      setSegmentTypeId(segment.segmentTypeId);
+      setCost(String(segment.cost))
+      setComment(segment.comment || "")
+      setSegmentTypeId(segment.segmentTypeId)
 
       // Prefill locations if backend provides them
-      const startLocRaw = (segment as any)?.startLocation ?? (segment as any)?.StartLocation;
-      const endLocRaw = (segment as any)?.endLocation ?? (segment as any)?.EndLocation;
+      const startLocRaw = (segment as any)?.startLocation ?? (segment as any)?.StartLocation
+      const endLocRaw = (segment as any)?.endLocation ?? (segment as any)?.EndLocation
 
-      const startNorm = normalizeLocation(startLocRaw);
-      const endNorm = normalizeLocation(endLocRaw);
+      const startNorm = normalizeLocation(startLocRaw)
+      const endNorm = normalizeLocation(endLocRaw)
 
-      setPrefilledStart(startNorm ?? null);
-      setPrefilledEnd(endNorm ?? null);
+      setPrefilledStart(startNorm ?? null)
+      setPrefilledEnd(endNorm ?? null)
 
       setLocRange({
         start: startNorm ?? null,
         end: endNorm ?? null,
-      });
+      })
 
-      setTimesOpen(false);
-      setLocationsOpen(false);
-      setAdditionalOptionsOpen(false);
+      setTimesOpen(false)
+      setLocationsOpen(false)
+      setAdditionalOptionsOpen(false)
 
-      fetchConnectedOptions(segment.id);
+      fetchConnectedOptions(segment.id)
     } else {
-      setName("");
+      setName("")
       setRange({
         startLocal: "",
         endLocal: null,
         startOffsetH: userPreferredOffset ?? 0,
         endOffsetH: null,
-      });
-      setPrefilledStart(null);
-      setPrefilledEnd(null);
-      setLocRange({ start: null, end: null });
-      setCost("");
-      setComment("");
-      setSegmentTypeId(null);
-      setSelectedOptions([]);
+      })
+      setPrefilledStart(null)
+      setPrefilledEnd(null)
+      setLocRange({ start: null, end: null })
+      setCost("")
+      setComment("")
+      setSegmentTypeId(null)
+      setSelectedOptions([])
 
-      setTimesOpen(false);
-      setLocationsOpen(false);
-      setAdditionalOptionsOpen(false);
+      setTimesOpen(false)
+      setLocationsOpen(false)
+      setAdditionalOptionsOpen(false)
     }
-  }, [segment, userPreferredOffset]);
+  }, [segment, userPreferredOffset])
 
   const fetchOptions = async () => {
     try {
-      const response = await fetch(`/api/Option/GetOptionsByTripId?tripId=${tripId}`);
-      if (!response.ok) throw new Error("Failed to fetch options");
-      const data = await response.json();
-      setOptions(data);
+      const response = await fetch(`/api/Option/GetOptionsByTripId?tripId=${tripId}`)
+      if (!response.ok) throw new Error("Failed to fetch options")
+      const data = await response.json()
+      setOptions(data)
     } catch (error) {
-      console.error("Error fetching options:", error);
-      toast({ title: "Error", description: "Failed to fetch options. Please try again." });
+      console.error("Error fetching options:", error)
+      toast({ title: "Error", description: "Failed to fetch options. Please try again." })
     }
-  };
+  }
 
   const fetchConnectedOptions = async (segmentId: number) => {
     try {
-      const response = await fetch(`/api/Segment/GetConnectedOptions?tripId=${tripId}&segmentId=${segmentId}`);
-      if (!response.ok) throw new Error("Failed to fetch connected options");
-      const data: Option[] = await response.json();
-      const ids = data.map((o) => Number(o.id));
+      const response = await fetch(`/api/Segment/GetConnectedOptions?tripId=${tripId}&segmentId=${segmentId}`)
+      if (!response.ok) throw new Error("Failed to fetch connected options")
+      const data: Option[] = await response.json()
+      const ids = data.map((o) => Number(o.id))
 
-      if (!optionsTouched) setSelectedOptions(ids);
+      if (!optionsTouched) setSelectedOptions(ids)
     } catch (error) {
-      console.error("Error fetching connected options:", error);
-      toast({ title: "Error", description: "Failed to fetch connected options. Please try again." });
+      console.error("Error fetching connected options:", error)
+      toast({ title: "Error", description: "Failed to fetch connected options. Please try again." })
     }
-  };
+  }
 
   const handleOptionChange = (optionId: number, checkedState: boolean | "indeterminate") => {
-    const checked = checkedState === true;
-    setOptionsTouched(true);
+    const checked = checkedState === true
+    setOptionsTouched(true)
     setSelectedOptions((prev) => {
-      if (checked) return prev.includes(optionId) ? prev : [...prev, optionId];
-      return prev.includes(optionId) ? prev.filter((id) => id !== optionId) : prev;
-    });
-  };
+      if (checked) return prev.includes(optionId) ? prev : [...prev, optionId]
+      return prev.includes(optionId) ? prev.filter((id) => id !== optionId) : prev
+    })
+  }
 
   const handleUpdateConnectedOptions = async (optionIds: number[]) => {
-    if (!segment) return;
+    if (!segment) return
 
     try {
       const response = await fetch(`/api/Segment/UpdateConnectedOptions?tripId=${tripId}`, {
@@ -281,60 +267,57 @@ export default function SegmentModal({
           TripId: tripId,
         }),
         credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to update connected options");
-      toast({ title: "Success", description: "Connected options updated successfully" });
+      })
+      if (!response.ok) throw new Error("Failed to update connected options")
+      toast({ title: "Success", description: "Connected options updated successfully" })
     } catch (error) {
-      console.error("Error updating connected options:", error);
-      toast({ title: "Error", description: "Failed to update connected options. Please try again." });
+      console.error("Error updating connected options:", error)
+      toast({ title: "Error", description: "Failed to update connected options. Please try again." })
     }
-  };
+  }
 
   const handleDuplicateSegment = () => {
-    setName((n) => `DUPLICATE ${n}`);
-    setIsDuplicateMode(true);
-    setSelectedOptions([]);
-    setPrefilledStart(null);
-    setPrefilledEnd(null);
-    setLocRange({ start: null, end: null });
-  };
+    setName((n) => `DUPLICATE ${n}`)
+    setIsDuplicateMode(true)
+    setSelectedOptions([])
+  }
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
-      e.preventDefault();
+      e.preventDefault()
 
       if (segmentTypeId === null) {
-        toast({ title: "Error", description: "Please select a segment type." });
-        return;
+        toast({ title: "Error", description: "Please select a segment type." })
+        return
       }
       if (!range.startLocal) {
-        toast({ title: "Error", description: "Please choose a start date and time." });
-        return;
+        toast({ title: "Error", description: "Please choose a start date and time." })
+        return
       }
 
-      const startUtcMs = localToUtcMs(range.startLocal, range.startOffsetH);
+      const startUtcMs = localToUtcMs(range.startLocal, range.startOffsetH)
       if (!Number.isFinite(startUtcMs)) {
-        toast({ title: "Error", description: "Invalid start date/time." });
-        return;
+        toast({ title: "Error", description: "Invalid start date/time." })
+        return
       }
-      const startIso = utcMsToIso(startUtcMs);
+      const startIso = utcMsToIso(startUtcMs)
 
-      const effEndOffset = range.endOffsetH ?? range.startOffsetH;
-      const endLocalUsed = range.endLocal ?? range.startLocal;
-      const endUtcMs = localToUtcMs(endLocalUsed, effEndOffset);
+      const effEndOffset = range.endOffsetH ?? range.startOffsetH
+      const endLocalUsed = range.endLocal ?? range.startLocal
+      const endUtcMs = localToUtcMs(endLocalUsed, effEndOffset)
       if (!Number.isFinite(endUtcMs)) {
-        toast({ title: "Error", description: "Invalid end date/time." });
-        return;
+        toast({ title: "Error", description: "Invalid end date/time." })
+        return
       }
       if (endUtcMs < startUtcMs) {
-        toast({ title: "Error", description: "End must be at or after start." });
-        return;
+        toast({ title: "Error", description: "End must be at or after start." })
+        return
       }
 
-      const endIso = utcMsToIso(endUtcMs);
+      const endIso = utcMsToIso(endUtcMs)
 
-      const startForSave = locRange.start ? { ...locRange.start, id: prefilledStart?.id } : null;
-      const endForSave = locRange.end ? { ...locRange.end, id: prefilledEnd?.id } : null;
+      const startForSave = locRange.start ? { ...locRange.start, id: prefilledStart?.id } : null
+      const endForSave = locRange.end ? { ...locRange.end, id: prefilledEnd?.id } : null
 
       const payload: SegmentSave = {
         tripId,
@@ -348,17 +331,17 @@ export default function SegmentModal({
         comment,
         StartLocation: toLocationDto(startForSave),
         EndLocation: toLocationDto(endForSave),
-      };
+      }
 
-      const isUpdate = !!segment && !isDuplicateMode;
-      const optionIds = selectedOptions.map(Number);
+      const isUpdate = !!segment && !isDuplicateMode
+      const optionIds = selectedOptions.map(Number)
 
       try {
-        if (isUpdate && segment) await handleUpdateConnectedOptions(optionIds);
-        await onSave(payload, isUpdate, segment?.id);
+        if (isUpdate && segment) await handleUpdateConnectedOptions(optionIds)
+        await onSave(payload, isUpdate, segment?.id)
       } catch (err) {
-        console.error("Save flow failed:", err);
-        toast({ title: "Error", description: "Failed to save segment." });
+        console.error("Save flow failed:", err)
+        toast({ title: "Error", description: "Failed to save segment." })
       }
     },
     [
@@ -375,10 +358,10 @@ export default function SegmentModal({
       locRange,
       prefilledStart,
       prefilledEnd,
-    ]
-  );
+    ],
+  )
 
-  const isCreateMode = !segment || isDuplicateMode;
+  const isCreateMode = !segment || isDuplicateMode
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -396,13 +379,7 @@ export default function SegmentModal({
             <Label htmlFor="name" className="text-right text-sm">
               Name
             </Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="col-span-3"
-              required
-            />
+            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" required />
           </div>
 
           {/* Type */}
@@ -422,10 +399,7 @@ export default function SegmentModal({
                   <SelectItem key={type.id} value={type.id.toString()}>
                     <div className="flex items-center">
                       {type.iconSvg ? (
-                        <div
-                          dangerouslySetInnerHTML={{ __html: type.iconSvg as string }}
-                          className="w-4 h-4 mr-2"
-                        />
+                        <div dangerouslySetInnerHTML={{ __html: type.iconSvg as string }} className="w-4 h-4 mr-2" />
                       ) : null}
                       {type.name}
                     </div>
@@ -464,13 +438,7 @@ export default function SegmentModal({
           </Collapsible>
 
           <Collapsible title="Location" open={locationsOpen} onToggle={() => setLocationsOpen((o) => !o)}>
-            <RangeLocationPicker
-              id="segment-where"
-              label=""
-              value={locRange}
-              onChange={setLocRange}
-              compact
-            />
+            <RangeLocationPicker id="segment-where" label="" value={locRange} onChange={setLocRange} compact />
           </Collapsible>
 
           {/* Comment */}
@@ -525,13 +493,7 @@ export default function SegmentModal({
             <div className="flex justify-between w-full">
               <div>
                 {segment && !isDuplicateMode && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDuplicateSegment}
-                    title="Duplicate"
-                  >
+                  <Button type="button" variant="outline" size="sm" onClick={handleDuplicateSegment} title="Duplicate">
                     <CopyIcon className="h-4 w-4" />
                   </Button>
                 )}
@@ -544,5 +506,5 @@ export default function SegmentModal({
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
