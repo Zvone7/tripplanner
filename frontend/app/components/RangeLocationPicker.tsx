@@ -1,42 +1,43 @@
 // components/RangeLocationPicker.tsx
-"use client";
+"use client"
 
-import React, { useEffect, useRef, useState } from "react";
-import { Label } from "./ui/label";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
-import { ScrollArea } from "./ui/scroll-area";
-import type { LocationOption } from "../types/models";
+import React, { useEffect, useRef, useState } from "react"
+import { Label } from "./ui/label"
+import { Input } from "./ui/input"
+import { Button } from "./ui/button"
+import { ScrollArea } from "./ui/scroll-area"
+import { ArrowLeftRight } from "lucide-react"
+import type { LocationOption } from "../types/models"
 
 export interface RangeLocationPickerValue {
-  start: LocationOption | null;
-  end: LocationOption | null;
+  start: LocationOption | null
+  end: LocationOption | null
 }
 
 interface RangeLocationPickerProps {
-  id: string;
-  label?: string;
-  value: RangeLocationPickerValue;
-  onChange: (next: RangeLocationPickerValue) => void;
-  compact?: boolean;
-  searchEndpoint?: string;
-  minChars?: number;
-  debounceMs?: number;
+  id: string
+  label?: string
+  value: RangeLocationPickerValue
+  onChange: (next: RangeLocationPickerValue) => void
+  compact?: boolean
+  searchEndpoint?: string
+  minChars?: number
+  debounceMs?: number
 }
 
 /* -------------------- small utilities -------------------- */
 
 function clsx(...parts: Array<string | false | null | undefined>) {
-  return parts.filter(Boolean).join(" ");
+  return parts.filter(Boolean).join(" ")
 }
 
 function useDebounced<T>(val: T, delay: number) {
-  const [d, setD] = useState(val);
+  const [d, setD] = useState(val)
   useEffect(() => {
-    const t = setTimeout(() => setD(val), delay);
-    return () => clearTimeout(t);
-  }, [val, delay]);
-  return d;
+    const t = setTimeout(() => setD(val), delay)
+    return () => clearTimeout(t)
+  }, [val, delay])
+  return d
 }
 
 /* -------------------- Autocomplete input -------------------- */
@@ -50,140 +51,140 @@ function Autocomplete({
   minChars = 2,
   debounceMs = 500,
 }: {
-  id: string;
-  placeholder?: string;
-  selected: LocationOption | null;
-  onSelected: (loc: LocationOption | null) => void;
-  searchEndpoint?: string;
-  minChars?: number;
-  debounceMs?: number;
+  id: string
+  placeholder?: string
+  selected: LocationOption | null
+  onSelected: (loc: LocationOption | null) => void
+  searchEndpoint?: string
+  minChars?: number
+  debounceMs?: number
 }) {
-  const [query, setQuery] = useState(selected?.formatted || selected?.name || "");
-  const [open, setOpen] = useState(false);
-  const [items, setItems] = useState<LocationOption[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [focusedIdx, setFocusedIdx] = useState(-1);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const debounced = useDebounced(query, debounceMs);
+  const [query, setQuery] = useState(selected?.formatted || selected?.name || "")
+  const [open, setOpen] = useState(false)
+  const [items, setItems] = useState<LocationOption[]>([])
+  const [loading, setLoading] = useState(false)
+  const [focusedIdx, setFocusedIdx] = useState(-1)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const debounced = useDebounced(query, debounceMs)
 
-  const suppressNextSearchRef = useRef(false);
-  const rootRef = useRef<HTMLDivElement>(null);
+  const suppressNextSearchRef = useRef(false)
+  const rootRef = useRef<HTMLDivElement>(null)
 
   // close on outside click
   useEffect(() => {
     const onDocPointerDown = (e: PointerEvent) => {
-      const root = rootRef.current;
-      if (!root) return;
+      const root = rootRef.current
+      if (!root) return
       if (!root.contains(e.target as Node)) {
-        setOpen(false);
+        setOpen(false)
       }
-    };
-    document.addEventListener("pointerdown", onDocPointerDown);
-    return () => document.removeEventListener("pointerdown", onDocPointerDown);
-  }, []);
+    }
+    document.addEventListener("pointerdown", onDocPointerDown)
+    return () => document.removeEventListener("pointerdown", onDocPointerDown)
+  }, [])
 
   useEffect(() => {
     // keep input text aligned when parent changes selected externally
     if (selected) {
-      setQuery(selected.formatted || selected.name);
+      setQuery(selected.formatted || selected.name)
     } else {
-      setQuery("");
+      setQuery("")
     }
-  }, [selected?.providerPlaceId, selected?.name, selected?.formatted]);
+  }, [selected])
 
   useEffect(() => {
     if (suppressNextSearchRef.current) {
-      suppressNextSearchRef.current = false;
-      return;
+      suppressNextSearchRef.current = false
+      return
     }
 
-    let cancelled = false;
-    const q = debounced.trim();
+    let cancelled = false
+    const q = debounced.trim()
     if (q.length < minChars) {
-      setItems([]);
-      setOpen(false);
-      return;
+      setItems([])
+      setOpen(false)
+      return
     }
 
-    setLoading(true);
-    (async () => {
+    setLoading(true)
+    ;(async () => {
       try {
-        const res = await fetch(`${searchEndpoint}?q=${encodeURIComponent(q)}`);
-        if (!res.ok) throw new Error("search failed");
-        const list: LocationOption[] = await res.json();
+        const res = await fetch(`${searchEndpoint}?q=${encodeURIComponent(q)}`)
+        if (!res.ok) throw new Error("search failed")
+        const list: LocationOption[] = await res.json()
         if (!cancelled) {
-          setItems(list);
-          setOpen(true);
-          setFocusedIdx(list.length ? 0 : -1);
+          setItems(list)
+          setOpen(true)
+          setFocusedIdx(list.length ? 0 : -1)
         }
       } catch {
         if (!cancelled) {
-          setItems([]);
-          setOpen(false);
+          setItems([])
+          setOpen(false)
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setLoading(false)
       }
-    })();
+    })()
 
     return () => {
-      cancelled = true;
-    };
-  }, [debounced, minChars, searchEndpoint]);
+      cancelled = true
+    }
+  }, [debounced, minChars, searchEndpoint])
 
   const selectItem = (itm: LocationOption) => {
-    onSelected(itm);
+    onSelected(itm)
 
-    suppressNextSearchRef.current = true;
-    setQuery(itm.formatted || itm.name);
-    setItems([]);
-    setFocusedIdx(-1);
-    setOpen(false);
+    suppressNextSearchRef.current = true
+    setQuery(itm.formatted || itm.name)
+    setItems([])
+    setFocusedIdx(-1)
+    setOpen(false)
 
-    inputRef.current?.blur();
-  };
+    inputRef.current?.blur()
+  }
 
   const clearSelection = () => {
-    onSelected(null);
+    onSelected(null)
 
     // Avoid a new fetch due to empty string; also close the list
-    suppressNextSearchRef.current = true;
-    setQuery("");
-    setItems([]);
-    setFocusedIdx(-1);
-    setOpen(false);
-  };
+    suppressNextSearchRef.current = true
+    setQuery("")
+    setItems([])
+    setFocusedIdx(-1)
+    setOpen(false)
+  }
 
   return (
-     <div ref={rootRef} className="relative w-full md:w-80">
+    <div ref={rootRef} className="relative w-full md:w-80">
       <Input
         id={id}
         ref={inputRef}
         placeholder={placeholder ?? "Search city, country"}
         value={query}
         onChange={(e) => {
-          setQuery(e.target.value);
-          setOpen(true);
+          setQuery(e.target.value)
+          setOpen(true)
         }}
         onFocus={() => {
           // show existing list if we already have results
-          if (items.length) setOpen(true);
+          if (items.length) setOpen(true)
         }}
         onKeyDown={(e) => {
-          if (!open) return;
+          if (!open) return
           if (e.key === "ArrowDown") {
-            e.preventDefault();
-            setFocusedIdx((i) => Math.min(i + 1, items.length - 1));
+            e.preventDefault()
+            setFocusedIdx((i) => Math.min(i + 1, items.length - 1))
           } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            setFocusedIdx((i) => Math.max(i - 1, 0));
+            e.preventDefault()
+            setFocusedIdx((i) => Math.max(i - 1, 0))
           } else if (e.key === "Enter") {
             if (focusedIdx >= 0 && items[focusedIdx]) {
-              e.preventDefault();
-              selectItem(items[focusedIdx]);
+              e.preventDefault()
+              selectItem(items[focusedIdx])
             }
           } else if (e.key === "Escape") {
-            setOpen(false);
+            setOpen(false)
           }
         }}
         className="text-sm"
@@ -218,26 +219,26 @@ function Autocomplete({
             ) : (
               <ul role="listbox" aria-labelledby={id}>
                 {items.map((itm, idx) => {
-                  const label = itm.formatted || (itm.country ? `${itm.name}, ${itm.country}` : itm.name);
+                  const label = itm.formatted || (itm.country ? `${itm.name}, ${itm.country}` : itm.name)
                   return (
                     <li
                       key={`${itm.provider}-${itm.providerPlaceId}`}
                       role="option"
                       aria-selected={idx === focusedIdx}
                       onMouseDown={(e) => {
-                        e.preventDefault();
-                        selectItem(itm);
+                        e.preventDefault()
+                        selectItem(itm)
                       }}
                       onMouseEnter={() => setFocusedIdx(idx)}
                       className={clsx(
                         "px-3 py-2 text-sm cursor-pointer",
-                        idx === focusedIdx ? "bg-accent" : "hover:bg-accent/60"
+                        idx === focusedIdx ? "bg-accent" : "hover:bg-accent/60",
                       )}
                       title={label || undefined}
                     >
                       {label}
                     </li>
-                  );
+                  )
                 })}
               </ul>
             )}
@@ -245,7 +246,7 @@ function Autocomplete({
         </div>
       )}
     </div>
-  );
+  )
 }
 
 /* -------------------- RangeLocationPicker -------------------- */
@@ -261,8 +262,14 @@ export const RangeLocationPicker: React.FC<RangeLocationPickerProps> = React.mem
     minChars = 2,
     debounceMs = 250,
   }) => {
-    const { start, end } = value;
-    const grid = compact ? "grid grid-cols-4 items-center gap-2" : "grid grid-cols-4 items-center gap-3";
+    const { start, end } = value
+    const grid = compact ? "grid grid-cols-4 items-center gap-2" : "grid grid-cols-4 items-center gap-3"
+
+    const handleSwap = () => {
+      if (start && end) {
+        onChange({ start: end, end: start })
+      }
+    }
 
     return (
       <div className="space-y-3">
@@ -318,25 +325,32 @@ export const RangeLocationPicker: React.FC<RangeLocationPickerProps> = React.mem
               </div>
             </div>
 
-            {/* Clear end button, left aligned under end input */}
             <div className={grid}>
               <Label className="text-right text-sm" />
-              <div className="col-span-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onChange({ ...value, end: null })}
-                >
-                  Remove destination location
+              <div className="col-span-3 flex items-center gap-2">
+                {/* Swap button - only show when both start and end are provided */}
+                {start && end && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSwap}
+                    title="Swap start and destination"
+                  >
+                    <ArrowLeftRight className="h-4 w-4 mr-1" />
+                    Swap
+                  </Button>
+                )}
+                <Button type="button" variant="outline" size="sm" onClick={() => onChange({ ...value, end: null })}>
+                  Remove destination
                 </Button>
               </div>
             </div>
           </div>
         )}
       </div>
-    );
-  }
-);
+    )
+  },
+)
 
-RangeLocationPicker.displayName = "RangeLocationPicker";
+RangeLocationPicker.displayName = "RangeLocationPicker"
