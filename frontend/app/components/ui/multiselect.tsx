@@ -10,7 +10,7 @@ import {
 
 export type OptionType = {
   value: string
-  label: string
+  label: React.ReactNode
 }
 
 interface MultiSelectProps {

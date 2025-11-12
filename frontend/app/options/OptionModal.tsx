@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Dialog, DialogClose, DialogContent, DialogTitle } from "../components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "../components/ui/dialog";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
-import { SaveIcon, Trash2Icon, EyeOffIcon, SlidersHorizontal, XIcon } from "lucide-react";
+import { SaveIcon, Trash2Icon, EyeOffIcon, SlidersHorizontal } from "lucide-react";
 import type { SegmentType, SegmentApi, OptionApi, OptionSave } from "../types/models";
 import { formatDateWithUserOffset } from "../utils/formatters";
 import { cn } from "../lib/utils";
@@ -218,18 +218,13 @@ export default function OptionModal({
             <div className="border-b bg-background px-4 py-3">
               <h2 className="text-lg font-semibold mb-3">{option ? `Edit Option: ${name}` : "Create Option"}</h2>
 
-              <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2">
                 <div className="flex items-center gap-2 text-sm">
                   <Label htmlFor="option-ui-visible" className="cursor-pointer">
                     {isUiVisible ? "UI visible" : "UI hidden"}
                   </Label>
                   <Switch id="option-ui-visible" checked={isUiVisible} onCheckedChange={setIsUiVisible} />
                 </div>
-                <DialogClose asChild>
-                  <Button variant="ghost" size="icon" aria-label="Close option modal">
-                    <XIcon className="h-4 w-4" />
-                  </Button>
-                </DialogClose>
               </div>
 
               <div className="flex items-center justify-between gap-2">

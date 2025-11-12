@@ -6,14 +6,25 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 import { PlusIcon, LayoutIcon, EditIcon, EyeOffIcon, SlidersHorizontal } from "lucide-react";
 import OptionModal from "./OptionModal";
 import { formatDateStr } from "../utils/formatters";
 import { Switch } from "../components/ui/switch";
 import { cn } from "../lib/utils";
+import { MultiSelect } from "../components/ui/multiselect";
 
 // shared API types
 import type { OptionApi, OptionSave, SegmentApi, SegmentType } from "../types/models";
+
+const getLocationLabel = (loc: any | null) => {
+  if (!loc) return "";
+  const name = loc.name ?? "";
+  const country = loc.country ?? "";
+  const label = country ? `${name}, ${country}` : name;
+  return label;
+};
 
 /* ---------------------------------- helpers ---------------------------------- */
 
@@ -196,7 +207,7 @@ function OptionCard({
   return (
     <Card
       className={cn(
-        "hover:shadow-sm transition-shadow border cursor-pointer",
+        "hover:shadow-sm transition-all duration-200 ease-in-out border cursor-pointer hover:-translate-y-0.5",
         isHidden && "bg-muted text-muted-foreground border-muted-foreground/40"
       )}
       onClick={() => onEdit(option)}
@@ -269,6 +280,8 @@ export default function OptionsPageContent() {
   const [tripName, setTripName] = useState<string>("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [showHiddenOptions, setShowHiddenOptions] = useState(false);
+  const [locationFilters, setLocationFilters] = useState<string[]>([]);
+  const [dateFilter, setDateFilter] = useState<{ start: string; end: string }>({ start: "", end: "" });
 
   const searchParams = useSearchParams();
   const tripId = searchParams.get("tripId");
@@ -372,6 +385,21 @@ export default function OptionsPageContent() {
     }
   }, [options, segmentTypes, getConnectedSegments]);
 
+  const locationFilterOptions = useMemo(() => {
+    const labels = new Set<string>();
+    segments.forEach((segment) => {
+      const startLoc = (segment as any).startLocation ?? (segment as any).StartLocation ?? null;
+      const endLoc = (segment as any).endLocation ?? (segment as any).EndLocation ?? null;
+      const startLabel = getLocationLabel(startLoc);
+      const endLabel = getLocationLabel(endLoc);
+      if (startLabel) labels.add(startLabel);
+      if (endLabel) labels.add(endLabel);
+    });
+    return Array.from(labels)
+      .sort((a, b) => a.localeCompare(b))
+      .map((label) => ({ value: label, label }));
+  }, [segments]);
+
   const handleEditOption = (option: OptionApi) => {
     setEditingOption(option);
     setIsModalOpen(true);
@@ -412,10 +440,54 @@ export default function OptionsPageContent() {
     }
   };
 
-  const filteredOptions = useMemo(
-    () => options.filter((option) => (showHiddenOptions ? true : option.isUiVisible !== false)),
-    [options, showHiddenOptions]
-  );
+  const filteredOptions = useMemo(() => {
+    const startDate = dateFilter.start ? new Date(dateFilter.start) : null;
+    if (startDate) startDate.setHours(0, 0, 0, 0);
+    const endDate = dateFilter.end ? new Date(dateFilter.end) : null;
+    if (endDate) endDate.setHours(23, 59, 59, 999);
+
+    return options.filter((option) => {
+      if (!showHiddenOptions && option.isUiVisible === false) return false;
+
+      const connected = connectedSegments[option.id] || [];
+
+      if (locationFilters.length > 0) {
+        const matchesLocation = connected.some((segment) => {
+          const startLoc = (segment as any).startLocation ?? (segment as any).StartLocation ?? null;
+          const endLoc = (segment as any).endLocation ?? (segment as any).EndLocation ?? null;
+          const startLabel = getLocationLabel(startLoc);
+          const endLabel = getLocationLabel(endLoc);
+          return locationFilters.some((loc) => loc === startLabel || loc === endLabel);
+        });
+        if (!matchesLocation) return false;
+      }
+
+      if (startDate || endDate) {
+        const matchesDate = connected.some((segment) => {
+          const segmentStart = new Date(segment.startDateTimeUtc);
+          const segmentEnd = new Date(segment.endDateTimeUtc);
+          if (startDate && segmentStart < startDate && segmentEnd < startDate) {
+            return false;
+          }
+          if (endDate && segmentStart > endDate && segmentEnd > endDate) {
+            return false;
+          }
+          return true;
+        });
+        if (!matchesDate) return false;
+      }
+
+      return true;
+    });
+  }, [options, showHiddenOptions, connectedSegments, locationFilters, dateFilter]);
+
+  const hasOptionFilters =
+    locationFilters.length > 0 || Boolean(dateFilter.start) || Boolean(dateFilter.end);
+
+  const resetOptionFilters = () => {
+    setLocationFilters([]);
+    setDateFilter({ start: "", end: "" });
+  };
 
   if (!tripId) {
     return <div>No trip ID provided</div>;
@@ -458,12 +530,51 @@ export default function OptionsPageContent() {
         </div>
 
         {filtersOpen && (
-          <div className="flex items-center justify-between rounded-md border p-3 mb-4">
-            <div>
-              <p className="text-sm font-medium">Show hidden options</p>
-              <p className="text-xs text-muted-foreground">Toggle to include options hidden from the UI.</p>
+          <div className="space-y-4 rounded-md border p-4 mb-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <Label className="mb-1 block text-sm font-medium">Locations</Label>
+                <MultiSelect
+                  options={locationFilterOptions}
+                  selected={locationFilters}
+                  onChange={setLocationFilters}
+                  placeholder="Select locations"
+                />
+              </div>
+              <div className="grid gap-2 md:grid-cols-2">
+                <div>
+                  <Label className="mb-1 block text-sm font-medium">Start date</Label>
+                  <Input
+                    type="date"
+                    value={dateFilter.start}
+                    onChange={(e) => setDateFilter((prev) => ({ ...prev, start: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label className="mb-1 block text-sm font-medium">End date</Label>
+                  <Input
+                    type="date"
+                    value={dateFilter.end}
+                    onChange={(e) => setDateFilter((prev) => ({ ...prev, end: e.target.value }))}
+                  />
+                </div>
+              </div>
             </div>
-            <Switch checked={showHiddenOptions} onCheckedChange={(checked) => setShowHiddenOptions(Boolean(checked))} />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm">
+                <span>Show hidden options</span>
+                <Switch
+                  checked={showHiddenOptions}
+                  onCheckedChange={(checked) => setShowHiddenOptions(Boolean(checked))}
+                  aria-label="Show hidden options"
+                />
+              </div>
+              {hasOptionFilters && (
+                <Button variant="ghost" size="sm" onClick={resetOptionFilters}>
+                  Reset filters
+                </Button>
+              )}
+            </div>
           </div>
         )}
 

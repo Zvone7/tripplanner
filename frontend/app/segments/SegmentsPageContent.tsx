@@ -5,14 +5,25 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 import { PlusIcon, ListIcon, EditIcon, EyeOffIcon, SlidersHorizontal } from "lucide-react";
 import SegmentModal from "../segments/SegmentModal";
 import { formatDateWithUserOffset } from "../utils/formatters";
 import { OptionBadge } from "../components/OptionBadge";
 import { Switch } from "../components/ui/switch";
 import { cn } from "../lib/utils";
+import { MultiSelect } from "../components/ui/multiselect";
 
 import type { Segment, SegmentType, OptionRef, User, SegmentSave } from "../types/models";
+
+const getLocationLabel = (loc: any | null) => {
+  if (!loc) return "";
+  const name = loc.name ?? "";
+  const country = loc.country ?? "";
+  const label = country ? `${name}, ${country}` : name;
+  return label;
+};
 
 /* ------------------------- Card Component ------------------------- */
 
@@ -36,22 +47,14 @@ function SegmentCard({
 
   // location can arrive as startLocation/endLocation or StartLocation/EndLocation
   const startLoc = (segment as any).startLocation ?? (segment as any).StartLocation ?? null;
-  const endLoc   = (segment as any).endLocation   ?? (segment as any).EndLocation   ?? null;
-
-  const fmtLoc = (loc: any | null) => {
-    if (!loc) return "";
-    const name = loc.name ?? "";
-    const country = loc.country ?? "";
-    const label = country ? `${name}, ${country}` : name;
-    return label ? ` (${label})` : "";
-  };
+  const endLoc = (segment as any).endLocation ?? (segment as any).EndLocation ?? null;
 
   const isHidden = segment.isUiVisible === false;
 
   return (
     <Card
       className={cn(
-        "cursor-pointer hover:bg-muted/50 transition-colors",
+        "cursor-pointer hover:bg-muted/50 transition-all duration-200 ease-in-out hover:-translate-y-0.5",
         isHidden && "bg-muted text-muted-foreground border-muted-foreground/40"
       )}
       onClick={() => onEdit(segment)}
@@ -89,11 +92,11 @@ function SegmentCard({
               <div className="space-y-1">
                 <div>
                   {formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset)}
-                  {fmtLoc(startLoc)}
+                  {startLoc ? ` (${getLocationLabel(startLoc)})` : ""}
                 </div>
                 <div>
                   {formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset)}
-                  {fmtLoc(endLoc)}
+                  {endLoc ? ` (${getLocationLabel(endLoc)})` : ""}
                 </div>
                 <div>${segment.cost.toFixed(2)}</div>
                 <div className="text-xs text-muted-foreground">
@@ -145,6 +148,9 @@ export default function SegmentsPage() {
   const [connectedBySegment, setConnectedBySegment] = useState<Record<number, OptionRef[]>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [showHiddenSegments, setShowHiddenSegments] = useState(false);
+  const [locationFilters, setLocationFilters] = useState<string[]>([]);
+  const [typeFilters, setTypeFilters] = useState<string[]>([]);
+  const [dateFilter, setDateFilter] = useState<{ start: string; end: string }>({ start: "", end: "" });
 
   const searchParams = useSearchParams();
   const tripId = searchParams.get("tripId");
@@ -293,10 +299,84 @@ export default function SegmentsPage() {
     }
   };
 
-  const filteredSegments = useMemo(
-    () => segments.filter((segment) => (showHiddenSegments ? true : segment.isUiVisible !== false)),
-    [segments, showHiddenSegments]
-  );
+  const locationFilterOptions = useMemo(() => {
+    const labels = new Set<string>();
+    segments.forEach((segment) => {
+      const startLoc = (segment as any).startLocation ?? (segment as any).StartLocation ?? null;
+      const endLoc = (segment as any).endLocation ?? (segment as any).EndLocation ?? null;
+      const startLabel = getLocationLabel(startLoc);
+      const endLabel = getLocationLabel(endLoc);
+      if (startLabel) labels.add(startLabel);
+      if (endLabel) labels.add(endLabel);
+    });
+    return Array.from(labels)
+      .sort((a, b) => a.localeCompare(b))
+      .map((label) => ({ value: label, label }));
+  }, [segments]);
+
+  const segmentTypeFilterOptions = useMemo(() => {
+    const ids = new Set<number>();
+    segments.forEach((segment) => ids.add(segment.segmentTypeId));
+    return Array.from(ids)
+      .map((id) => segmentTypes.find((type) => type.id === id))
+      .filter((type): type is SegmentType => Boolean(type))
+      .map((type) => ({
+        value: type.id.toString(),
+        label: (
+          <div className="flex items-center gap-2">
+            {type.iconSvg ? (
+              <span className="w-4 h-4" dangerouslySetInnerHTML={{ __html: type.iconSvg }} />
+            ) : null}
+            <span>{type.name}</span>
+          </div>
+        ),
+      }));
+  }, [segments, segmentTypes]);
+
+  const filteredSegments = useMemo(() => {
+    const startDate = dateFilter.start ? new Date(dateFilter.start) : null;
+    if (startDate) startDate.setHours(0, 0, 0, 0);
+    const endDate = dateFilter.end ? new Date(dateFilter.end) : null;
+    if (endDate) endDate.setHours(23, 59, 59, 999);
+
+    return segments.filter((segment) => {
+      if (!showHiddenSegments && segment.isUiVisible === false) return false;
+
+      const startLoc = (segment as any).startLocation ?? (segment as any).StartLocation ?? null;
+      const endLoc = (segment as any).endLocation ?? (segment as any).EndLocation ?? null;
+      const startLabel = getLocationLabel(startLoc);
+      const endLabel = getLocationLabel(endLoc);
+
+      if (
+        locationFilters.length > 0 &&
+        !locationFilters.some((loc) => loc === startLabel || loc === endLabel)
+      ) {
+        return false;
+      }
+
+      if (typeFilters.length > 0 && !typeFilters.includes(segment.segmentTypeId.toString())) {
+        return false;
+      }
+
+      if (startDate || endDate) {
+        const segmentStart = new Date(segment.startDateTimeUtc);
+        const segmentEnd = new Date(segment.endDateTimeUtc);
+        if (startDate && segmentStart < startDate && segmentEnd < startDate) return false;
+        if (endDate && segmentStart > endDate && segmentEnd > endDate) return false;
+      }
+
+      return true;
+    });
+  }, [segments, showHiddenSegments, locationFilters, typeFilters, dateFilter]);
+
+  const hasActiveFilters =
+    locationFilters.length > 0 || typeFilters.length > 0 || Boolean(dateFilter.start) || Boolean(dateFilter.end);
+
+  const resetFilters = () => {
+    setLocationFilters([]);
+    setTypeFilters([]);
+    setDateFilter({ start: "", end: "" });
+  };
 
   if (!tripId) {
     return <div>No trip ID provided</div>;
@@ -339,12 +419,60 @@ export default function SegmentsPage() {
         </div>
 
         {filtersOpen && (
-          <div className="flex items-center justify-between rounded-md border p-3 mb-4">
-            <div>
-              <p className="text-sm font-medium">Show hidden segments</p>
-              <p className="text-xs text-muted-foreground">Toggle to include segments hidden from the UI.</p>
+          <div className="space-y-4 rounded-md border p-4 mb-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <Label className="mb-1 block text-sm font-medium">Locations</Label>
+                <MultiSelect
+                  options={locationFilterOptions}
+                  selected={locationFilters}
+                  onChange={setLocationFilters}
+                  placeholder="Select locations"
+                />
+              </div>
+              <div>
+                <Label className="mb-1 block text-sm font-medium">Segment types</Label>
+                <MultiSelect
+                  options={segmentTypeFilterOptions}
+                  selected={typeFilters}
+                  onChange={setTypeFilters}
+                  placeholder="Select segment types"
+                />
+              </div>
             </div>
-            <Switch checked={showHiddenSegments} onCheckedChange={(checked) => setShowHiddenSegments(Boolean(checked))} />
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <Label className="mb-1 block text-sm font-medium">Start date</Label>
+                <Input
+                  type="date"
+                  value={dateFilter.start}
+                  onChange={(e) => setDateFilter((prev) => ({ ...prev, start: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label className="mb-1 block text-sm font-medium">End date</Label>
+                <Input
+                  type="date"
+                  value={dateFilter.end}
+                  onChange={(e) => setDateFilter((prev) => ({ ...prev, end: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm">
+                <span>Show hidden segments</span>
+                <Switch
+                  checked={showHiddenSegments}
+                  onCheckedChange={(checked) => setShowHiddenSegments(Boolean(checked))}
+                  aria-label="Show hidden segments"
+                />
+              </div>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={resetFilters}>
+                  Reset filters
+                </Button>
+              )}
+            </div>
           </div>
         )}
 
