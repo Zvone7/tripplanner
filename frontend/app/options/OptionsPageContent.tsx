@@ -413,7 +413,18 @@ export default function OptionsPageContent() {
     }
   }, [options, segmentTypes, getConnectedSegments, segmentLookup])
 
-  const optionMetadata = useMemo(() => buildOptionMetadata(segments), [segments]);
+  const connectedSegmentList = useMemo(() => {
+    const list: SegmentApi[] = []
+    Object.values(connectedSegments).forEach((segmentsArr) => {
+      list.push(...segmentsArr)
+    })
+    return list
+  }, [connectedSegments])
+
+  const optionMetadata = useMemo(() => {
+    const source = connectedSegmentList.length ? connectedSegmentList : segments
+    return buildOptionMetadata(source)
+  }, [connectedSegmentList, segments]);
 
   const handleEditOption = (option: OptionApi) => {
     setEditingOption(option);

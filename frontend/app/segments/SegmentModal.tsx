@@ -3,7 +3,7 @@
 import type React from "react"
 import type { JSX } from "react"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "../components/ui/dialog"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
@@ -37,6 +37,7 @@ import type {
   SegmentSave,
   LocationOption,
   SegmentType,
+  SegmentApi,
 } from "../types/models"
 
 import { RangeDateTimePicker, type RangeDateTimePickerValue } from "../components/RangeDateTimePicker"
@@ -44,6 +45,8 @@ import { RangeDateTimePicker, type RangeDateTimePickerValue } from "../component
 import { RangeLocationPicker, type RangeLocationPickerValue } from "../components/RangeLocationPicker"
 
 import { localToUtcMs, utcMsToIso, utcIsoToLocalInput } from "../lib/utils"
+
+const arraysEqual = (a: number[], b: number[]) => a.length === b.length && a.every((val, idx) => val === b[idx])
 
 /* ------------------------- comment preview helper ------------------------- */
 
@@ -137,6 +140,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
   const [isDuplicateMode, setIsDuplicateMode] = useState(false)
   const [userPreferredOffset, setUserPreferredOffset] = useState<number>(0)
   const [isUiVisible, setIsUiVisible] = useState(true)
+  const [baselineReady, setBaselineReady] = useState(!segment)
 
   // State for delete confirmation dialog
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -185,6 +189,52 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     setShowHiddenOptionsFilter(false)
   }, [segment?.id, isDuplicateMode])
 
+  const initialSelectedOptionsRef = useRef<number[] | null>(null)
+
+  type SegmentBaseline = {
+    name: string
+    startLocal: string
+    endLocal: string | null
+    startOffsetH: number
+    endOffsetH: number | null
+    cost: string
+    comment: string
+    segmentTypeId: number | null
+    isUiVisible: boolean
+    startLocation: LocationOption | null
+    endLocation: LocationOption | null
+  }
+
+  const segmentBaselineRef = useRef<SegmentBaseline | null>(null)
+
+  const buildSegmentBaseline = (segmentData: SegmentApi): SegmentBaseline => {
+    const sOff = segmentData.startDateTimeUtcOffset ?? 0
+    const eOff = segmentData.endDateTimeUtcOffset ?? sOff
+    const startLocalVal = utcIsoToLocalInput(segmentData.startDateTimeUtc, sOff)
+    const endLocalRaw = utcIsoToLocalInput(segmentData.endDateTimeUtc, eOff)
+    const endIsSame = segmentData.endDateTimeUtc === segmentData.startDateTimeUtc && eOff === sOff
+
+    const startLocRaw = (segmentData as any)?.startLocation ?? (segmentData as any)?.StartLocation
+    const endLocRaw = (segmentData as any)?.endLocation ?? (segmentData as any)?.EndLocation
+
+    const startNorm = normalizeLocation(startLocRaw)
+    const endNorm = normalizeLocation(endLocRaw)
+
+    return {
+      name: segmentData.name ?? "",
+      startLocal: startLocalVal,
+      endLocal: endIsSame ? null : endLocalRaw,
+      startOffsetH: sOff,
+      endOffsetH: endIsSame ? null : eOff,
+      cost: String(segmentData.cost ?? ""),
+      comment: segmentData.comment ?? "",
+      segmentTypeId: segmentData.segmentTypeId ?? null,
+      isUiVisible: (segmentData as any)?.isUiVisible ?? true,
+      startLocation: startNorm ?? null,
+      endLocation: endNorm ?? null,
+    }
+  }
+
   const fetchConnectedOptions = useCallback(
     async (segmentId: number) => {
       try {
@@ -193,10 +243,15 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
         const data: Option[] = await response.json()
         const ids = data.map((o) => Number(o.id))
 
-        if (!optionsTouched) setSelectedOptions(ids)
+        if (!optionsTouched) {
+          setSelectedOptions(ids)
+          initialSelectedOptionsRef.current = [...ids].sort((a, b) => a - b)
+          setBaselineReady(true)
+        }
       } catch (error) {
         console.error("Error fetching connected options:", error)
         toast({ title: "Error", description: "Failed to fetch connected options. Please try again." })
+        setBaselineReady(true)
       }
     },
     [tripId, optionsTouched, toast],
@@ -207,6 +262,9 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     setOptionsTouched(false)
 
     if (segment) {
+      segmentBaselineRef.current = buildSegmentBaseline(segment)
+      setBaselineReady(false)
+      initialSelectedOptionsRef.current = null
       setName(segment.name)
 
       const sOff = segment.startDateTimeUtcOffset ?? 0
@@ -250,6 +308,9 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
 
       fetchConnectedOptions(segment.id)
     } else {
+      segmentBaselineRef.current = null
+      initialSelectedOptionsRef.current = null
+      setBaselineReady(true)
       setName("")
       setRange({
         startLocal: "",
@@ -342,10 +403,65 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       })
     }
   }
+  
+  const filteredOptionsForDisplay = useMemo(() => {
+    if (!segment || isDuplicateMode) return []
+    if (showHiddenOptionsFilter) return options
+    return options.filter((option) => (option as any)?.isUiVisible !== false)
+  }, [segment, isDuplicateMode, options, showHiddenOptionsFilter])
+
+  const isCreateMode = !segment || isDuplicateMode
+  const hasChanges = useMemo(() => {
+    if (isCreateMode) return true
+    if (!segment || !baselineReady) return false
+
+    const baseline = segmentBaselineRef.current
+    const baselineOptions = initialSelectedOptionsRef.current
+    if (!baseline || baselineOptions === null) return false
+
+    if (baseline.name !== name) return true
+    if (baseline.cost !== cost) return true
+    if ((baseline.comment ?? "") !== (comment ?? "")) return true
+    if ((baseline.segmentTypeId ?? null) !== (segmentTypeId ?? null)) return true
+    if (baseline.isUiVisible !== isUiVisible) return true
+
+    if (baseline.startLocal !== range.startLocal) return true
+    if ((baseline.endLocal ?? null) !== (range.endLocal ?? null)) return true
+    if (baseline.startOffsetH !== range.startOffsetH) return true
+    if ((baseline.endOffsetH ?? null) !== (range.endOffsetH ?? null)) return true
+
+    const currentStartSig = JSON.stringify(locRange.start ?? null)
+    const baselineStartSig = JSON.stringify(baseline.startLocation ?? null)
+    if (currentStartSig !== baselineStartSig) return true
+
+    const currentEndSig = JSON.stringify(locRange.end ?? null)
+    const baselineEndSig = JSON.stringify(baseline.endLocation ?? null)
+    if (currentEndSig !== baselineEndSig) return true
+
+    const sortedCurrentOptions = [...selectedOptions].sort((a, b) => a - b)
+    if (!arraysEqual(sortedCurrentOptions, baselineOptions)) return true
+
+    return false
+  }, [
+    isCreateMode,
+    segment,
+    baselineReady,
+    name,
+    cost,
+    comment,
+    segmentTypeId,
+    isUiVisible,
+    range,
+    locRange,
+    selectedOptions,
+  ])
+  const isSaveDisabled = isCreateMode ? false : (!baselineReady || !hasChanges)
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
+
+      if (isSaveDisabled) return
 
       if (segmentTypeId === null) {
         toast({ title: "Error", description: "Please select a segment type." })
@@ -421,17 +537,14 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       prefilledStart,
       prefilledEnd,
       isUiVisible,
+      isSaveDisabled,
       handleUpdateConnectedOptions,
+      toast,
     ],
   )
 
-  const filteredOptionsForDisplay = useMemo(() => {
-    if (!segment || isDuplicateMode) return []
-    if (showHiddenOptionsFilter) return options
-    return options.filter((option) => (option as any)?.isUiVisible !== false)
-  }, [segment, isDuplicateMode, options, showHiddenOptionsFilter])
 
-  const isCreateMode = !segment || isDuplicateMode
+
 
   return (
     <>
@@ -477,7 +590,13 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
                   </Button>
                 )}
 
-                <Button type="submit" size="sm" className="bg-primary hover:bg-primary/90" onClick={handleSubmit}>
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={handleSubmit}
+                  disabled={isSaveDisabled}
+                >
                   <SaveIcon className="h-4 w-4" />
                 </Button>
               </div>

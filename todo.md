@@ -1,9 +1,6 @@
-when x-ing out of modal. dont refresh lists
 
 -------------------------
-
-if no changes were made, dont allow clicking save changes
-
+if no changes were made, dont allow clicking save changes - both on optionsmodal and segmentsmodal
 
 -------------------------
 add a title to segment and option models - desribing the option briefly based on values

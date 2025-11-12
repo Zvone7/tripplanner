@@ -1,7 +1,7 @@
 // components/OptionModal.tsx
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogTitle } from "../components/ui/dialog";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -24,6 +24,8 @@ import { SaveIcon, Trash2Icon, EyeOffIcon, SlidersHorizontal } from "lucide-reac
 import type { SegmentType, SegmentApi, OptionApi, OptionSave } from "../types/models";
 import { formatDateWithUserOffset } from "../utils/formatters";
 import { cn } from "../lib/utils";
+
+const arraysEqual = (a: number[], b: number[]) => a.length === b.length && a.every((val, idx) => val === b[idx])
 interface OptionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -55,6 +57,11 @@ export default function OptionModal({
   const [userPreferredOffset, setUserPreferredOffset] = useState<number>(0);
   const [isUiVisible, setIsUiVisible] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [baselineReady, setBaselineReady] = useState(!option);
+  const optionBaselineRef = useRef<{ name: string; isUiVisible: boolean } | null>(
+    option ? { name: option.name ?? "", isUiVisible: option.isUiVisible ?? true } : null,
+  );
+  const initialSelectedSegmentsRef = useRef<number[] | null>(null);
   const [segmentsFilterOpen, setSegmentsFilterOpen] = useState(false);
   const [showHiddenSegmentsFilter, setShowHiddenSegmentsFilter] = useState(false);
 
@@ -94,24 +101,37 @@ export default function OptionModal({
     }
   }, []);
 
-  const fetchConnectedSegments = useCallback(async (optionId: number) => {
-    try {
-      const response = await fetch(`/api/Option/GetConnectedSegments?tripId=${tripId}&optionId=${optionId}`);
-      if (!response.ok) throw new Error("Failed to fetch connected segments");
-      const data: SegmentApi[] = await response.json();
-      setSelectedSegments(data.map((segment) => segment.id));
-    } catch (error) {
-      console.error("Error fetching connected segments:", error);
-      toast({ title: "Error", description: "Failed to fetch connected segments. Please try again." });
-    }
-  }, [tripId]);
+  const fetchConnectedSegments = useCallback(
+    async (optionId: number) => {
+      try {
+        const response = await fetch(`/api/Option/GetConnectedSegments?tripId=${tripId}&optionId=${optionId}`);
+        if (!response.ok) throw new Error("Failed to fetch connected segments");
+        const data: SegmentApi[] = await response.json();
+        const ids = data.map((segment) => segment.id);
+        setSelectedSegments(ids);
+        initialSelectedSegmentsRef.current = [...ids].sort((a, b) => a - b);
+        setBaselineReady(true);
+      } catch (error) {
+        console.error("Error fetching connected segments:", error);
+        toast({ title: "Error", description: "Failed to fetch connected segments. Please try again." });
+        setBaselineReady(true);
+      }
+    },
+    [tripId, toast],
+  );
 
   useEffect(() => {
     if (option) {
+      optionBaselineRef.current = { name: option.name ?? "", isUiVisible: option.isUiVisible ?? true };
+      setBaselineReady(false);
+      initialSelectedSegmentsRef.current = null;
       setName(option.name);
       setIsUiVisible(option.isUiVisible ?? true);
       void fetchConnectedSegments(option.id);
     } else {
+      optionBaselineRef.current = null;
+      initialSelectedSegmentsRef.current = null;
+      setBaselineReady(true);
       setName("");
       setSelectedSegments([]);
       setIsUiVisible(true);
@@ -128,6 +148,7 @@ export default function OptionModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaveDisabled) return;
 
     const payload: OptionSave = {
       name,
@@ -203,6 +224,21 @@ export default function OptionModal({
 
   const isEditing = Boolean(option);
 
+  const hasChanges = useMemo(() => {
+    if (!isEditing) return true;
+    if (!baselineReady) return false;
+    const baseline = optionBaselineRef.current;
+    const baselineSegments = initialSelectedSegmentsRef.current;
+    if (!baseline || baselineSegments === null) return false;
+    if (baseline.name !== name) return true;
+    if (baseline.isUiVisible !== isUiVisible) return true;
+    const sortedCurrent = [...selectedSegments].sort((a, b) => a - b);
+    if (!arraysEqual(sortedCurrent, baselineSegments)) return true;
+    return false;
+  }, [isEditing, baselineReady, name, isUiVisible, selectedSegments]);
+
+  const isSaveDisabled = isEditing ? !hasChanges : false;
+
   const filteredSegmentsForDisplay = useMemo(() => {
     if (!option) return [];
     if (showHiddenSegmentsFilter) return segments;
@@ -241,7 +277,12 @@ export default function OptionModal({
                     </Button>
                   )}
                 </div>
-                <Button type="submit" size="sm" className="bg-primary hover:bg-primary/90">
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90"
+                  disabled={isSaveDisabled}
+                >
                   <SaveIcon className="h-4 w-4" />
                 </Button>
               </div>
