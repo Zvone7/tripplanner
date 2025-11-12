@@ -164,6 +164,7 @@ export default function OptionModal({
       if (!response.ok) throw new Error("Failed to update connected segments");
 
       toast({ title: "Success", description: "Connected segments updated successfully" });
+      refreshOptions();
       handleClose();
     } catch (error) {
       console.error("Error updating connected segments:", error);
@@ -181,7 +182,6 @@ export default function OptionModal({
 
   const handleClose = () => {
     onClose();
-    refreshOptions();
   };
 
   const handleDelete = async () => {
@@ -193,6 +193,7 @@ export default function OptionModal({
       if (!response.ok) throw new Error("Failed to delete option");
       toast({ title: "Deleted", description: `"${option.name}" has been removed.` });
       setShowDeleteConfirm(false);
+      refreshOptions();
       handleClose();
     } catch (error) {
       console.error("Error deleting option:", error);
