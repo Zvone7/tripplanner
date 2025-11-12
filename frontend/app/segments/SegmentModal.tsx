@@ -164,14 +164,43 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     fetchUserPreferences()
   }, [fetchUserPreferences])
 
+  const fetchOptions = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/Option/GetOptionsByTripId?tripId=${tripId}`)
+      if (!response.ok) throw new Error("Failed to fetch options")
+      const data = await response.json()
+      setOptions(data)
+    } catch (error) {
+      console.error("Error fetching options:", error)
+      toast({ title: "Error", description: "Failed to fetch options. Please try again." })
+    }
+  }, [tripId, toast])
+
   useEffect(() => {
     fetchOptions()
-  }, [tripId])
+  }, [fetchOptions])
 
   useEffect(() => {
     setOptionsFilterOpen(false)
     setShowHiddenOptionsFilter(false)
   }, [segment?.id, isDuplicateMode])
+
+  const fetchConnectedOptions = useCallback(
+    async (segmentId: number) => {
+      try {
+        const response = await fetch(`/api/Segment/GetConnectedOptions?tripId=${tripId}&segmentId=${segmentId}`)
+        if (!response.ok) throw new Error("Failed to fetch connected options")
+        const data: Option[] = await response.json()
+        const ids = data.map((o) => Number(o.id))
+
+        if (!optionsTouched) setSelectedOptions(ids)
+      } catch (error) {
+        console.error("Error fetching connected options:", error)
+        toast({ title: "Error", description: "Failed to fetch connected options. Please try again." })
+      }
+    },
+    [tripId, optionsTouched, toast],
+  )
 
   useEffect(() => {
     setIsDuplicateMode(false)
@@ -241,33 +270,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       setLocationsOpen(true)
       setAdditionalOptionsOpen(false)
     }
-  }, [segment, userPreferredOffset])
-
-  const fetchOptions = async () => {
-    try {
-      const response = await fetch(`/api/Option/GetOptionsByTripId?tripId=${tripId}`)
-      if (!response.ok) throw new Error("Failed to fetch options")
-      const data = await response.json()
-      setOptions(data)
-    } catch (error) {
-      console.error("Error fetching options:", error)
-      toast({ title: "Error", description: "Failed to fetch options. Please try again." })
-    }
-  }
-
-  const fetchConnectedOptions = async (segmentId: number) => {
-    try {
-      const response = await fetch(`/api/Segment/GetConnectedOptions?tripId=${tripId}&segmentId=${segmentId}`)
-      if (!response.ok) throw new Error("Failed to fetch connected options")
-      const data: Option[] = await response.json()
-      const ids = data.map((o) => Number(o.id))
-
-      if (!optionsTouched) setSelectedOptions(ids)
-    } catch (error) {
-      console.error("Error fetching connected options:", error)
-      toast({ title: "Error", description: "Failed to fetch connected options. Please try again." })
-    }
-  }
+  }, [segment, userPreferredOffset, fetchConnectedOptions])
 
   const handleOptionChange = (optionId: number, checkedState: boolean | "indeterminate") => {
     const checked = checkedState === true
@@ -278,27 +281,30 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     })
   }
 
-  const handleUpdateConnectedOptions = async (optionIds: number[]) => {
-    if (!segment) return
+  const handleUpdateConnectedOptions = useCallback(
+    async (optionIds: number[]) => {
+      if (!segment) return
 
-    try {
-      const response = await fetch(`/api/Segment/UpdateConnectedOptions?tripId=${tripId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          SegmentId: segment.id,
-          OptionIds: optionIds,
-          TripId: tripId,
-        }),
-        credentials: "include",
-      })
-      if (!response.ok) throw new Error("Failed to update connected options")
-      toast({ title: "Success", description: "Connected options updated successfully" })
-    } catch (error) {
-      console.error("Error updating connected options:", error)
-      toast({ title: "Error", description: "Failed to update connected options. Please try again." })
-    }
-  }
+      try {
+        const response = await fetch(`/api/Segment/UpdateConnectedOptions?tripId=${tripId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            SegmentId: segment.id,
+            OptionIds: optionIds,
+            TripId: tripId,
+          }),
+          credentials: "include",
+        })
+        if (!response.ok) throw new Error("Failed to update connected options")
+        toast({ title: "Success", description: "Connected options updated successfully" })
+      } catch (error) {
+        console.error("Error updating connected options:", error)
+        toast({ title: "Error", description: "Failed to update connected options. Please try again." })
+      }
+    },
+    [segment, tripId, toast],
+  )
 
   const handleDuplicateSegment = () => {
     setName((n) => `DUPLICATE ${n}`)
@@ -415,6 +421,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       prefilledStart,
       prefilledEnd,
       isUiVisible,
+      handleUpdateConnectedOptions,
     ],
   )
 

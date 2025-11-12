@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
@@ -41,6 +41,24 @@ export default function ProfilePage() {
   const { toast } = useToast()
   const router = useRouter()
 
+  const fetchPendingApprovals = useCallback(async () => {
+    try {
+      const response = await fetch("/api/user/pendingapprovals")
+      if (!response.ok) {
+        throw new Error("Failed to fetch pending approvals")
+      }
+      const pendingData = await response.json()
+      setPendingUsers(pendingData)
+    } catch (err) {
+      console.error("Error fetching pending approvals:", err)
+      toast({
+        title: "Error",
+        description: "Failed to load pending user approvals",
+        variant: "destructive",
+      })
+    }
+  }, [toast])
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -64,26 +82,7 @@ export default function ProfilePage() {
     }
 
     fetchUserData()
-  }, [])
-
-  // Fetch pending approvals for admin users
-  const fetchPendingApprovals = async () => {
-    try {
-      const response = await fetch("/api/user/pendingapprovals")
-      if (!response.ok) {
-        throw new Error("Failed to fetch pending approvals")
-      }
-      const pendingData = await response.json()
-      setPendingUsers(pendingData)
-    } catch (err) {
-      console.error("Error fetching pending approvals:", err)
-      toast({
-        title: "Error",
-        description: "Failed to load pending user approvals",
-        variant: "destructive",
-      })
-    }
-  }
+  }, [fetchPendingApprovals])
 
   // Handle user approval
   const handleApproveUser = async (userId: string) => {

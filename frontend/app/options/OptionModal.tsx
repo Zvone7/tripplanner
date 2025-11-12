@@ -70,6 +70,42 @@ export default function OptionModal({
     }
   }, []);
 
+  const fetchSegments = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/Segment/GetSegmentsByTripId?tripId=${tripId}`);
+      if (!response.ok) throw new Error("Failed to fetch segments");
+      const data: SegmentApi[] = await response.json();
+      setSegments(data);
+    } catch (error) {
+      console.error("Error fetching segments:", error);
+      toast({ title: "Error", description: "Failed to fetch segments. Please try again." });
+    }
+  }, [tripId]);
+
+  const fetchSegmentTypes = useCallback(async () => {
+    try {
+      const response = await fetch("/api/Segment/GetSegmentTypes");
+      if (!response.ok) throw new Error("Failed to fetch segment types");
+      const data: SegmentType[] = await response.json();
+      setSegmentTypes(data);
+    } catch (error) {
+      console.error("Error fetching segment types:", error);
+      toast({ title: "Error", description: "Failed to fetch segment types. Please try again." });
+    }
+  }, []);
+
+  const fetchConnectedSegments = useCallback(async (optionId: number) => {
+    try {
+      const response = await fetch(`/api/Option/GetConnectedSegments?tripId=${tripId}&optionId=${optionId}`);
+      if (!response.ok) throw new Error("Failed to fetch connected segments");
+      const data: SegmentApi[] = await response.json();
+      setSelectedSegments(data.map((segment) => segment.id));
+    } catch (error) {
+      console.error("Error fetching connected segments:", error);
+      toast({ title: "Error", description: "Failed to fetch connected segments. Please try again." });
+    }
+  }, [tripId]);
+
   useEffect(() => {
     if (option) {
       setName(option.name);
@@ -83,48 +119,12 @@ export default function OptionModal({
     void fetchUserPreferences();
     void fetchSegments();
     void fetchSegmentTypes();
-  }, [option, fetchUserPreferences]);
+  }, [option, fetchUserPreferences, fetchConnectedSegments, fetchSegments, fetchSegmentTypes]);
 
   useEffect(() => {
     setSegmentsFilterOpen(false);
     setShowHiddenSegmentsFilter(false);
   }, [option?.id]);
-
-  const fetchSegments = async () => {
-    try {
-      const response = await fetch(`/api/Segment/GetSegmentsByTripId?tripId=${tripId}`);
-      if (!response.ok) throw new Error("Failed to fetch segments");
-      const data: SegmentApi[] = await response.json();
-      setSegments(data);
-    } catch (error) {
-      console.error("Error fetching segments:", error);
-      toast({ title: "Error", description: "Failed to fetch segments. Please try again." });
-    }
-  };
-
-  const fetchSegmentTypes = async () => {
-    try {
-      const response = await fetch("/api/Segment/GetSegmentTypes");
-      if (!response.ok) throw new Error("Failed to fetch segment types");
-      const data: SegmentType[] = await response.json();
-      setSegmentTypes(data);
-    } catch (error) {
-      console.error("Error fetching segment types:", error);
-      toast({ title: "Error", description: "Failed to fetch segment types. Please try again." });
-    }
-  };
-
-  const fetchConnectedSegments = async (optionId: number) => {
-    try {
-      const response = await fetch(`/api/Option/GetConnectedSegments?tripId=${tripId}&optionId=${optionId}`);
-      if (!response.ok) throw new Error("Failed to fetch connected segments");
-      const data: SegmentApi[] = await response.json();
-      setSelectedSegments(data.map((segment) => segment.id));
-    } catch (error) {
-      console.error("Error fetching connected segments:", error);
-      toast({ title: "Error", description: "Failed to fetch connected segments. Please try again." });
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

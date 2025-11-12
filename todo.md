@@ -1,3 +1,12 @@
+when x-ing out of modal. dont refresh lists
+
+-------------------------
+
+if no changes were made, dont allow clicking save changes
+
+
+-------------------------
+add a title to segment and option models - desribing the option briefly based on values
 
 
 move all date filtering methods utils/formatters and use those implementations all over code
@@ -9,6 +18,10 @@ cleanup if there are models defined in several places, that should be cleaned up
 
 --------------
 
+dark mode - css revamp?
+
+-------------
+change default currency - make it configurable as timezone - so both backend and frontend updates
 
 --------------
 

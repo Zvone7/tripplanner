@@ -373,10 +373,6 @@ export default function SegmentsPage() {
     })
   }, [segments, filterState])
 
-  if (!tripId) {
-    return <div>No trip ID provided</div>;
-  }
-
   const sortedSegments = useMemo(() => {
     const typeNameMap = new Map(segmentTypes.map((t) => [t.id, t.name ?? ""]))
     const list = [...filteredSegments]
@@ -416,6 +412,10 @@ export default function SegmentsPage() {
 
     return list.sort(compare)
   }, [filteredSegments, sortState, segmentTypes])
+
+  if (!tripId) {
+    return <div>No trip ID provided</div>;
+  }
 
   return (
     <Card className="w-full max-w-6xl mx-auto">
