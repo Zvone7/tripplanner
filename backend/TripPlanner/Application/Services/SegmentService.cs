@@ -44,6 +44,7 @@ public class SegmentService
             Comment = s.comment,
             StartLocationId = s.start_location_id,
             EndLocationId = s.end_location_id,
+            IsUiVisible = s.is_ui_visible,
         }).ToList();
         await RetrieveLocationsForSegmentsAsync(result, cancellationToken);
         return result;
@@ -66,6 +67,7 @@ public class SegmentService
                 Comment = s.comment,
                 StartLocationId = s.start_location_id,
                 EndLocationId = s.end_location_id,
+                IsUiVisible = s.is_ui_visible,
             })
             .OrderBy(s => s.StartDateTimeUtc)
             .ToList();
@@ -92,7 +94,8 @@ public class SegmentService
                 StartDateTimeUtcOffset = segment.start_datetime_utc_offset,
                 TripId = segment.trip_id,
                 SegmentTypeId = segment.segment_type_id,
-                Comment = segment.comment
+                Comment = segment.comment,
+                IsUiVisible = segment.is_ui_visible,
             };
         if (result != null)
             await RetrieveLocationsForSegmentAsync(result, cancellationToken);
@@ -145,7 +148,8 @@ public class SegmentService
             segment_type_id = segment.SegmentTypeId,
             comment = segment.Comment,
             start_location_id = startLocation?.id,
-            end_location_id = endLocation?.id
+            end_location_id = endLocation?.id,
+            is_ui_visible = segment.IsUiVisible,
         }, cancellationToken);
     }
 
@@ -233,6 +237,7 @@ public class SegmentService
                 comment = segment.Comment,
                 start_location_id = segment.StartLocation?.Id,
                 end_location_id = segment.EndLocation?.Id,
+                is_ui_visible = segment.IsUiVisible,
             }, cancellationToken);
 
             await UpdateOptionsRelatedBySegmentIdAsync(segment.Id, cancellationToken);
@@ -278,6 +283,7 @@ public class SegmentService
             {
                 Id = o.id,
                 Name = o.name,
+                IsUiVisible = o.is_ui_visible,
                 TripId = o.trip_id
             }).ToList();
             return result;

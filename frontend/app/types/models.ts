@@ -62,6 +62,7 @@ export interface SegmentApi {
 
   comment?: string;
   color?: string;
+  isUiVisible: boolean;
 
   StartLocation?: LocationOption | LocationDto | null;
   EndLocation?: LocationOption | LocationDto | null;
@@ -92,6 +93,7 @@ export interface OptionApi {
   startDateTimeUtc: string | null;
   endDateTimeUtc: string | null;
   tripId: number;
+  isUiVisible: boolean;
 
   totalCost: number;
   totalDays: number;

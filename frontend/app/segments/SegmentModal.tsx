@@ -1,11 +1,10 @@
-// components/SegmentModal.tsx
 "use client"
 
 import type React from "react"
 import type { JSX } from "react"
 
-import { useState, useEffect, useCallback } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog"
+import { useState, useEffect, useCallback, useMemo } from "react"
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "../components/ui/dialog"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
@@ -13,10 +12,22 @@ import { ScrollArea } from "../components/ui/scroll-area"
 import { Textarea } from "../components/ui/textarea"
 import { toast } from "../components/ui/use-toast"
 import { Checkbox } from "../components/ui/checkbox"
+import { Switch } from "../components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
-import { CopyIcon } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "../components/ui/alert-dialog"
+import { CopyIcon, SaveIcon, Trash2Icon, EyeOffIcon, SlidersHorizontal, XIcon } from "lucide-react"
 import { toLocationDto, normalizeLocation } from "../lib/mapping"
 import { Collapsible } from "../components/Collapsible"
+import { cn } from "../lib/utils"
 
 // types
 import type {
@@ -125,11 +136,17 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
   const [optionsTouched, setOptionsTouched] = useState(false)
   const [isDuplicateMode, setIsDuplicateMode] = useState(false)
   const [userPreferredOffset, setUserPreferredOffset] = useState<number>(0)
+  const [isUiVisible, setIsUiVisible] = useState(true)
+
+  // State for delete confirmation dialog
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // collapsible toggles
   const [timesOpen, setTimesOpen] = useState(true)
   const [locationsOpen, setLocationsOpen] = useState(true)
   const [additionalOptionsOpen, setAdditionalOptionsOpen] = useState(true)
+  const [optionsFilterOpen, setOptionsFilterOpen] = useState(false)
+  const [showHiddenOptionsFilter, setShowHiddenOptionsFilter] = useState(false)
 
   // Fetch user preferences (preferred offset)
   const fetchUserPreferences = useCallback(async () => {
@@ -150,6 +167,11 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
   useEffect(() => {
     fetchOptions()
   }, [tripId])
+
+  useEffect(() => {
+    setOptionsFilterOpen(false)
+    setShowHiddenOptionsFilter(false)
+  }, [segment?.id, isDuplicateMode])
 
   useEffect(() => {
     setIsDuplicateMode(false)
@@ -176,6 +198,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       setCost(String(segment.cost))
       setComment(segment.comment || "")
       setSegmentTypeId(segment.segmentTypeId)
+      setIsUiVisible((segment as any)?.isUiVisible ?? true)
 
       // Prefill locations if backend provides them
       const startLocRaw = (segment as any)?.startLocation ?? (segment as any)?.StartLocation
@@ -192,8 +215,8 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
         end: endNorm ?? null,
       })
 
-      setTimesOpen(false)
-      setLocationsOpen(false)
+      setTimesOpen(true)
+      setLocationsOpen(true)
       setAdditionalOptionsOpen(false)
 
       fetchConnectedOptions(segment.id)
@@ -212,9 +235,10 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       setComment("")
       setSegmentTypeId(null)
       setSelectedOptions([])
+      setIsUiVisible(true)
 
-      setTimesOpen(false)
-      setLocationsOpen(false)
+      setTimesOpen(true)
+      setLocationsOpen(true)
       setAdditionalOptionsOpen(false)
     }
   }, [segment, userPreferredOffset])
@@ -282,6 +306,37 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     setSelectedOptions([])
   }
 
+  const handleDelete = async () => {
+    if (!segment) return
+
+    try {
+      const response = await fetch(`/api/Segment/Delete/${segment.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to delete segment")
+      }
+
+      toast({
+        title: "Success",
+        description: "Segment deleted successfully",
+      })
+
+      setShowDeleteConfirm(false)
+      onClose()
+      // Trigger a refresh if needed - you may need to add a callback prop
+      window.location.reload()
+    } catch (error) {
+      console.error("Error deleting segment:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete segment. Please try again.",
+      })
+    }
+  }
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
@@ -331,6 +386,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
         comment,
         StartLocation: toLocationDto(startForSave),
         EndLocation: toLocationDto(endForSave),
+        isUiVisible,
       }
 
       const isUpdate = !!segment && !isDuplicateMode
@@ -358,153 +414,251 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       locRange,
       prefilledStart,
       prefilledEnd,
+      isUiVisible,
     ],
   )
+
+  const filteredOptionsForDisplay = useMemo(() => {
+    if (!segment || isDuplicateMode) return []
+    if (showHiddenOptionsFilter) return options
+    return options.filter((option) => (option as any)?.isUiVisible !== false)
+  }, [segment, isDuplicateMode, options, showHiddenOptionsFilter])
 
   const isCreateMode = !segment || isDuplicateMode
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[400px] w-[95vw] p-0">
-        <DialogHeader className="px-4 pt-4 pb-4">
-          <DialogTitle>{isCreateMode ? "Create Segment" : "Edit Segment"}</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl w-full h-[85vh] p-0 flex flex-col">
+          <DialogTitle className="sr-only">{isCreateMode ? "Create Segment" : `Edit Segment: ${name}`}</DialogTitle>
+          <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
+            <h2 className="text-lg font-semibold mb-3">{isCreateMode ? "Create Segment" : `Edit Segment: ${name}`}</h2>
 
-        <form
-          onSubmit={handleSubmit}
-          className="max-h-[85vh] overflow-y-auto px-4 pt-2 pb-[calc(env(safe-area-inset-bottom,0)+88px)] space-y-3"
-        >
-          {/* Name */}
-          <div className="grid grid-cols-4 items-center gap-3">
-            <Label htmlFor="name" className="text-right text-sm">
-              Name
-            </Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" required />
-          </div>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2 text-sm">
+                <Label htmlFor="ui-visible-toggle" className="cursor-pointer">
+                  {isUiVisible ? "UI visible" : "UI hidden"}
+                </Label>
+                <Switch id="ui-visible-toggle" checked={isUiVisible} onCheckedChange={setIsUiVisible} />
+              </div>
+              <DialogClose asChild>
+                <Button variant="ghost" size="icon" aria-label="Close segment modal">
+                  <XIcon className="h-4 w-4" />
+                </Button>
+              </DialogClose>
+            </div>
 
-          {/* Type */}
-          <div className="grid grid-cols-4 items-center gap-3">
-            <Label htmlFor="segmentType" className="text-right text-sm">
-              Type
-            </Label>
-            <Select
-              value={segmentTypeId?.toString() || ""}
-              onValueChange={(value) => setSegmentTypeId(Number.parseInt(value))}
-            >
-              <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                {segmentTypes.map((type: SegmentType) => (
-                  <SelectItem key={type.id} value={type.id.toString()}>
-                    <div className="flex items-center">
-                      {type.iconSvg ? (
-                        <div dangerouslySetInnerHTML={{ __html: type.iconSvg as string }} className="w-4 h-4 mr-2" />
-                      ) : null}
-                      {type.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Cost */}
-          <div className="grid grid-cols-4 items-center gap-3">
-            <Label htmlFor="cost" className="text-right text-sm">
-              Cost
-            </Label>
-            <Input
-              id="cost"
-              type="number"
-              value={cost}
-              onChange={(e) => setCost(e.target.value)}
-              className="col-span-3"
-              required
-              step="0.01"
-              inputMode="decimal"
-            />
-          </div>
-
-          <Collapsible title="Time" open={timesOpen} onToggle={() => setTimesOpen((o) => !o)}>
-            <RangeDateTimePicker
-              id="segment-when"
-              label=""
-              value={range}
-              onChange={setRange}
-              allowDifferentOffsets
-              compact
-            />
-          </Collapsible>
-
-          <Collapsible title="Location" open={locationsOpen} onToggle={() => setLocationsOpen((o) => !o)}>
-            <RangeLocationPicker id="segment-where" label="" value={locRange} onChange={setLocRange} compact />
-          </Collapsible>
-
-          {/* Comment */}
-          <Collapsible title="More" open={additionalOptionsOpen} onToggle={() => setAdditionalOptionsOpen((o) => !o)}>
-            <div className="grid grid-cols-4 items-start gap-3">
-              <Label htmlFor="comment" className="text-right text-sm pt-2">
-                Comment
-              </Label>
-              <div className="col-span-3 space-y-2">
-                <Textarea
-                  id="comment"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder={`Add notes, links, or other details...
-  Use [Link Text](URL) for custom link text
-  Or paste URLs directly: https://example.com`}
-                  className="min-h-[120px] text-sm"
-                />
-                {comment && (
-                  <div className="p-2 bg-muted rounded-md text-sm">
-                    <div className="text-xs text-muted-foreground mb-1">Preview:</div>
-                    <CommentDisplay text={comment} />
-                  </div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {segment && !isDuplicateMode && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="bg-red-700 hover:bg-red-800 text-white"
+                    title="Delete"
+                  >
+                    <Trash2Icon className="h-4 w-4" />
+                  </Button>
                 )}
               </div>
-            </div>
-          </Collapsible>
 
-          {/* Options (edit only) */}
-          {segment && !isDuplicateMode && (
-            <div className="grid grid-cols-4 items-start gap-3">
-              <Label className="text-right pt-2 text-sm">Options</Label>
-              <ScrollArea className="h-[150px] col-span-3 border rounded-md p-3">
-                {options.map((option) => (
-                  <div key={option.id} className="flex items-center space-x-2 mb-2">
-                    <Checkbox
-                      id={`option-${option.id}`}
-                      checked={selectedOptions.includes(Number(option.id))}
-                      onCheckedChange={(checked) => handleOptionChange(Number(option.id), checked)}
-                    />
-                    <Label htmlFor={`option-${option.id}`} className="text-sm">
-                      {option.name}
-                    </Label>
-                  </div>
-                ))}
-              </ScrollArea>
-            </div>
-          )}
-
-          {/* Sticky footer */}
-          <DialogFooter className="sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t px-4 py-3">
-            <div className="flex justify-between w-full">
-              <div>
+              <div className="flex items-center justify-end gap-2">
                 {segment && !isDuplicateMode && (
                   <Button type="button" variant="outline" size="sm" onClick={handleDuplicateSegment} title="Duplicate">
                     <CopyIcon className="h-4 w-4" />
                   </Button>
                 )}
+
+                <Button type="submit" size="sm" className="bg-primary hover:bg-primary/90" onClick={handleSubmit}>
+                  <SaveIcon className="h-4 w-4" />
+                </Button>
               </div>
-              <Button type="submit" size="sm">
-                {isCreateMode ? "Create" : "Save"}
-              </Button>
             </div>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+            {/* Name */}
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label htmlFor="name" className="text-right text-sm">
+                Nickname
+              </Label>
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" required />
+            </div>
+
+            {/* Type */}
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label htmlFor="segmentType" className="text-right text-sm">
+                Type
+              </Label>
+              <Select
+                value={segmentTypeId?.toString() || ""}
+                onValueChange={(value) => setSegmentTypeId(Number.parseInt(value))}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {segmentTypes.map((type: SegmentType) => (
+                    <SelectItem key={type.id} value={type.id.toString()}>
+                      <div className="flex items-center">
+                        {type.iconSvg ? (
+                          <div dangerouslySetInnerHTML={{ __html: type.iconSvg as string }} className="w-4 h-4 mr-2" />
+                        ) : null}
+                        {type.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Cost */}
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label htmlFor="cost" className="text-right text-sm">
+                Cost
+              </Label>
+              <Input
+                id="cost"
+                type="number"
+                value={cost}
+                onChange={(e) => setCost(e.target.value)}
+                className="col-span-3"
+                required
+                step="0.01"
+                inputMode="decimal"
+              />
+            </div>
+
+            <Collapsible title="Time" open={timesOpen} onToggle={() => setTimesOpen((o) => !o)}>
+              <RangeDateTimePicker
+                id="segment-when"
+                label=""
+                value={range}
+                onChange={setRange}
+                allowDifferentOffsets
+                compact
+              />
+            </Collapsible>
+
+            <Collapsible title="Location" open={locationsOpen} onToggle={() => setLocationsOpen((o) => !o)}>
+              <RangeLocationPicker id="segment-where" label="" value={locRange} onChange={setLocRange} compact />
+            </Collapsible>
+
+            {/* Comment */}
+            <Collapsible title="More" open={additionalOptionsOpen} onToggle={() => setAdditionalOptionsOpen((o) => !o)}>
+              <div className="grid grid-cols-4 items-start gap-3">
+                <Label htmlFor="comment" className="text-right text-sm pt-2">
+                  Comment
+                </Label>
+                <div className="col-span-3 space-y-2">
+                  <Textarea
+                    id="comment"
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder={`Add notes, links, or other details...
+Use [Link Text](URL) for custom link text
+Or paste URLs directly: https://example.com`}
+                    className="min-h-[120px] text-sm"
+                  />
+                  {comment && (
+                    <div className="p-2 bg-muted rounded-md text-sm">
+                      <div className="text-xs text-muted-foreground mb-1">Preview:</div>
+                      <CommentDisplay text={comment} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Collapsible>
+
+            {/* Options (edit only) */}
+            {segment && !isDuplicateMode && (
+              <div className="grid grid-cols-4 items-start gap-3">
+                <Label className="text-right pt-2 text-sm">Options</Label>
+                <div className="col-span-3">
+                  <div className="flex justify-end mb-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Toggle option filters"
+                      onClick={() => setOptionsFilterOpen((prev) => !prev)}
+                    >
+                      <SlidersHorizontal
+                        className={cn(
+                          "h-4 w-4 transition-transform",
+                          optionsFilterOpen ? "text-primary rotate-90" : "text-muted-foreground"
+                        )}
+                      />
+                    </Button>
+                  </div>
+                  {optionsFilterOpen && (
+                    <div className="flex items-center justify-end gap-2 mb-3 text-xs text-muted-foreground">
+                      <span>Show hidden</span>
+                      <Switch
+                        checked={showHiddenOptionsFilter}
+                        onCheckedChange={(checked) => setShowHiddenOptionsFilter(Boolean(checked))}
+                        aria-label="Show hidden options"
+                      />
+                    </div>
+                  )}
+                  <ScrollArea className="h-[150px] border rounded-md p-3">
+                    {filteredOptionsForDisplay.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No options available.</p>
+                    ) : (
+                      filteredOptionsForDisplay.map((option) => {
+                        const optionHidden = (option as any)?.isUiVisible === false
+                        const dimmed = showHiddenOptionsFilter && optionHidden
+                        return (
+                          <div
+                            key={option.id}
+                            className={cn(
+                              "flex items-center justify-between rounded-md px-2 py-1 mb-2 last:mb-0",
+                              dimmed && "bg-muted text-muted-foreground"
+                            )}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`option-${option.id}`}
+                                checked={selectedOptions.includes(Number(option.id))}
+                                onCheckedChange={(checked) => handleOptionChange(Number(option.id), checked)}
+                              />
+                              <Label
+                                htmlFor={`option-${option.id}`}
+                                className={cn("text-sm cursor-pointer", dimmed && "text-muted-foreground")}
+                              >
+                                {option.name}
+                              </Label>
+                            </div>
+                            {dimmed && <EyeOffIcon className="h-4 w-4" aria-hidden="true" />}
+                          </div>
+                        )
+                      })
+                    )}
+                  </ScrollArea>
+                </div>
+              </div>
+            )}
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Segment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-700 hover:bg-red-800 text-white">
+              Yes, Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }

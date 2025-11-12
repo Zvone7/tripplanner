@@ -308,6 +308,24 @@ export const RangeLocationPicker: React.FC<RangeLocationPickerProps> = React.mem
           </div>
         ) : (
           <div className="space-y-2">
+            {start && end && (
+              <div className={grid}>
+                <Label className="text-right text-sm" />
+                <div className="col-span-3 flex justify-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={handleSwap}
+                    title="Swap start and destination"
+                  >
+                    <ArrowLeftRight className="h-4 w-4" />
+                    <span className="sr-only">Swap start and destination</span>
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className={grid}>
               <Label htmlFor={`${id}-end`} className="text-right text-sm">
                 Destination
@@ -328,19 +346,6 @@ export const RangeLocationPicker: React.FC<RangeLocationPickerProps> = React.mem
             <div className={grid}>
               <Label className="text-right text-sm" />
               <div className="col-span-3 flex items-center gap-2">
-                {/* Swap button - only show when both start and end are provided */}
-                {start && end && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSwap}
-                    title="Swap start and destination"
-                  >
-                    <ArrowLeftRight className="h-4 w-4 mr-1" />
-                    Swap
-                  </Button>
-                )}
                 <Button type="button" variant="outline" size="sm" onClick={() => onChange({ ...value, end: null })}>
                   Remove destination
                 </Button>

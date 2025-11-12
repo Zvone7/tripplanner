@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 import { Button } from "../components/ui/button";
-import { PlusIcon, TrashIcon, ListIcon, EditIcon } from "lucide-react";
+import { PlusIcon, ListIcon, EditIcon, EyeOffIcon, SlidersHorizontal } from "lucide-react";
 import SegmentModal from "../segments/SegmentModal";
 import { formatDateWithUserOffset } from "../utils/formatters";
 import { OptionBadge } from "../components/OptionBadge";
+import { Switch } from "../components/ui/switch";
+import { cn } from "../lib/utils";
 
 import type { Segment, SegmentType, OptionRef, User, SegmentSave } from "../types/models";
 
@@ -19,15 +21,15 @@ function SegmentCard({
   segmentType,
   userPreferredOffset,
   onEdit,
-  onDelete,
   connectedOptions,
+  showVisibilityIndicator,
 }: {
   segment: Segment;
   segmentType: SegmentType | undefined;
   userPreferredOffset: number;
   onEdit: (segment: Segment) => void;
-  onDelete: (segmentId: number) => void;
   connectedOptions: OptionRef[];
+  showVisibilityIndicator: boolean;
 }) {
   const getTimezoneDisplayText = () =>
     userPreferredOffset === 0 ? "UTC" : `UTC${userPreferredOffset >= 0 ? "+" : ""}${userPreferredOffset}`;
@@ -44,8 +46,16 @@ function SegmentCard({
     return label ? ` (${label})` : "";
   };
 
+  const isHidden = segment.isUiVisible === false;
+
   return (
-    <Card className="cursor-pointer hover:bg-muted/50" onClick={() => onEdit(segment)}>
+    <Card
+      className={cn(
+        "cursor-pointer hover:bg-muted/50 transition-colors",
+        isHidden && "bg-muted text-muted-foreground border-muted-foreground/40"
+      )}
+      onClick={() => onEdit(segment)}
+    >
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <div className="flex-1">
@@ -62,9 +72,17 @@ function SegmentCard({
             <CardTitle className="text-lg">{segment.name}</CardTitle>
 
             <div className="mt-2 flex flex-wrap gap-1">
-              {connectedOptions?.map((option) => (
-                <OptionBadge key={option.id} id={option.id} name={option.name} />
-              ))}
+              {connectedOptions?.map((option) => {
+                const optionHidden = (option as any)?.isUiVisible === false;
+                return (
+                  <OptionBadge
+                    key={option.id}
+                    id={option.id}
+                    name={option.name}
+                    isHidden={showVisibilityIndicator && optionHidden}
+                  />
+                );
+              })}
             </div>
 
             <div className="mt-2 text-sm text-muted-foreground space-y-1">
@@ -85,7 +103,16 @@ function SegmentCard({
             </div>
           </div>
 
-          <div className="flex space-x-2 ml-4">
+          <div className="flex items-center gap-2 ml-4">
+            {showVisibilityIndicator && isHidden && (
+              <div
+                className="rounded-full border p-1 bg-muted-foreground/20 text-muted-foreground"
+                title="Hidden from UI"
+                aria-label="Hidden from UI"
+              >
+                <EyeOffIcon className="h-5 w-5" />
+              </div>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -95,16 +122,6 @@ function SegmentCard({
               }}
             >
               <EditIcon className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(segment.id);
-              }}
-            >
-              <TrashIcon className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -126,6 +143,8 @@ export default function SegmentsPage() {
   const [editingSegment, setEditingSegment] = useState<Segment | null | undefined>(null);
   const [tripName, setTripName] = useState<string>("");
   const [connectedBySegment, setConnectedBySegment] = useState<Record<number, OptionRef[]>>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [showHiddenSegments, setShowHiddenSegments] = useState(false);
 
   const searchParams = useSearchParams();
   const tripId = searchParams.get("tripId");
@@ -274,20 +293,10 @@ export default function SegmentsPage() {
     }
   };
 
-  const handleDeleteSegment = async (segmentId: number) => {
-    if (window.confirm("Are you sure you want to delete this segment?")) {
-      try {
-        const response = await fetch(`/api/Segment/DeleteSegment?tripId=${tripId}&segmentId=${segmentId}`, {
-          method: "DELETE",
-        });
-        if (!response.ok) throw new Error("Failed to delete segment");
-        await fetchSegments();
-      } catch (err) {
-        console.error("Error deleting segment:", err);
-        setError("An error occurred while deleting the segment");
-      }
-    }
-  };
+  const filteredSegments = useMemo(
+    () => segments.filter((segment) => (showHiddenSegments ? true : segment.isUiVisible !== false)),
+    [segments, showHiddenSegments]
+  );
 
   if (!tripId) {
     return <div>No trip ID provided</div>;
@@ -312,27 +321,58 @@ export default function SegmentsPage() {
       </CardHeader>
 
       <CardContent>
+        <div className="flex justify-end mb-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => setFiltersOpen((prev) => !prev)}
+            aria-label="Toggle sort and filter"
+          >
+            <SlidersHorizontal
+              className={cn(
+                "h-5 w-5 transition-transform",
+                filtersOpen ? "text-primary rotate-90" : "text-muted-foreground"
+              )}
+            />
+          </Button>
+        </div>
+
+        {filtersOpen && (
+          <div className="flex items-center justify-between rounded-md border p-3 mb-4">
+            <div>
+              <p className="text-sm font-medium">Show hidden segments</p>
+              <p className="text-xs text-muted-foreground">Toggle to include segments hidden from the UI.</p>
+            </div>
+            <Switch checked={showHiddenSegments} onCheckedChange={(checked) => setShowHiddenSegments(Boolean(checked))} />
+          </div>
+        )}
+
         {isLoading ? (
           <LoadingGridSkeleton />
         ) : error ? (
           <p className="text-center text-red-500">{error}</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {segments.map((segment) => {
-              const segmentType = segmentTypes.find((st) => st.id === segment.segmentTypeId);
-              const connected = connectedBySegment[segment.id] || [];
-              return (
-                <SegmentCard
-                  key={segment.id}
-                  segment={segment}
-                  segmentType={segmentType}
-                  userPreferredOffset={userPreferredOffset}
-                  onEdit={handleEditSegment}
-                  onDelete={handleDeleteSegment}
-                  connectedOptions={connected}
-                />
-              );
-            })}
+            {filteredSegments.length === 0 ? (
+              <p className="text-sm text-muted-foreground col-span-full text-center">No segments to display.</p>
+            ) : (
+              filteredSegments.map((segment) => {
+                const segmentType = segmentTypes.find((st) => st.id === segment.segmentTypeId);
+                const connected = connectedBySegment[segment.id] || [];
+                return (
+                  <SegmentCard
+                    key={segment.id}
+                    segment={segment}
+                    segmentType={segmentType}
+                    userPreferredOffset={userPreferredOffset}
+                    onEdit={handleEditSegment}
+                    connectedOptions={connected}
+                    showVisibilityIndicator={showHiddenSegments}
+                  />
+                );
+              })
+            )}
           </div>
         )}
       </CardContent>

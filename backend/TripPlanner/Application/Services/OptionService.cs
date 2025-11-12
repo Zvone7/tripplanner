@@ -31,7 +31,8 @@ public class OptionService
                 StartDateTimeUtc = o.start_datetime_utc,
                 EndDateTimeUtc = o.end_datetime_utc,
                 TripId = o.trip_id,
-                TotalCost = o.total_cost
+                TotalCost = o.total_cost,
+                IsUiVisible = o.is_ui_visible
             };
 
             var segments = await _segmentRepository_.GetAllByOptionIdAsync(o.id, ct);
@@ -58,7 +59,8 @@ public class OptionService
                 StartDateTimeUtc = option.start_datetime_utc,
                 EndDateTimeUtc = option.end_datetime_utc,
                 TripId = option.trip_id,
-                TotalCost = option.total_cost
+                TotalCost = option.total_cost,
+                IsUiVisible = option.is_ui_visible
             };
         return result;
     }
@@ -84,7 +86,8 @@ public class OptionService
             start_datetime_utc = option.StartDateTimeUtc,
             end_datetime_utc = option.EndDateTimeUtc,
             trip_id = option.TripId,
-            total_cost = option.TotalCost
+            total_cost = option.TotalCost,
+            is_ui_visible = option.IsUiVisible
         }, cancellationToken);
     }
 
@@ -93,7 +96,8 @@ public class OptionService
         await _optionRepository_.UpdateLightAsync(new TripOptionDbm
         {
             id = option.Id,
-            name = option.Name
+            name = option.Name,
+            is_ui_visible = option.IsUiVisible,
         }, cancellationToken);
     }
 
@@ -149,7 +153,8 @@ public class OptionService
             StartDateTimeUtc = o.start_datetime_utc,
             EndDateTimeUtc = o.end_datetime_utc,
             TripId = o.trip_id,
-            TotalCost = o.total_cost
+            TotalCost = o.total_cost,
+            IsUiVisible = o.is_ui_visible
         }).ToList();
         return result;
     }
@@ -175,7 +180,8 @@ public class OptionService
             EndDateTimeUtc = s.end_datetime_utc,
             Name = s.name,
             Cost = s.cost,
-            SegmentTypeId = s.segment_type_id
+            SegmentTypeId = s.segment_type_id,
+            IsUiVisible = s.is_ui_visible,
         }).ToList();
         return result;
     }

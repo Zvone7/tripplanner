@@ -16,4 +16,5 @@ public class SegmentDto
     public int? EndLocationId { get; set; }
     public LocationDto? StartLocation { get; set; }
     public LocationDto? EndLocation { get; set; }
+    public bool IsUiVisible { get; set; }
 }

@@ -13,4 +13,5 @@ public class SegmentDbm{
     public string comment { get; set; }
     public int? start_location_id { get; set; }
     public int? end_location_id { get; set; }
+    public bool is_ui_visible { get; set; }
 }
