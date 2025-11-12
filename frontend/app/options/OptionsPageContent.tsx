@@ -23,6 +23,13 @@ const formatOptionDateWithWeekday = (iso: string | null) => {
   return `${weekday}, ${formatDateStr(iso)}`;
 };
 
+const formatLocationLabel = (loc: any | null) => {
+  if (!loc) return "";
+  const name = loc.name ?? "";
+  const country = loc.country ?? "";
+  return country ? `${name}, ${country}` : name ?? "";
+};
+
 /* ---------------------------------- helpers ---------------------------------- */
 
 const CURRENCY = "$";
@@ -385,16 +392,16 @@ export default function OptionsPageContent() {
         map[option.id] = connected.map((segment) => {
           const fallback = segmentLookup.get(segment.id)
           const start =
-            (segment as any).startLocation ??
+            (segment as any).StartLocation ??
             (segment as any).StartLocation ??
             fallback?.StartLocation ??
-            (fallback as any)?.StartLocation ??
+            fallback?.StartLocation ??
             null
           const end =
-            (segment as any).endLocation ??
+            (segment as any).EndLocation ??
             (segment as any).EndLocation ??
             fallback?.EndLocation ??
-            (fallback as any)?.EndLocation ??
+            fallback?.EndLocation ??
             null
 
           return {
@@ -424,7 +431,22 @@ export default function OptionsPageContent() {
   const optionMetadata = useMemo(() => {
     const source = connectedSegmentList.length ? connectedSegmentList : segments
     return buildOptionMetadata(source)
-  }, [connectedSegmentList, segments]);
+  }, [connectedSegmentList, segments])
+
+  const locationOptions = useMemo(() => {
+    const labels = new Set<string>()
+    const addLocations = (segment: SegmentApi) => {
+      const startLoc = (segment as any).startLocation ?? (segment as any).StartLocation ?? null
+      const endLoc = (segment as any).endLocation ?? (segment as any).EndLocation ?? null
+      const startLabel = formatLocationLabel(startLoc)
+      const endLabel = formatLocationLabel(endLoc)
+      if (startLabel) labels.add(startLabel)
+      if (endLabel) labels.add(endLabel)
+    }
+    segments.forEach(addLocations)
+    connectedSegmentList.forEach(addLocations)
+    return Array.from(labels).sort((a, b) => a.localeCompare(b))
+  }, [segments, connectedSegmentList])
 
   const handleEditOption = (option: OptionApi) => {
     setEditingOption(option);
@@ -501,7 +523,7 @@ export default function OptionsPageContent() {
           onChange={setFilterState}
           sort={sortState}
           onSortChange={setSortState}
-          availableLocations={optionMetadata.locations}
+          availableLocations={locationOptions}
           minDate={optionMetadata.dateBounds.min}
           maxDate={optionMetadata.dateBounds.max}
         />

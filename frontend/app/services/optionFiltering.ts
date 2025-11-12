@@ -49,10 +49,13 @@ export const filterOptions = (
   return options.filter((option) => {
     if (!filters.showHidden && option.isUiVisible === false) return false
 
-    const connected = connectedSegments[option.id] || []
+    const connected = connectedSegments[option.id]
+    const connectedList = connected ?? []
 
     if (filters.locations.length > 0) {
-      const matchesLocation = connected.some((segment) => {
+      if (connected === undefined) return true
+      if (connectedList.length === 0) return false
+      const matchesLocation = connectedList.some((segment) => {
         const startLoc = (segment as any).startLocation ?? (segment as any).StartLocation ?? null
         const endLoc = (segment as any).endLocation ?? (segment as any).EndLocation ?? null
         const startLabel = getLocationLabel(startLoc)
@@ -63,7 +66,9 @@ export const filterOptions = (
     }
 
     if (startDate || endDate) {
-      const matchesDate = connected.some((segment) => {
+      if (connected === undefined) return true
+      if (connectedList.length === 0) return false
+      const matchesDate = connectedList.some((segment) => {
         const segmentStart = new Date(segment.startDateTimeUtc)
         const segmentEnd = new Date(segment.endDateTimeUtc)
         if (startDate && segmentStart < startDate && segmentEnd < startDate) return false

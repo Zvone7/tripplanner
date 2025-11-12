@@ -1,12 +1,34 @@
 
 -------------------------
-if no changes were made, dont allow clicking save changes - both on optionsmodal and segmentsmodal
 
 -------------------------
 add a title to segment and option models - desribing the option briefly based on values
 
-
+-------------------------
 move all date filtering methods utils/formatters and use those implementations all over code
+
+-------------------------
+Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+See more info here: https://nextjs.org/docs/messages/react-hydration-error
+
+
+-data-darkreader-mode="dynamic"
+-data-darkreader-scheme="dark"
+-data-darkreader-inline-stroke=""
+-style={{--darkreader-inline-stroke:"currentColor"}}
+-data-darkreader-inline-stroke=""
+-style={{--darkreader-inline-stroke:"currentColor"}}
+
+-------------------------
 
 move all request making methods to utils/apiClient
 create apiClient for options, segments, trips
