@@ -9,6 +9,12 @@ import { PlusIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, EditIcon, EyeIcon 
 import TripModal from "./TripModal"
 import { formatDateStr } from "../utils/formatters"
 
+const formatTripDateWithWeekday = (iso: string | null) => {
+  if (!iso) return "N/A"
+  const weekday = new Date(iso).toLocaleDateString(undefined, { weekday: "short" })
+  return `${weekday}, ${formatDateStr(iso)}`
+}
+
 interface Trip {
   id: number
   name: string
@@ -48,10 +54,10 @@ function TripCard({
             <div className="mt-1 text-sm text-muted-foreground space-y-1">
               {trip.description && <div className="line-clamp-2">{trip.description}</div>}
               <div>
-                <span className="font-medium">Start:</span> {formatDateStr(trip.startTime)}
+                <span className="font-medium">Start:</span> {formatTripDateWithWeekday(trip.startTime)}
               </div>
               <div>
-                <span className="font-medium">End:</span> {formatDateStr(trip.endTime)}
+                <span className="font-medium">End:</span> {formatTripDateWithWeekday(trip.endTime)}
               </div>
             </div>
           </div>

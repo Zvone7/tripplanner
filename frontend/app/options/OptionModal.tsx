@@ -24,7 +24,6 @@ import { SaveIcon, Trash2Icon, EyeOffIcon, SlidersHorizontal } from "lucide-reac
 import type { SegmentType, SegmentApi, OptionApi, OptionSave } from "../types/models";
 import { formatDateWithUserOffset } from "../utils/formatters";
 import { cn } from "../lib/utils";
-
 interface OptionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -300,10 +299,10 @@ export default function OptionModal({
                       filteredSegmentsForDisplay.map((segment) => {
                         const segmentType = segmentTypes.find((st) => st.id === segment.segmentTypeId);
                         const start = segment.startDateTimeUtc
-                          ? formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset, false)
+                          ? `${new Date(segment.startDateTimeUtc).toLocaleDateString(undefined, { weekday: "short" })}, ${formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset, false)}`
                           : "—";
                         const end = segment.endDateTimeUtc
-                          ? formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset, false)
+                          ? `${new Date(segment.endDateTimeUtc).toLocaleDateString(undefined, { weekday: "short" })}, ${formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset, false)}`
                           : "—";
                         const cost =
                           typeof segment.cost === "number" && !Number.isNaN(segment.cost)

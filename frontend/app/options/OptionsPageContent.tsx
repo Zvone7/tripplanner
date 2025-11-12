@@ -6,24 +6,21 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { PlusIcon, LayoutIcon, EditIcon, EyeOffIcon, SlidersHorizontal } from "lucide-react";
+import { PlusIcon, LayoutIcon, EditIcon, EyeOffIcon } from "lucide-react";
 import OptionModal from "./OptionModal";
 import { formatDateStr } from "../utils/formatters";
-import { Switch } from "../components/ui/switch";
+import { OptionFilterPanel, type OptionFilterValue } from "../components/filters/OptionFilterPanel";
+import type { OptionSortValue } from "../components/sorting/optionSortTypes";
+import { applyOptionFilters, buildOptionMetadata } from "../services/optionFiltering";
 import { cn } from "../lib/utils";
-import { MultiSelect } from "../components/ui/multiselect";
 
 // shared API types
 import type { OptionApi, OptionSave, SegmentApi, SegmentType } from "../types/models";
 
-const getLocationLabel = (loc: any | null) => {
-  if (!loc) return "";
-  const name = loc.name ?? "";
-  const country = loc.country ?? "";
-  const label = country ? `${name}, ${country}` : name;
-  return label;
+const formatOptionDateWithWeekday = (iso: string | null) => {
+  if (!iso) return "N/A";
+  const weekday = new Date(iso).toLocaleDateString(undefined, { weekday: "short" });
+  return `${weekday}, ${formatDateStr(iso)}`;
 };
 
 /* ---------------------------------- helpers ---------------------------------- */
@@ -226,8 +223,8 @@ function OptionCard({
             </CardTitle>
 
             <div className="mt-1 text-sm text-muted-foreground">
-              <div>{option.startDateTimeUtc ? formatDateStr(option.startDateTimeUtc) : "N/A"}</div>
-              <div>{option.endDateTimeUtc ? formatDateStr(option.endDateTimeUtc) : "N/A"}</div>
+              <div>{formatOptionDateWithWeekday(option.startDateTimeUtc)}</div>
+              <div>{formatOptionDateWithWeekday(option.endDateTimeUtc)}</div>
             </div>
           </div>
 
@@ -278,10 +275,12 @@ export default function OptionsPageContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOption, setEditingOption] = useState<OptionApi | null>(null);
   const [tripName, setTripName] = useState<string>("");
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [showHiddenOptions, setShowHiddenOptions] = useState(false);
-  const [locationFilters, setLocationFilters] = useState<string[]>([]);
-  const [dateFilter, setDateFilter] = useState<{ start: string; end: string }>({ start: "", end: "" });
+  const [filterState, setFilterState] = useState<OptionFilterValue>({
+    locations: [],
+    dateRange: { start: "", end: "" },
+    showHidden: false,
+  });
+  const [sortState, setSortState] = useState<OptionSortValue | null>(null);
 
   const searchParams = useSearchParams();
   const tripId = searchParams.get("tripId");
@@ -372,33 +371,49 @@ export default function OptionsPageContent() {
     fetchSegmentTypes();
   }, [fetchTripName, fetchOptions, fetchSegments, fetchSegmentTypes]);
 
+  const segmentLookup = useMemo(() => {
+    const map = new Map<number, SegmentApi>()
+    segments.forEach((segment) => map.set(segment.id, segment))
+    return map
+  }, [segments])
+
   useEffect(() => {
     const fetchAllConnected = async () => {
-      const map: Record<number, ConnectedSegment[]> = {};
+      const map: Record<number, ConnectedSegment[]> = {}
       for (const option of options) {
-        map[option.id] = await getConnectedSegments(option.id);
-      }
-      setConnectedSegments(map);
-    };
-    if (options.length > 0 && segmentTypes.length > 0) {
-      void fetchAllConnected();
-    }
-  }, [options, segmentTypes, getConnectedSegments]);
+        const connected = await getConnectedSegments(option.id)
+        map[option.id] = connected.map((segment) => {
+          const fallback = segmentLookup.get(segment.id)
+          const start =
+            (segment as any).startLocation ??
+            (segment as any).StartLocation ??
+            fallback?.StartLocation ??
+            (fallback as any)?.StartLocation ??
+            null
+          const end =
+            (segment as any).endLocation ??
+            (segment as any).EndLocation ??
+            fallback?.EndLocation ??
+            (fallback as any)?.EndLocation ??
+            null
 
-  const locationFilterOptions = useMemo(() => {
-    const labels = new Set<string>();
-    segments.forEach((segment) => {
-      const startLoc = (segment as any).startLocation ?? (segment as any).StartLocation ?? null;
-      const endLoc = (segment as any).endLocation ?? (segment as any).EndLocation ?? null;
-      const startLabel = getLocationLabel(startLoc);
-      const endLabel = getLocationLabel(endLoc);
-      if (startLabel) labels.add(startLabel);
-      if (endLabel) labels.add(endLabel);
-    });
-    return Array.from(labels)
-      .sort((a, b) => a.localeCompare(b))
-      .map((label) => ({ value: label, label }));
-  }, [segments]);
+          return {
+            ...segment,
+            startLocation: start,
+            StartLocation: start,
+            endLocation: end,
+            EndLocation: end,
+          }
+        })
+      }
+      setConnectedSegments(map)
+    }
+    if (options.length > 0 && segmentTypes.length > 0) {
+      void fetchAllConnected()
+    }
+  }, [options, segmentTypes, getConnectedSegments, segmentLookup])
+
+  const optionMetadata = useMemo(() => buildOptionMetadata(segments), [segments]);
 
   const handleEditOption = (option: OptionApi) => {
     setEditingOption(option);
@@ -440,54 +455,12 @@ export default function OptionsPageContent() {
     }
   };
 
-  const filteredOptions = useMemo(() => {
-    const startDate = dateFilter.start ? new Date(dateFilter.start) : null;
-    if (startDate) startDate.setHours(0, 0, 0, 0);
-    const endDate = dateFilter.end ? new Date(dateFilter.end) : null;
-    if (endDate) endDate.setHours(23, 59, 59, 999);
 
-    return options.filter((option) => {
-      if (!showHiddenOptions && option.isUiVisible === false) return false;
+  const sortedOptions = useMemo(
+    () => applyOptionFilters(options, filterState, sortState, connectedSegments),
+    [options, filterState, sortState, connectedSegments],
+  )
 
-      const connected = connectedSegments[option.id] || [];
-
-      if (locationFilters.length > 0) {
-        const matchesLocation = connected.some((segment) => {
-          const startLoc = (segment as any).startLocation ?? (segment as any).StartLocation ?? null;
-          const endLoc = (segment as any).endLocation ?? (segment as any).EndLocation ?? null;
-          const startLabel = getLocationLabel(startLoc);
-          const endLabel = getLocationLabel(endLoc);
-          return locationFilters.some((loc) => loc === startLabel || loc === endLabel);
-        });
-        if (!matchesLocation) return false;
-      }
-
-      if (startDate || endDate) {
-        const matchesDate = connected.some((segment) => {
-          const segmentStart = new Date(segment.startDateTimeUtc);
-          const segmentEnd = new Date(segment.endDateTimeUtc);
-          if (startDate && segmentStart < startDate && segmentEnd < startDate) {
-            return false;
-          }
-          if (endDate && segmentStart > endDate && segmentEnd > endDate) {
-            return false;
-          }
-          return true;
-        });
-        if (!matchesDate) return false;
-      }
-
-      return true;
-    });
-  }, [options, showHiddenOptions, connectedSegments, locationFilters, dateFilter]);
-
-  const hasOptionFilters =
-    locationFilters.length > 0 || Boolean(dateFilter.start) || Boolean(dateFilter.end);
-
-  const resetOptionFilters = () => {
-    setLocationFilters([]);
-    setDateFilter({ start: "", end: "" });
-  };
 
   if (!tripId) {
     return <div>No trip ID provided</div>;
@@ -512,89 +485,32 @@ export default function OptionsPageContent() {
       </CardHeader>
 
       <CardContent>
-        <div className="flex justify-end mb-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => setFiltersOpen((prev) => !prev)}
-            aria-label="Toggle sort and filter"
-          >
-            <SlidersHorizontal
-              className={cn(
-                "h-5 w-5 transition-transform",
-                filtersOpen ? "text-primary rotate-90" : "text-muted-foreground"
-              )}
-            />
-          </Button>
-        </div>
-
-        {filtersOpen && (
-          <div className="space-y-4 rounded-md border p-4 mb-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <Label className="mb-1 block text-sm font-medium">Locations</Label>
-                <MultiSelect
-                  options={locationFilterOptions}
-                  selected={locationFilters}
-                  onChange={setLocationFilters}
-                  placeholder="Select locations"
-                />
-              </div>
-              <div className="grid gap-2 md:grid-cols-2">
-                <div>
-                  <Label className="mb-1 block text-sm font-medium">Start date</Label>
-                  <Input
-                    type="date"
-                    value={dateFilter.start}
-                    onChange={(e) => setDateFilter((prev) => ({ ...prev, start: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label className="mb-1 block text-sm font-medium">End date</Label>
-                  <Input
-                    type="date"
-                    value={dateFilter.end}
-                    onChange={(e) => setDateFilter((prev) => ({ ...prev, end: e.target.value }))}
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-sm">
-                <span>Show hidden options</span>
-                <Switch
-                  checked={showHiddenOptions}
-                  onCheckedChange={(checked) => setShowHiddenOptions(Boolean(checked))}
-                  aria-label="Show hidden options"
-                />
-              </div>
-              {hasOptionFilters && (
-                <Button variant="ghost" size="sm" onClick={resetOptionFilters}>
-                  Reset filters
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
+        <OptionFilterPanel
+          value={filterState}
+          onChange={setFilterState}
+          sort={sortState}
+          onSortChange={setSortState}
+          availableLocations={optionMetadata.locations}
+          minDate={optionMetadata.dateBounds.min}
+          maxDate={optionMetadata.dateBounds.max}
+        />
 
         {isLoading ? (
           <LoadingSkeleton />
         ) : error ? (
           <p className="text-center text-red-500">{error}</p>
         ) : (
-          // Responsive card grid: 1 col on mobile, 2 on md, 3 on xl
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredOptions.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-4">
+            {sortedOptions.length === 0 ? (
               <p className="text-sm text-muted-foreground col-span-full text-center">No options to display.</p>
             ) : (
-              filteredOptions.map((option) => (
+              sortedOptions.map((option) => (
                 <OptionCard
                   key={option.id}
                   option={option}
                   connectedSegments={connectedSegments[option.id] || []}
                   onEdit={handleEditOption}
-                  showVisibilityIndicator={showHiddenOptions}
+                  showVisibilityIndicator={filterState.showHidden}
                 />
               ))
             )}
