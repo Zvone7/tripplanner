@@ -396,7 +396,7 @@ export default function OptionModal({
                               <div className="text-xs text-muted-foreground mt-1">
                                 {(() => {
                                   const startLoc =
-                                    (segment as any).startLocation ?? (segment as any).StartLocation ?? null;
+                                    (segment as any).startLocation ?? null;
                                   const startCity = startLoc?.name ? ` (${startLoc.name})` : "";
                                   return (
                                     <>
@@ -409,7 +409,7 @@ export default function OptionModal({
 
                               <div className="text-xs text-muted-foreground">
                                 {(() => {
-                                  const endLoc = (segment as any).endLocation ?? (segment as any).EndLocation ?? null;
+                                  const endLoc = (segment as any).endLocation ?? null;
                                   const endCity = endLoc?.name ? ` (${endLoc.name})` : "";
                                   return (
                                     <>

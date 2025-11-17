@@ -50,8 +50,8 @@ function SegmentCard({
     userPreferredOffset === 0 ? "UTC" : `UTC${userPreferredOffset >= 0 ? "+" : ""}${userPreferredOffset}`;
 
   // location can arrive as startLocation/StartLocation or endLocation/EndLocation
-  const startLoc = (segment as any).startLocation ?? (segment as any).StartLocation ?? null;
-  const endLoc = (segment as any).endLocation ?? (segment as any).EndLocation ?? null;
+  const startLoc = (segment as any).startLocation ?? null;
+  const endLoc = (segment as any).endLocation ?? null;
 
   const isHidden = segment.isUiVisible === false;
 
@@ -309,8 +309,8 @@ export default function SegmentsPage() {
   const availableLocations = useMemo(() => {
     const labels = new Set<string>()
     segments.forEach((segment) => {
-      const startLoc = (segment as any).startLocation ?? (segment as any).StartLocation ?? null
-      const endLoc = (segment as any).endLocation ?? (segment as any).EndLocation ?? null
+      const startLoc = (segment as any).startLocation ?? null
+      const endLoc = (segment as any).endLocation ?? null
       const startLabel = getLocationLabel(startLoc)
       const endLabel = getLocationLabel(endLoc)
       if (startLabel) labels.add(startLabel)
@@ -350,8 +350,8 @@ export default function SegmentsPage() {
     return segments.filter((segment) => {
       if (!filterState.showHidden && segment.isUiVisible === false) return false
 
-      const startLoc = (segment as any).startLocation ?? (segment as any).StartLocation ?? null
-      const endLoc = (segment as any).endLocation ?? (segment as any).EndLocation ?? null
+      const startLoc = (segment as any).startLocation ?? null
+      const endLoc = (segment as any).endLocation ?? null
       const startLabel = getLocationLabel(startLoc)
       const endLabel = getLocationLabel(endLoc)
 

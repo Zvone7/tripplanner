@@ -15,8 +15,8 @@ export const buildOptionMetadata = (segments: SegmentApi[]) => {
   let maxDate: number | null = null
 
   segments.forEach((segment) => {
-    const startLoc = (segment as any).startLocation ?? (segment as any).StartLocation ?? null
-    const endLoc = (segment as any).endLocation ?? (segment as any).EndLocation ?? null
+    const startLoc = (segment as any).startLocation ?? null
+    const endLoc = (segment as any).endLocation ?? null
     const startLabel = getLocationLabel(startLoc)
     const endLabel = getLocationLabel(endLoc)
     if (startLabel) locations.add(startLabel)
@@ -56,8 +56,8 @@ export const filterOptions = (
       if (connected === undefined) return true
       if (connectedList.length === 0) return false
       const matchesLocation = connectedList.some((segment) => {
-        const startLoc = (segment as any).startLocation ?? (segment as any).StartLocation ?? null
-        const endLoc = (segment as any).endLocation ?? (segment as any).EndLocation ?? null
+        const startLoc = (segment as any).startLocation ?? null
+        const endLoc = (segment as any).endLocation ?? null
         const startLabel = getLocationLabel(startLoc)
         const endLabel = getLocationLabel(endLoc)
         return filters.locations.some((loc) => loc === startLabel || loc === endLabel)

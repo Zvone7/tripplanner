@@ -430,8 +430,8 @@ export default function OptionsPageContent() {
   const locationOptions = useMemo(() => {
     const labels = new Set<string>()
     const addLocations = (segment: SegmentApi) => {
-      const startLoc = (segment as any).startLocation ?? (segment as any).StartLocation ?? null
-      const endLoc = (segment as any).endLocation ?? (segment as any).EndLocation ?? null
+      const startLoc = (segment as any).startLocation ?? null
+      const endLoc = (segment as any).endLocation ?? null
       const startLabel = formatLocationLabel(startLoc)
       const endLabel = formatLocationLabel(endLoc)
       if (startLabel) labels.add(startLabel)

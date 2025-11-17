@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from "../components/ui/alert-dialog"
-import { CopyIcon, SaveIcon, Trash2Icon, EyeOffIcon, SlidersHorizontal, XIcon } from "lucide-react"
+import { CopyIcon, SaveIcon, Trash2Icon, EyeOffIcon, SlidersHorizontal, XIcon, AlertTriangle } from "lucide-react"
 import { toLocationDto, normalizeLocation } from "../lib/mapping"
 import { Collapsible } from "../components/Collapsible"
 import { cn } from "../lib/utils"
@@ -543,6 +543,16 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     ],
   )
 
+  const missingFieldMessages = useMemo(() => {
+    const messages: string[] = []
+    if (segmentTypeId === null) messages.push("Select a segment type")
+    if (!range.startLocal) messages.push("Choose a start date and time")
+    const parsedCost = Number.parseFloat(cost)
+    if (!cost || Number.isNaN(parsedCost)) messages.push("Enter a valid cost amount")
+    return messages
+  }, [segmentTypeId, range.startLocal, cost])
+
+  const hasMissingFields = missingFieldMessages.length > 0
 
 
 
@@ -604,6 +614,19 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
           </div>
 
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+            {hasMissingFields && (
+              <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                <AlertTriangle className="mt-0.5 h-4 w-4" aria-hidden="true" />
+                <div>
+                  <p className="font-medium">Missing required details</p>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                    {missingFieldMessages.map((message) => (
+                      <li key={message}>{message}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
             {/* Name */}
             <div className="grid grid-cols-4 items-center gap-3">
               <Label htmlFor="name" className="text-right text-sm">
