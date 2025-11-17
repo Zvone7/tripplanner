@@ -26,7 +26,13 @@ export function SegmentTypeFilter({
         value: type.id.toString(),
         label: (
           <span className="flex items-center gap-2">
-            {type.iconSvg ? <span className="w-4 h-4" dangerouslySetInnerHTML={{ __html: type.iconSvg }} /> : null}
+            {type.iconSvg ? (
+              <span
+                className="w-4 h-4"
+                dangerouslySetInnerHTML={{ __html: type.iconSvg }}
+                suppressHydrationWarning
+              />
+            ) : null}
             <span>{type.name}</span>
           </span>
         ),

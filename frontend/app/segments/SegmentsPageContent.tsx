@@ -70,7 +70,11 @@ function SegmentCard({
               {segmentType && (
                 <>
                   {segmentType.iconSvg ? (
-                    <div dangerouslySetInnerHTML={{ __html: segmentType.iconSvg }} className="w-6 h-6" />
+                    <div
+                      dangerouslySetInnerHTML={{ __html: segmentType.iconSvg }}
+                      className="w-6 h-6"
+                      suppressHydrationWarning
+                    />
                   ) : null}
                   <span className="text-sm text-muted-foreground">{segmentType.name}</span>
                 </>

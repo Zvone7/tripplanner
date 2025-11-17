@@ -184,6 +184,7 @@ function SegmentDiagram({ segments }: { segments: ConnectedSegment[] }) {
                 <div
                   className="w-6 h-6"
                   dangerouslySetInnerHTML={{ __html: segment.segmentType.iconSvg as string }}
+                  suppressHydrationWarning
                 />
               ) : null}
             </div>

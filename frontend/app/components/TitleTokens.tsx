@@ -20,6 +20,7 @@ export function TitleTokens({ tokens, size = "default" }: TitleTokensProps) {
               className="inline-flex h-4 w-4"
               aria-hidden="true"
               dangerouslySetInnerHTML={{ __html: token.iconSvg }}
+              suppressHydrationWarning
             />
           ) : null}
           <span className={token.emphasize ? "italic" : undefined}>{token.text}</span>

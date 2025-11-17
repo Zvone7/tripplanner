@@ -4,7 +4,7 @@ import type React from "react"
 import type { JSX } from "react"
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import { Dialog, DialogClose, DialogContent, DialogTitle } from "../components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "../components/ui/dialog"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
@@ -608,7 +608,7 @@ type SegmentBaseline = {
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl w-full h-[85vh] p-0 flex flex-col">
           <DialogTitle className="sr-only">{segmentTitleText}</DialogTitle>
-          <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
+          <div className="sticky top-0 bg-background border-b px-4 py-3">
             <div className="mb-3 space-y-1">
               <h2 className="text-lg font-semibold leading-snug flex flex-wrap gap-x-1 gap-y-0.5">
                 {segmentTitleDisplay}
@@ -623,11 +623,6 @@ type SegmentBaseline = {
                 </Label>
                 <Switch id="ui-visible-toggle" checked={isUiVisible} onCheckedChange={setIsUiVisible} />
               </div>
-              <DialogClose asChild>
-                <Button variant="ghost" size="icon" aria-label="Close segment modal">
-                  <XIcon className="h-4 w-4" />
-                </Button>
-              </DialogClose>
             </div>
 
             <div className="flex items-center justify-between gap-2">
@@ -638,7 +633,6 @@ type SegmentBaseline = {
                     size="sm"
                     onClick={() => setShowDeleteConfirm(true)}
                     className="bg-red-700 hover:bg-red-800 text-white"
-                    title="Delete"
                   >
                     <Trash2Icon className="h-4 w-4" />
                   </Button>
@@ -647,7 +641,7 @@ type SegmentBaseline = {
 
               <div className="flex items-center justify-end gap-2">
                 {segment && !isDuplicateMode && (
-                  <Button type="button" variant="outline" size="sm" onClick={handleDuplicateSegment} title="Duplicate">
+                  <Button type="button" variant="outline" size="sm" onClick={handleDuplicateSegment}>
                     <CopyIcon className="h-4 w-4" />
                   </Button>
                 )}
@@ -842,7 +836,7 @@ Or paste URLs directly: https://example.com`}
               </div>
             )}
           </form>
-        </DialogContent>
+</DialogContent>
       </Dialog>
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
