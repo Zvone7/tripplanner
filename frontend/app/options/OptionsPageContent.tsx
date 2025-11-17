@@ -13,6 +13,7 @@ import { OptionFilterPanel, type OptionFilterValue } from "../components/filters
 import type { OptionSortValue } from "../components/sorting/optionSortTypes";
 import { applyOptionFilters, buildOptionMetadata } from "../services/optionFiltering";
 import { cn } from "../lib/utils";
+import { optionsApi, segmentsApi, tripsApi } from "../utils/apiClient";
 
 // shared API types
 import type { OptionApi, OptionSave, SegmentApi, SegmentType } from "../types/models";
@@ -297,9 +298,7 @@ export default function OptionsPageContent() {
   const fetchTripName = useCallback(async () => {
     if (!tripId) return;
     try {
-      const response = await fetch(`/api/trip/gettripbyid?tripId=${tripId}`);
-      if (!response.ok) throw new Error("Failed to fetch trip details");
-      const data = await response.json();
+      const data = await tripsApi.getById(tripId);
       setTripName(data.name);
     } catch (err) {
       console.error("Error fetching trip details:", err);
@@ -311,10 +310,8 @@ export default function OptionsPageContent() {
     if (!tripId) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/Option/GetOptionsByTripId?tripId=${tripId}`);
-      if (!response.ok) throw new Error("Failed to fetch options");
-      const data: OptionApi[] = await response.json();
-      setOptions(data); // expects totalCost, totalDays, costPerDay, costPerType
+      const data = await optionsApi.getByTripId(tripId);
+      setOptions(data);
     } catch (err) {
       setError("An error occurred while fetching options");
       console.error("Error fetching options:", err);
@@ -326,9 +323,7 @@ export default function OptionsPageContent() {
   const fetchSegments = useCallback(async () => {
     if (!tripId) return;
     try {
-      const response = await fetch(`/api/Segment/GetSegmentsByTripId?tripId=${tripId}`);
-      if (!response.ok) throw new Error("Failed to fetch segments");
-      const data: SegmentApi[] = await response.json();
+      const data = await segmentsApi.getByTripId(tripId);
       setSegments(data);
     } catch (err) {
       console.error("Error fetching segments:", err);
@@ -337,9 +332,7 @@ export default function OptionsPageContent() {
 
   const fetchSegmentTypes = useCallback(async () => {
     try {
-      const response = await fetch("/api/Segment/GetSegmentTypes");
-      if (!response.ok) throw new Error("Failed to fetch segment types");
-      const data: SegmentType[] = await response.json();
+      const data = await segmentsApi.getTypes();
       setSegmentTypes(data);
     } catch (err) {
       console.error("Error fetching segment types:", err);
@@ -349,9 +342,7 @@ export default function OptionsPageContent() {
   const getConnectedSegments = useCallback(
     async (optionId: number): Promise<ConnectedSegment[]> => {
       try {
-        const response = await fetch(`/api/Option/GetConnectedSegments?tripId=${tripId}&optionId=${optionId}`);
-        if (!response.ok) throw new Error("Failed to fetch connected segments");
-        const connected: SegmentApi[] = await response.json();
+        const connected = await optionsApi.getConnectedSegments(tripId, optionId);
         return connected.map((segment) => ({
           ...segment,
           segmentType:
@@ -460,21 +451,11 @@ export default function OptionsPageContent() {
 
   const handleSaveOption = async (optionData: OptionSave) => {
     try {
-      let response: Response;
       if (editingOption) {
-        response = await fetch(`/api/Option/UpdateOption?tripId=${tripId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...optionData, id: editingOption.id }),
-        });
+        await optionsApi.update(tripId, { ...optionData, id: editingOption.id });
       } else {
-        response = await fetch(`/api/Option/CreateOption?tripId=${tripId}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(optionData),
-        });
+        await optionsApi.create(tripId, optionData);
       }
-      if (!response.ok) throw new Error("Failed to save option");
       handleCloseModal();
       await fetchOptions();
     } catch (err) {

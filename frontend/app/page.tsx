@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { LoginButton } from "./components/LoginButton"
 import { Toaster } from "./components/ui/toaster"
+import { homeApi } from "./utils/apiClient"
 
 export default function Home() {
   const [statusLine, setStatusLine] = useState<string>("Waking backend...")
@@ -11,8 +12,7 @@ export default function Home() {
     let isMounted = true
     const fetchStatus = async () => {
       try {
-        const response = await fetch("/api/home/status", { cache: "no-store" })
-        const text = await response.text()
+        const text = await homeApi.getStatus()
         const firstLine = text.split(/\r?\n/)[0]?.trim() ?? ""
         if (isMounted) setStatusLine(firstLine || "Backend responded")
       } catch (error) {

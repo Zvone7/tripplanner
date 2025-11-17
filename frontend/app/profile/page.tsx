@@ -10,13 +10,8 @@ import { Badge } from "../components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeftIcon, CheckIcon, SaveIcon } from "lucide-react"
 import { TimezoneSelector } from "../components/TimeZoneSelector"
-import type { User } from "../types/models"
-
-interface PendingUser {
-  id: string
-  name: string
-  email: string
-}
+import type { User, PendingUser } from "../types/models"
+import { userApi } from "../utils/apiClient"
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null)
@@ -31,11 +26,7 @@ export default function ProfilePage() {
 
   const fetchPendingApprovals = useCallback(async () => {
     try {
-      const response = await fetch("/api/user/pendingapprovals")
-      if (!response.ok) {
-        throw new Error("Failed to fetch pending approvals")
-      }
-      const pendingData = await response.json()
+      const pendingData = await userApi.getPendingApprovals()
       setPendingUsers(pendingData)
     } catch (err) {
       console.error("Error fetching pending approvals:", err)
@@ -50,11 +41,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await fetch("/api/account/info")
-        if (!response.ok) {
-          throw new Error("Failed to fetch user data")
-        }
-        const userData = await response.json()
+        const userData = await userApi.getAccountInfo()
         setUser(userData)
         setPreferredUtcOffset(userData.userPreference?.preferredUtcOffset || 0)
 
@@ -77,13 +64,7 @@ export default function ProfilePage() {
     setIsApproving((prev) => ({ ...prev, [userId]: true }))
 
     try {
-      const response = await fetch(`/api/user/approveuser?userIdToApprove=${userId}`, {
-        method: "POST",
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to approve user")
-      }
+      await userApi.approveUser(userId)
 
       // Remove approved user from the list
       setPendingUsers((prev) => prev.filter((user) => user.id !== userId))
@@ -109,19 +90,7 @@ export default function ProfilePage() {
     setIsSavingPreferences(true)
 
     try {
-      const response = await fetch("/api/user/UpdateUserPreference", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          preferredUtcOffset: preferredUtcOffset,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to update user preferences")
-      }
+      await userApi.updatePreference(preferredUtcOffset)
 
       if (user) {
         setUser({

@@ -15,6 +15,7 @@ import type { SegmentSortValue } from "../components/sorting/segmentSortTypes";
 import { applySegmentFilters, buildSegmentMetadata } from "../services/segmentFiltering";
 
 import type { Segment, SegmentType, OptionRef, User, SegmentSave } from "../types/models";
+import { segmentsApi, tripsApi, userApi } from "../utils/apiClient";
 
 const getLocationLabel = (loc: any | null) => {
   if (!loc) return "";
@@ -168,9 +169,7 @@ export default function SegmentsPage() {
 
   const fetchUserPreferences = useCallback(async () => {
     try {
-      const response = await fetch("/api/account/info");
-      if (!response.ok) throw new Error("Failed to fetch user preferences");
-      const userData: User = await response.json();
+      const userData: User = await userApi.getAccountInfo();
       setUserPreferredOffset(userData.userPreference?.preferredUtcOffset || 0);
     } catch (err) {
       console.error("Error fetching user preferences:", err);
@@ -181,9 +180,7 @@ export default function SegmentsPage() {
   const fetchTripName = useCallback(async () => {
     if (!tripId) return;
     try {
-      const response = await fetch(`/api/trip/gettripbyid?tripId=${tripId}`);
-      if (!response.ok) throw new Error("Failed to fetch trip details");
-      const data = await response.json();
+      const data = await tripsApi.getById(tripId);
       setTripName(data.name);
     } catch (err) {
       console.error("Error fetching trip details:", err);
@@ -193,9 +190,7 @@ export default function SegmentsPage() {
 
   const fetchSegmentTypes = useCallback(async () => {
     try {
-      const response = await fetch("/api/Segment/GetSegmentTypes");
-      if (!response.ok) throw new Error("Failed to fetch segment types");
-      const data: SegmentType[] = await response.json();
+      const data = await segmentsApi.getTypes();
       setSegmentTypes(data);
     } catch (err) {
       console.error("Error fetching segment types:", err);
@@ -207,9 +202,7 @@ export default function SegmentsPage() {
     if (!tripId) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/Segment/GetSegmentsByTripId?tripId=${tripId}`);
-      if (!response.ok) throw new Error("Failed to fetch segments");
-      const data: Segment[] = await response.json();
+      const data = await segmentsApi.getByTripId(tripId);
       setSegments(data);
     } catch (err) {
       setError("An error occurred while fetching segments");
@@ -229,9 +222,7 @@ export default function SegmentsPage() {
       try {
         const results = await Promise.allSettled(
           segments.map(async (seg) => {
-            const res = await fetch(`/api/Segment/GetConnectedOptions?tripId=${tripId}&segmentId=${seg.id}`);
-            if (!res.ok) throw new Error(`Failed for segment ${seg.id}`);
-            const options: OptionRef[] = await res.json();
+            const options = await segmentsApi.getConnectedOptions(tripId, seg.id);
             return { segmentId: seg.id, options };
           })
         );
@@ -285,23 +276,12 @@ export default function SegmentsPage() {
     originalSegmentId?: number
   ) => {
     try {
-      let response: Response;
-      console.log("Saving segment data:", segmentData, isUpdate, originalSegmentId);
+      if (!tripId) throw new Error("Missing trip context");
       if (isUpdate && originalSegmentId) {
-        response = await fetch(`/api/Segment/UpdateSegment?tripId=${tripId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...segmentData, id: originalSegmentId }),
-        });
+        await segmentsApi.update(tripId, { ...segmentData, id: originalSegmentId });
       } else {
-        response = await fetch(`/api/Segment/CreateSegment?tripId=${tripId}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(segmentData),
-        });
+        await segmentsApi.create(tripId, segmentData);
       }
-      if (!response.ok) throw new Error("Failed to save segment");
-
       handleCloseModal();
       await fetchSegments();
     } catch (err) {

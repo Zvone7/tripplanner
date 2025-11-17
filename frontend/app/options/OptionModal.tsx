@@ -32,6 +32,7 @@ import {
   summarizeSegmentsForOption,
   tokensToLabel,
 } from "../utils/formatters";
+import { optionsApi, segmentsApi } from "../utils/apiClient";
 
 const arraysEqual = (a: number[], b: number[]) => a.length === b.length && a.every((val, idx) => val === b[idx])
 interface OptionModalProps {
@@ -69,34 +70,28 @@ export default function OptionModal({
 
   const fetchSegments = useCallback(async () => {
     try {
-      const response = await fetch(`/api/Segment/GetSegmentsByTripId?tripId=${tripId}`);
-      if (!response.ok) throw new Error("Failed to fetch segments");
-      const data: SegmentApi[] = await response.json();
+      const data = await segmentsApi.getByTripId(tripId);
       setSegments(data);
     } catch (error) {
       console.error("Error fetching segments:", error);
       toast({ title: "Error", description: "Failed to fetch segments. Please try again." });
     }
-  }, [tripId]);
+  }, [tripId, toast]);
 
   const fetchSegmentTypes = useCallback(async () => {
     try {
-      const response = await fetch("/api/Segment/GetSegmentTypes");
-      if (!response.ok) throw new Error("Failed to fetch segment types");
-      const data: SegmentType[] = await response.json();
+      const data = await segmentsApi.getTypes();
       setSegmentTypes(data);
     } catch (error) {
       console.error("Error fetching segment types:", error);
       toast({ title: "Error", description: "Failed to fetch segment types. Please try again." });
     }
-  }, []);
+  }, [toast]);
 
   const fetchConnectedSegments = useCallback(
     async (optionId: number) => {
       try {
-        const response = await fetch(`/api/Option/GetConnectedSegments?tripId=${tripId}&optionId=${optionId}`);
-        if (!response.ok) throw new Error("Failed to fetch connected segments");
-        const data: SegmentApi[] = await response.json();
+        const data = await optionsApi.getConnectedSegments(tripId, optionId);
         const ids = data.map((segment) => segment.id);
         setSelectedSegments(ids);
         initialSelectedSegmentsRef.current = [...ids].sort((a, b) => a - b);
@@ -162,16 +157,7 @@ export default function OptionModal({
     if (!option) return;
 
     try {
-      const response = await fetch(`/api/Option/UpdateConnectedSegments?tripId=${tripId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          OptionId: option.id,
-          SegmentIds: selectedSegments,
-        }),
-      });
-
-      if (!response.ok) throw new Error("Failed to update connected segments");
+      await optionsApi.updateConnectedSegments(tripId, option.id, selectedSegments);
 
       toast({ title: "Success", description: "Connected segments updated successfully" });
       refreshOptions();
@@ -197,10 +183,7 @@ export default function OptionModal({
   const handleDelete = async () => {
     if (!option) return;
     try {
-      const response = await fetch(`/api/Option/DeleteOption?tripId=${tripId}&optionId=${option.id}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) throw new Error("Failed to delete option");
+      await optionsApi.remove(tripId, option.id);
       toast({ title: "Deleted", description: `"${option.name}" has been removed.` });
       setShowDeleteConfirm(false);
       refreshOptions();

@@ -53,6 +53,7 @@ import {
   buildOptionConfigFromApi,
   tokensToLabel,
 } from "../utils/formatters"
+import { optionsApi, segmentsApi, userApi } from "../utils/apiClient"
 
 const arraysEqual = (a: number[], b: number[]) => a.length === b.length && a.every((val, idx) => val === b[idx])
 
@@ -176,9 +177,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
   // Fetch user preferences (preferred offset)
   const fetchUserPreferences = useCallback(async () => {
     try {
-      const response = await fetch("/api/account/info")
-      if (!response.ok) throw new Error("Failed to fetch user preferences")
-      const userData: User = await response.json()
+      const userData: User = await userApi.getAccountInfo()
       setUserPreferredOffset(userData.userPreference?.preferredUtcOffset ?? 0)
     } catch {
       setUserPreferredOffset(0)
@@ -191,9 +190,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
 
   const fetchOptions = useCallback(async () => {
     try {
-      const response = await fetch(`/api/Option/GetOptionsByTripId?tripId=${tripId}`)
-      if (!response.ok) throw new Error("Failed to fetch options")
-      const data: OptionApi[] = await response.json()
+      const data = await optionsApi.getByTripId(tripId)
       setOptions(data)
     } catch (error) {
       console.error("Error fetching options:", error)
@@ -259,9 +256,7 @@ type SegmentBaseline = {
   const fetchConnectedOptions = useCallback(
     async (segmentId: number) => {
       try {
-        const response = await fetch(`/api/Segment/GetConnectedOptions?tripId=${tripId}&segmentId=${segmentId}`)
-        if (!response.ok) throw new Error("Failed to fetch connected options")
-        const data: Option[] = await response.json()
+        const data = await segmentsApi.getConnectedOptions(tripId, segmentId)
         const ids = data.map((o) => Number(o.id))
 
         if (!optionsTouched) {
@@ -368,17 +363,7 @@ type SegmentBaseline = {
       if (!segment) return
 
       try {
-        const response = await fetch(`/api/Segment/UpdateConnectedOptions?tripId=${tripId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            SegmentId: segment.id,
-            OptionIds: optionIds,
-            TripId: tripId,
-          }),
-          credentials: "include",
-        })
-        if (!response.ok) throw new Error("Failed to update connected options")
+        await segmentsApi.updateConnectedOptions(tripId, { SegmentId: segment.id, OptionIds: optionIds })
         toast({ title: "Success", description: "Connected options updated successfully" })
       } catch (error) {
         console.error("Error updating connected options:", error)
@@ -398,14 +383,7 @@ type SegmentBaseline = {
     if (!segment) return
 
     try {
-      const response = await fetch(`/api/Segment/DeleteSegment?tripId=${tripId}&segmentId=${segment.id}`, {
-        method: "DELETE",
-        credentials: "include",
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to delete segment")
-      }
+      await segmentsApi.remove(tripId, segment.id)
 
       toast({
         title: "Success",

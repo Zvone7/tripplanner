@@ -132,3 +132,9 @@ export interface User {
   imageUrl?: string;
   userPreference: UserPreference;
 }
+
+export interface PendingUser {
+  id: string;
+  name: string;
+  email: string;
+}
