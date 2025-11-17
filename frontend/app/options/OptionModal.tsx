@@ -23,12 +23,17 @@ import {
 } from "../components/ui/alert-dialog";
 import { SaveIcon, Trash2Icon, EyeOffIcon, SlidersHorizontal } from "lucide-react";
 import type { SegmentType, SegmentApi, OptionApi, OptionSave } from "../types/models";
-import { formatDateWithUserOffset, formatWeekday, formatWeekdayDayMonth } from "../utils/formatters";
 import { cn } from "../lib/utils";
-import { getStartLocation, getEndLocation } from "../utils/segmentLocations";
+import { TitleTokens } from "../components/TitleTokens";
+import {
+  buildOptionTitleTokens,
+  buildSegmentTitleTokens,
+  buildSegmentConfigFromApi,
+  summarizeSegmentsForOption,
+  tokensToLabel,
+} from "../utils/formatters";
 
 const arraysEqual = (a: number[], b: number[]) => a.length === b.length && a.every((val, idx) => val === b[idx])
-type SummaryPart = { key: string; text: string; node: ReactNode }
 interface OptionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -36,13 +41,6 @@ interface OptionModalProps {
   option?: OptionApi | null;
   tripId: number;
   refreshOptions: () => void;
-}
-
-interface UserPreference {
-  preferredUtcOffset: number;
-}
-interface User {
-  userPreference: UserPreference;
 }
 
 export default function OptionModal({
@@ -57,7 +55,6 @@ export default function OptionModal({
   const [segments, setSegments] = useState<SegmentApi[]>([]);
   const [segmentTypes, setSegmentTypes] = useState<SegmentType[]>([]);
   const [selectedSegments, setSelectedSegments] = useState<number[]>([]);
-  const [userPreferredOffset, setUserPreferredOffset] = useState<number>(0);
   const [isUiVisible, setIsUiVisible] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [baselineReady, setBaselineReady] = useState(!option);
@@ -69,16 +66,6 @@ export default function OptionModal({
   const [showHiddenSegmentsFilter, setShowHiddenSegmentsFilter] = useState(false);
 
   // fetch user offset (for time formatting)
-  const fetchUserPreferences = useCallback(async () => {
-    try {
-      const res = await fetch("/api/account/info");
-      if (!res.ok) throw new Error("prefs");
-      const data: User = await res.json();
-      setUserPreferredOffset(data.userPreference?.preferredUtcOffset ?? 0);
-    } catch {
-      setUserPreferredOffset(0);
-    }
-  }, []);
 
   const fetchSegments = useCallback(async () => {
     try {
@@ -139,10 +126,9 @@ export default function OptionModal({
       setSelectedSegments([]);
       setIsUiVisible(true);
     }
-    void fetchUserPreferences();
     void fetchSegments();
     void fetchSegmentTypes();
-  }, [option, fetchUserPreferences, fetchConnectedSegments, fetchSegments, fetchSegmentTypes]);
+  }, [option, fetchConnectedSegments, fetchSegments, fetchSegmentTypes]);
 
   useEffect(() => {
     setSegmentsFilterOpen(false);
@@ -257,89 +243,29 @@ export default function OptionModal({
       .filter((segment): segment is SegmentApi => Boolean(segment));
   }, [segments, selectedSegments]);
 
-  const optionTitleSummary = useMemo(() => {
-    const parts: SummaryPart[] = [];
-    const trimmedName = name.trim();
-    const fallbackName = trimmedName || option?.name || "New option";
-    parts.push({ key: "name", text: fallbackName, node: <span className="italic">{fallbackName}</span> });
-
-    if (selectedSegmentEntities.length > 0) {
-      const count = selectedSegmentEntities.length;
-      const countText = `${count} segment${count === 1 ? "" : "s"}`;
-      parts.push({ key: "count", text: countText, node: countText });
-
-      const sortedByStart = [...selectedSegmentEntities].sort(
-        (a, b) => new Date(a.startDateTimeUtc).getTime() - new Date(b.startDateTimeUtc).getTime(),
-      );
-      const earliest = sortedByStart[0];
-      const latest = sortedByStart.reduce((prev, segment) => {
-        const prevEnd = new Date(prev.endDateTimeUtc).getTime();
-        const nextEnd = new Date(segment.endDateTimeUtc).getTime();
-        return nextEnd > prevEnd ? segment : prev;
-      }, sortedByStart[0]);
-
-      const firstPlace = getStartLocation(earliest as any)?.name ?? "";
-      const lastPlace = getEndLocation(latest as any)?.name ?? "";
-      if (firstPlace || lastPlace) {
-        const text = `${firstPlace ? `from ${firstPlace}` : ""}${lastPlace ? `${firstPlace ? " to" : "to"} ${lastPlace}` : ""}`.trim();
-        if (text) parts.push({ key: "places", text, node: text });
-      }
-
-      const startDate = earliest.startDateTimeUtc
-        ? formatWeekdayDayMonth(earliest.startDateTimeUtc, earliest.startDateTimeUtcOffset ?? 0)
-        : "";
-      const endDate = latest.endDateTimeUtc
-        ? formatWeekdayDayMonth(latest.endDateTimeUtc, latest.endDateTimeUtcOffset ?? 0)
-        : "";
-      if (startDate || endDate) {
-        const text = startDate && endDate && startDate !== endDate ? `${startDate} -> ${endDate}` : startDate || endDate;
-        if (text) parts.push({ key: "dates", text, node: text });
-      }
-
-      const totalCost = selectedSegmentEntities.reduce((sum, segment) => sum + (Number(segment.cost) || 0), 0);
-      if (totalCost > 0) {
-        const text = `${totalCost.toFixed(2)} $`;
-        parts.push({ key: "cost", text, node: text });
-      }
-    } else if (option) {
-      if (option.startDateTimeUtc || option.endDateTimeUtc) {
-        const startDate = option.startDateTimeUtc ? formatWeekdayDayMonth(option.startDateTimeUtc, 0) : "";
-        const endDate = option.endDateTimeUtc ? formatWeekdayDayMonth(option.endDateTimeUtc, 0) : "";
-        if (startDate || endDate) {
-          const text = startDate && endDate && startDate !== endDate ? `${startDate} -> ${endDate}` : startDate || endDate;
-          if (text) parts.push({ key: "dates", text, node: text });
-        }
-      }
-      if (typeof option.totalCost === "number" && !Number.isNaN(option.totalCost) && option.totalCost > 0) {
-        const text = `${option.totalCost.toFixed(2)} $`;
-        parts.push({ key: "cost", text, node: text });
-      }
-    }
-
-    const label = parts.map((part) => part.text).filter(Boolean).join(", ");
-    const nodes = parts.reduce<ReactNode[]>((acc, part, index) => {
-      const element = (
-        <span key={`option-part-${part.key}`} className="inline-flex items-center gap-1">
-          {part.node}
-        </span>
-      );
-      if (index > 0) acc.push(<span key={`option-sep-${part.key}`} className="text-muted-foreground">, </span>);
-      acc.push(element);
-      return acc;
-    }, []);
-
-    return { label, nodes };
+  const optionTitleTokens = useMemo(() => {
+    const derived = summarizeSegmentsForOption(selectedSegmentEntities);
+    return buildOptionTitleTokens({
+      name,
+      fallbackName: option?.name || "New option",
+      segmentCount: derived.segmentCount ?? null,
+      startLocationLabel: derived.startLocationLabel ?? undefined,
+      endLocationLabel: derived.endLocationLabel ?? undefined,
+      startDateIso: derived.startDateIso ?? option?.startDateTimeUtc ?? null,
+      endDateIso: derived.endDateIso ?? option?.endDateTimeUtc ?? null,
+      startOffset: derived.startOffset ?? (option ? 0 : null),
+      endOffset: derived.endOffset ?? (option ? 0 : null),
+      totalCost: derived.totalCost ?? option?.totalCost ?? null,
+    });
   }, [name, option, selectedSegmentEntities]);
 
   const defaultOptionTitle = option ? `Edit Option: ${option.name}` : "Create Option";
-  const optionTitleText = optionTitleSummary.label || defaultOptionTitle;
-  const optionTitleDisplay = optionTitleSummary.nodes.length
-    ? optionTitleSummary.nodes
-    : [
-        <span key="option-title-fallback" className="inline-flex items-center gap-1">
-          {defaultOptionTitle}
-        </span>,
-      ];
+  const optionTitleText = tokensToLabel(optionTitleTokens) || defaultOptionTitle;
+  const optionTitleDisplay: ReactNode = optionTitleTokens.length ? (
+    <TitleTokens tokens={optionTitleTokens} />
+  ) : (
+    <span className="inline-flex items-center gap-1">{defaultOptionTitle}</span>
+  );
   const optionTitleDescription = option ? "Editing existing option" : "Creating new option";
 
   return (
@@ -441,17 +367,11 @@ export default function OptionModal({
                       <p className="text-sm text-muted-foreground">No segments available.</p>
                     ) : (
                       filteredSegmentsForDisplay.map((segment) => {
-                        const segmentType = segmentTypes.find((st) => st.id === segment.segmentTypeId);
-                        const start = segment.startDateTimeUtc
-                          ? `${formatWeekday(segment.startDateTimeUtc, userPreferredOffset)}, ${formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset, false)}`
-                          : "—";
-                        const end = segment.endDateTimeUtc
-                          ? `${formatWeekday(segment.endDateTimeUtc, userPreferredOffset)}, ${formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset, false)}`
-                          : "—";
-                        const cost =
-                          typeof segment.cost === "number" && !Number.isNaN(segment.cost)
-                            ? `$${segment.cost.toFixed(2)}`
-                            : "—";
+                        const segmentType = segmentTypes.find((st) => st.id === segment.segmentTypeId) ?? null;
+                        const tokens = buildSegmentTitleTokens(
+                          buildSegmentConfigFromApi(segment, segmentType ?? undefined),
+                        );
+                        const summaryLabel = tokensToLabel(tokens) || segment.name;
                         const isHiddenSegment = segment.isUiVisible === false;
                         const dimmed = showHiddenSegmentsFilter && isHiddenSegment;
 
@@ -469,59 +389,13 @@ export default function OptionModal({
                               checked={selectedSegments.includes(segment.id)}
                               onCheckedChange={(checked) => handleSegmentCheckedChange(segment.id, checked)}
                               className="mt-1"
+                              aria-label={`Select ${summaryLabel}`}
                             />
 
-                            <div className="flex-1 min-w-0">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  {(() => {
-                                    const st = segmentType;
-                                    if (!st) return null;
-
-                                    const icon = st.iconSvg;
-                                    return (
-                                      <>
-                                        {icon ? (
-                                          <div
-                                            className="w-4 h-4 shrink-0"
-                                            dangerouslySetInnerHTML={{ __html: icon }}
-                                          />
-                                        ) : null}
-                                        <span className="text-xs text-muted-foreground shrink-0">{st.name}</span>
-                                      </>
-                                    );
-                                  })()}
-                                  <span className="text-sm font-medium truncate">{segment.name}</span>
-                                </div>
+                            <div className="flex-1 min-w-0" aria-label={summaryLabel}>
+                              <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-sm">
+                                <TitleTokens tokens={tokens} size="sm" />
                               </div>
-
-                              <div className="text-xs text-muted-foreground mt-1">
-                                {(() => {
-                                  const startLoc = getStartLocation(segment as any);
-                                  const startCity = startLoc?.name ? ` (${startLoc.name})` : "";
-                                  return (
-                                    <>
-                                      Start: {start}
-                                      {startCity}
-                                    </>
-                                  );
-                                })()}
-                              </div>
-
-                              <div className="text-xs text-muted-foreground">
-                                {(() => {
-                                  const endLoc = getEndLocation(segment as any);
-                                  const endCity = endLoc?.name ? ` (${endLoc.name})` : "";
-                                  return (
-                                    <>
-                                      End: {end}
-                                      {endCity}
-                                    </>
-                                  );
-                                })()}
-                              </div>
-
-                              <div className="text-xs text-muted-foreground">{cost}</div>
                             </div>
                             {dimmed && <EyeOffIcon className="h-4 w-4 mt-1" aria-hidden="true" />}
                           </label>

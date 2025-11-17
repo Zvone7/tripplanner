@@ -7,7 +7,7 @@ import { Skeleton } from "../components/ui/skeleton";
 import { Button } from "../components/ui/button";
 import { PlusIcon, ListIcon, EditIcon, EyeOffIcon } from "lucide-react";
 import SegmentModal from "../segments/SegmentModal";
-import { formatDateWithUserOffset, formatWeekday } from "../utils/formatters";
+import { formatDateWithUserOffset, formatWeekday } from "../utils/dateformatters";
 import { OptionBadge } from "../components/OptionBadge";
 import { cn } from "../lib/utils";
 import { SegmentFilterPanel, type SegmentFilterValue } from "../components/filters/SegmentFilterPanel";

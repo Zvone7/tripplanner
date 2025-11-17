@@ -28,11 +28,13 @@ import { CopyIcon, SaveIcon, Trash2Icon, EyeOffIcon, SlidersHorizontal, XIcon, A
 import { toLocationDto, normalizeLocation } from "../lib/mapping"
 import { Collapsible } from "../components/Collapsible"
 import { cn } from "../lib/utils"
+import { TitleTokens } from "../components/TitleTokens"
 
 // types
 import type {
   SegmentModalProps,
   OptionRef as Option,
+  OptionApi,
   User,
   SegmentSave,
   LocationOption,
@@ -45,11 +47,14 @@ import { RangeDateTimePicker, type RangeDateTimePickerValue } from "../component
 import { RangeLocationPicker, type RangeLocationPickerValue } from "../components/RangeLocationPicker"
 
 import { localToUtcMs, utcMsToIso, utcIsoToLocalInput } from "../lib/utils"
-import { formatWeekdayDayMonth } from "../utils/formatters"
+import {
+  buildSegmentTitleTokens,
+  buildOptionTitleTokens,
+  buildOptionConfigFromApi,
+  tokensToLabel,
+} from "../utils/formatters"
 
 const arraysEqual = (a: number[], b: number[]) => a.length === b.length && a.every((val, idx) => val === b[idx])
-
-type SummaryPart = { key: string; text: string; node: React.ReactNode }
 
 const toIsoFromLocalValue = (localValue: string | null, offset?: number | null) => {
   if (!localValue) return null
@@ -145,7 +150,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
   const [cost, setCost] = useState("")
   const [comment, setComment] = useState("")
   const [segmentTypeId, setSegmentTypeId] = useState<number | null>(null)
-  const [options, setOptions] = useState<Option[]>([])
+  const [options, setOptions] = useState<OptionApi[]>([])
   const [selectedOptions, setSelectedOptions] = useState<number[]>([])
   const [optionsTouched, setOptionsTouched] = useState(false)
   const [isDuplicateMode, setIsDuplicateMode] = useState(false)
@@ -162,6 +167,11 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
   const [additionalOptionsOpen, setAdditionalOptionsOpen] = useState(true)
   const [optionsFilterOpen, setOptionsFilterOpen] = useState(false)
   const [showHiddenOptionsFilter, setShowHiddenOptionsFilter] = useState(false)
+
+  const selectedSegmentType = useMemo(() => {
+    if (segmentTypeId === null) return null
+    return segmentTypes.find((type) => type.id === segmentTypeId) ?? null
+  }, [segmentTypeId, segmentTypes])
 
   // Fetch user preferences (preferred offset)
   const fetchUserPreferences = useCallback(async () => {
@@ -183,7 +193,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     try {
       const response = await fetch(`/api/Option/GetOptionsByTripId?tripId=${tripId}`)
       if (!response.ok) throw new Error("Failed to fetch options")
-      const data = await response.json()
+      const data: OptionApi[] = await response.json()
       setOptions(data)
     } catch (error) {
       console.error("Error fetching options:", error)
@@ -202,7 +212,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
 
   const initialSelectedOptionsRef = useRef<number[] | null>(null)
 
-  type SegmentBaseline = {
+type SegmentBaseline = {
     name: string
     startLocal: string
     endLocal: string | null
@@ -418,7 +428,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
   const filteredOptionsForDisplay = useMemo(() => {
     if (!segment || isDuplicateMode) return []
     if (showHiddenOptionsFilter) return options
-    return options.filter((option) => (option as any)?.isUiVisible !== false)
+    return options.filter((option) => option.isUiVisible !== false)
   }, [segment, isDuplicateMode, options, showHiddenOptionsFilter])
 
   const isCreateMode = !segment || isDuplicateMode
@@ -565,77 +575,30 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
 
   const hasMissingFields = missingFieldMessages.length > 0
 
-  const segmentTitleSummary = useMemo(() => {
-    const parts: SummaryPart[] = []
-    const trimmedName = name.trim()
-    const fallbackName = trimmedName || segment?.name || "New segment"
-    parts.push({ key: "name", text: fallbackName, node: <span className="italic">{fallbackName}</span> })
-
-    const selectedType = segmentTypes.find((type) => type.id === segmentTypeId)
-    if (selectedType) {
-      parts.push({
-        key: "type",
-        text: selectedType.name ?? "",
-        node: (
-          <span className="inline-flex items-center gap-1">
-            {selectedType.iconSvg ? (
-              <span
-                className="inline-flex h-4 w-4"
-                dangerouslySetInnerHTML={{ __html: selectedType.iconSvg }}
-              />
-            ) : null}
-            {selectedType.name}
-          </span>
-        ),
-      })
-    }
-
-    const startPlace = locRange.start?.name?.trim() ?? ""
-    const endPlace = locRange.end?.name?.trim() ?? ""
-    if (startPlace || endPlace) {
-      const text = `${startPlace ? `from ${startPlace}` : ""}${endPlace ? `${startPlace ? " to" : "to"} ${endPlace}` : ""}`.trim()
-      parts.push({ key: "places", text, node: text })
-    }
-
+  const segmentTitleTokens = useMemo(() => {
     const startIso = toIsoFromLocalValue(range.startLocal, range.startOffsetH)
     const endIso = toIsoFromLocalValue(range.endLocal ?? range.startLocal, range.endOffsetH ?? range.startOffsetH)
-    const startDate = startIso ? formatWeekdayDayMonth(startIso, range.startOffsetH) : ""
-    const endDate = endIso ? formatWeekdayDayMonth(endIso, range.endOffsetH ?? range.startOffsetH) : ""
-    if (startDate || endDate) {
-      const text = startDate && endDate && startDate !== endDate ? `${startDate} -> ${endDate}` : startDate || endDate
-      if (text) parts.push({ key: "dates", text, node: text })
-    }
-
-    const parsedCost = Number.parseFloat(cost)
-    if (!Number.isNaN(parsedCost) && cost.trim() !== "") {
-      const text = `${parsedCost.toFixed(2)} $`
-      parts.push({ key: "cost", text, node: text })
-    }
-
-    const label = parts.map((part) => part.text).filter(Boolean).join(", ")
-    const nodes = parts.reduce<React.ReactNode[]>((acc, part, index) => {
-      const element = (
-        <span key={`segment-part-${part.key}`} className="inline-flex items-center gap-1">
-          {part.node}
-        </span>
-      )
-      if (index > 0) acc.push(<span key={`segment-sep-${part.key}`} className="text-muted-foreground">, </span>)
-      acc.push(element)
-      return acc
-    }, [])
-
-    return { label, nodes }
-  }, [name, segment, segmentTypeId, segmentTypes, locRange, range, cost])
+    return buildSegmentTitleTokens({
+      name,
+      fallbackName: segment?.name || "New segment",
+      segmentType: selectedSegmentType,
+      startLocationLabel: locRange.start?.name ?? "",
+      endLocationLabel: locRange.end?.name ?? "",
+      startDateIso: startIso,
+      endDateIso: endIso,
+      startOffset: range.startOffsetH,
+      endOffset: range.endOffsetH ?? range.startOffsetH,
+      cost,
+    })
+  }, [name, segment, selectedSegmentType, locRange, range, cost])
 
   const defaultSegmentTitle = isCreateMode ? "Create Segment" : segment ? `Edit Segment: ${segment.name}` : "Edit Segment"
-  const segmentTitleText = segmentTitleSummary.label || defaultSegmentTitle
-  const segmentTitleDisplay = segmentTitleSummary.nodes.length
-    ? segmentTitleSummary.nodes
-    : [
-        <span key="segment-title-fallback" className="inline-flex items-center gap-1">
-          {defaultSegmentTitle}
-        </span>,
-      ]
+  const segmentTitleText = tokensToLabel(segmentTitleTokens) || defaultSegmentTitle
+  const segmentTitleDisplay = segmentTitleTokens.length ? (
+    <TitleTokens tokens={segmentTitleTokens} />
+  ) : (
+    <span className="inline-flex items-center gap-1">{defaultSegmentTitle}</span>
+  )
   const segmentTitleDescription = isCreateMode ? "Creating new segment" : "Editing existing segment"
 
 
@@ -845,8 +808,11 @@ Or paste URLs directly: https://example.com`}
                       <p className="text-sm text-muted-foreground">No options available.</p>
                     ) : (
                       filteredOptionsForDisplay.map((option) => {
-                        const optionHidden = (option as any)?.isUiVisible === false
+                        const optionHidden = option.isUiVisible === false
                         const dimmed = showHiddenOptionsFilter && optionHidden
+                        const tokens = buildOptionTitleTokens(buildOptionConfigFromApi(option))
+                        const summaryLabel = tokensToLabel(tokens) || option.name
+
                         return (
                           <div
                             key={option.id}
@@ -855,18 +821,16 @@ Or paste URLs directly: https://example.com`}
                               dimmed && "bg-muted text-muted-foreground"
                             )}
                           >
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center gap-2">
                               <Checkbox
                                 id={`option-${option.id}`}
                                 checked={selectedOptions.includes(Number(option.id))}
                                 onCheckedChange={(checked) => handleOptionChange(Number(option.id), checked)}
+                                aria-label={`Select ${summaryLabel}`}
                               />
-                              <Label
-                                htmlFor={`option-${option.id}`}
-                                className={cn("text-sm cursor-pointer", dimmed && "text-muted-foreground")}
-                              >
-                                {option.name}
-                              </Label>
+                              <div className={cn("text-sm", dimmed && "text-muted-foreground")} aria-label={summaryLabel}>
+                                <TitleTokens tokens={tokens} size="sm" />
+                              </div>
                             </div>
                             {dimmed && <EyeOffIcon className="h-4 w-4" aria-hidden="true" />}
                           </div>
