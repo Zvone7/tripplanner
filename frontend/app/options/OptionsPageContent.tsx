@@ -342,6 +342,10 @@ export default function OptionsPageContent() {
   const getConnectedSegments = useCallback(
     async (optionId: number): Promise<ConnectedSegment[]> => {
       try {
+        if (!tripId) {
+          setError("No trip ID provided");
+          return [];
+        }
         const connected = await optionsApi.getConnectedSegments(tripId, optionId);
         return connected.map((segment) => ({
           ...segment,
@@ -450,6 +454,10 @@ export default function OptionsPageContent() {
   };
 
   const handleSaveOption = async (optionData: OptionSave) => {
+    if (!tripId) {
+      setError("No trip ID provided");
+      return;
+    }
     try {
       if (editingOption) {
         await optionsApi.update(tripId, { ...optionData, id: editingOption.id });
