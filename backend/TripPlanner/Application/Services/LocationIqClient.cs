@@ -56,6 +56,7 @@ public sealed class LocationIqClient : ILocationIqClient
             qp["limit"] = limit.ToString();
             qp["addressdetails"] = "1";
             qp["normalizecity"] = "1";
+            qp["tag"] = "place:country,place:city,place:town,place:village";
             if (!string.IsNullOrWhiteSpace(countrycodes)) qp["countrycodes"] = countrycodes;
             if (!string.IsNullOrWhiteSpace(lang)) qp["accept-language"] = lang;
             url.Query = qp.ToString();
