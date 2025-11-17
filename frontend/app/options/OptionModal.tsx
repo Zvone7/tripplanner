@@ -22,7 +22,7 @@ import {
 } from "../components/ui/alert-dialog";
 import { SaveIcon, Trash2Icon, EyeOffIcon, SlidersHorizontal } from "lucide-react";
 import type { SegmentType, SegmentApi, OptionApi, OptionSave } from "../types/models";
-import { formatDateWithUserOffset } from "../utils/formatters";
+import { formatDateWithUserOffset, formatWeekday } from "../utils/formatters";
 import { cn } from "../lib/utils";
 
 const arraysEqual = (a: number[], b: number[]) => a.length === b.length && a.every((val, idx) => val === b[idx])
@@ -341,10 +341,10 @@ export default function OptionModal({
                       filteredSegmentsForDisplay.map((segment) => {
                         const segmentType = segmentTypes.find((st) => st.id === segment.segmentTypeId);
                         const start = segment.startDateTimeUtc
-                          ? `${new Date(segment.startDateTimeUtc).toLocaleDateString(undefined, { weekday: "short" })}, ${formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset, false)}`
+                          ? `${formatWeekday(segment.startDateTimeUtc, userPreferredOffset)}, ${formatDateWithUserOffset(segment.startDateTimeUtc, userPreferredOffset, false)}`
                           : "—";
                         const end = segment.endDateTimeUtc
-                          ? `${new Date(segment.endDateTimeUtc).toLocaleDateString(undefined, { weekday: "short" })}, ${formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset, false)}`
+                          ? `${formatWeekday(segment.endDateTimeUtc, userPreferredOffset)}, ${formatDateWithUserOffset(segment.endDateTimeUtc, userPreferredOffset, false)}`
                           : "—";
                         const cost =
                           typeof segment.cost === "number" && !Number.isNaN(segment.cost)

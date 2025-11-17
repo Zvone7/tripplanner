@@ -8,7 +8,7 @@ import { Skeleton } from "../components/ui/skeleton";
 import { Button } from "../components/ui/button";
 import { PlusIcon, LayoutIcon, EditIcon, EyeOffIcon } from "lucide-react";
 import OptionModal from "./OptionModal";
-import { formatDateStr } from "../utils/formatters";
+import { formatDateStr, formatWeekday } from "../utils/formatters";
 import { OptionFilterPanel, type OptionFilterValue } from "../components/filters/OptionFilterPanel";
 import type { OptionSortValue } from "../components/sorting/optionSortTypes";
 import { applyOptionFilters, buildOptionMetadata } from "../services/optionFiltering";
@@ -19,7 +19,7 @@ import type { OptionApi, OptionSave, SegmentApi, SegmentType } from "../types/mo
 
 const formatOptionDateWithWeekday = (iso: string | null) => {
   if (!iso) return "N/A";
-  const weekday = new Date(iso).toLocaleDateString(undefined, { weekday: "short" });
+  const weekday = formatWeekday(iso);
   return `${weekday}, ${formatDateStr(iso)}`;
 };
 
@@ -392,24 +392,18 @@ export default function OptionsPageContent() {
         map[option.id] = connected.map((segment) => {
           const fallback = segmentLookup.get(segment.id)
           const start =
-            (segment as any).StartLocation ??
-            (segment as any).StartLocation ??
-            fallback?.StartLocation ??
-            fallback?.StartLocation ??
+            (segment as any).startLocation ??
+            fallback?.startLocation ??
             null
           const end =
-            (segment as any).EndLocation ??
-            (segment as any).EndLocation ??
-            fallback?.EndLocation ??
-            fallback?.EndLocation ??
+            (segment as any).endLocation ??
+            fallback?.endLocation ??
             null
 
           return {
             ...segment,
             startLocation: start,
-            StartLocation: start,
             endLocation: end,
-            EndLocation: end,
           }
         })
       }

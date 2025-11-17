@@ -48,7 +48,7 @@ public class SegmentRepository
                        "segment_type_id, " +
                        "comment, " +
                        "start_location_id, " +
-                       "end_location_id" +
+                       "end_location_id, " +
                        "is_ui_visible" +
                        ") VALUES (" +
                        "@trip_id, " +

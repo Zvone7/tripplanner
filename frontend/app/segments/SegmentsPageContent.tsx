@@ -7,7 +7,7 @@ import { Skeleton } from "../components/ui/skeleton";
 import { Button } from "../components/ui/button";
 import { PlusIcon, ListIcon, EditIcon, EyeOffIcon } from "lucide-react";
 import SegmentModal from "../segments/SegmentModal";
-import { formatDateWithUserOffset } from "../utils/formatters";
+import { formatDateWithUserOffset, formatWeekday } from "../utils/formatters";
 import { OptionBadge } from "../components/OptionBadge";
 import { cn } from "../lib/utils";
 import { SegmentFilterPanel, type SegmentFilterValue } from "../components/filters/SegmentFilterPanel";
@@ -25,7 +25,7 @@ const getLocationLabel = (loc: any | null) => {
 };
 
 const formatSegmentDateWithWeekday = (iso: string, offset: number) => {
-  const weekday = new Date(iso).toLocaleDateString(undefined, { weekday: "short" });
+  const weekday = formatWeekday(iso, offset);
   return `${weekday}, ${formatDateWithUserOffset(iso, offset)}`;
 };
 
@@ -49,7 +49,7 @@ function SegmentCard({
   const getTimezoneDisplayText = () =>
     userPreferredOffset === 0 ? "UTC" : `UTC${userPreferredOffset >= 0 ? "+" : ""}${userPreferredOffset}`;
 
-  // location can arrive as startLocation/endLocation or StartLocation/EndLocation
+  // location can arrive as startLocation/StartLocation or endLocation/EndLocation
   const startLoc = (segment as any).startLocation ?? (segment as any).StartLocation ?? null;
   const endLoc = (segment as any).endLocation ?? (segment as any).EndLocation ?? null;
 
@@ -282,6 +282,7 @@ export default function SegmentsPage() {
   ) => {
     try {
       let response: Response;
+      console.log("Saving segment data:", segmentData, isUpdate, originalSegmentId);
       if (isUpdate && originalSegmentId) {
         response = await fetch(`/api/Segment/UpdateSegment?tripId=${tripId}`, {
           method: "PUT",
@@ -396,13 +397,13 @@ export default function SegmentsPage() {
           return dir * nameA.localeCompare(nameB)
         }
         case "startLocation": {
-          const nameA = getLocationLabel((a as any).startLocation ?? (a as any).StartLocation ?? null)
-          const nameB = getLocationLabel((b as any).startLocation ?? (b as any).StartLocation ?? null)
+          const nameA = getLocationLabel((a as any).startLocation ?? (a as any).startLocation ?? null)
+          const nameB = getLocationLabel((b as any).startLocation ?? (b as any).startLocation ?? null)
           return dir * nameA.localeCompare(nameB)
         }
         case "endLocation": {
-          const nameA = getLocationLabel((a as any).endLocation ?? (a as any).EndLocation ?? null)
-          const nameB = getLocationLabel((b as any).endLocation ?? (b as any).EndLocation ?? null)
+          const nameA = getLocationLabel((a as any).endLocation ?? (a as any).endLocation ?? null)
+          const nameB = getLocationLabel((b as any).endLocation ?? (b as any).endLocation ?? null)
           return dir * nameA.localeCompare(nameB)
         }
         default:

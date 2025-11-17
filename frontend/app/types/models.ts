@@ -64,8 +64,8 @@ export interface SegmentApi {
   color?: string;
   isUiVisible: boolean;
 
-  StartLocation?: LocationOption | LocationDto | null;
-  EndLocation?: LocationOption | LocationDto | null;
+  startLocation?: LocationOption | LocationDto | null;
+  endLocation?: LocationOption | LocationDto | null;
 }
 
 export interface Segment extends SegmentApi {

@@ -1,36 +1,53 @@
+const pad = (value: number) => String(value).padStart(2, "0")
+
+const toUtcParts = (date: Date) => ({
+  year: date.getUTCFullYear(),
+  month: date.getUTCMonth() + 1,
+  day: date.getUTCDate(),
+  hours: date.getUTCHours(),
+  minutes: date.getUTCMinutes(),
+})
 
 export const formatDate = (date: Date, displayYear: boolean = true) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are 0-indexed
-    const day = String(date.getDate()).padStart(2, "0");
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-  
-    if(!displayYear) {
-      const currentYear = new Date().getFullYear();
-      if(year === currentYear) {
-        return `${day}.${month} ${hours}:${minutes}`;
-      }
+  const { year, month, day, hours, minutes } = toUtcParts(date)
+
+  if (!displayYear) {
+    const currentYear = new Date().getUTCFullYear()
+    if (year === currentYear) {
+      return `${pad(day)}.${pad(month)} ${pad(hours)}:${pad(minutes)}`
     }
-    return `${day}.${month}.${year} ${hours}:${minutes}`;
-};
+  }
+
+  return `${pad(day)}.${pad(month)}.${year} ${pad(hours)}:${pad(minutes)}`
+}
 
 export const formatDateStr = (dateString: string | null) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString)
-    const day = date.getDate().toString().padStart(2, "0") // Ensure two digits
-    const month = (date.getMonth() + 1).toString().padStart(2, "0") // Months are 0-based
-    const year = date.getFullYear()
-    
-    return `${day}.${month}.${year}`
-  }
+  if (!dateString) return "N/A"
+  const date = new Date(dateString)
+  const { day, month, year } = toUtcParts(date)
+  return `${pad(day)}.${pad(month)}.${year}`
+}
 
 
-export const formatDateWithUserOffset = (dateString: string, userPreferredOffset: number, displayYear: boolean = true) => {
-    if (!dateString) return "N/A"
+const WEEKDAY_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "UTC" })
 
-    const date = new Date(dateString)
-    const offsetDate = new Date(date.getTime() + userPreferredOffset * 60 * 60 * 1000)
+const applyOffset = (dateString: string, userPreferredOffset: number) => {
+  const base = new Date(dateString)
+  return new Date(base.getTime() + userPreferredOffset * 60 * 60 * 1000)
+}
 
-    return formatDate(offsetDate, displayYear)
-  }
+export const formatDateWithUserOffset = (
+  dateString: string,
+  userPreferredOffset: number,
+  displayYear: boolean = true,
+) => {
+  if (!dateString) return "N/A"
+  const offsetDate = applyOffset(dateString, userPreferredOffset)
+  return formatDate(offsetDate, displayYear)
+}
+
+export const formatWeekday = (dateString: string | null, userPreferredOffset: number = 0) => {
+  if (!dateString) return "N/A"
+  const offsetDate = applyOffset(dateString, userPreferredOffset)
+  return WEEKDAY_FORMATTER.format(offsetDate)
+}

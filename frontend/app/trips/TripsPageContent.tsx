@@ -7,11 +7,11 @@ import { Skeleton } from "../components/ui/skeleton"
 import { Button } from "../components/ui/button"
 import { PlusIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, EditIcon, EyeIcon } from "lucide-react"
 import TripModal from "./TripModal"
-import { formatDateStr } from "../utils/formatters"
+import { formatDateStr, formatWeekday } from "../utils/formatters"
 
 const formatTripDateWithWeekday = (iso: string | null) => {
   if (!iso) return "N/A"
-  const weekday = new Date(iso).toLocaleDateString(undefined, { weekday: "short" })
+  const weekday = formatWeekday(iso)
   return `${weekday}, ${formatDateStr(iso)}`
 }
 

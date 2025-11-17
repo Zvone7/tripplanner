@@ -214,8 +214,8 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     const endLocalRaw = utcIsoToLocalInput(segmentData.endDateTimeUtc, eOff)
     const endIsSame = segmentData.endDateTimeUtc === segmentData.startDateTimeUtc && eOff === sOff
 
-    const startLocRaw = (segmentData as any)?.startLocation ?? (segmentData as any)?.StartLocation
-    const endLocRaw = (segmentData as any)?.endLocation ?? (segmentData as any)?.EndLocation
+    const startLocRaw = (segmentData as any)?.startLocation ?? (segmentData as any)?.startLocation
+    const endLocRaw = (segmentData as any)?.endLocation ?? (segmentData as any)?.endLocation
 
     const startNorm = normalizeLocation(startLocRaw)
     const endNorm = normalizeLocation(endLocRaw)
@@ -288,8 +288,8 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
       setIsUiVisible((segment as any)?.isUiVisible ?? true)
 
       // Prefill locations if backend provides them
-      const startLocRaw = (segment as any)?.startLocation ?? (segment as any)?.StartLocation
-      const endLocRaw = (segment as any)?.endLocation ?? (segment as any)?.EndLocation
+      const startLocRaw = (segment as any)?.startLocation ?? (segment as any)?.startLocation
+      const endLocRaw = (segment as any)?.endLocation ?? (segment as any)?.endLocation
 
       const startNorm = normalizeLocation(startLocRaw)
       const endNorm = normalizeLocation(endLocRaw)
@@ -377,7 +377,7 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     if (!segment) return
 
     try {
-      const response = await fetch(`/api/Segment/Delete/${segment.id}`, {
+      const response = await fetch(`/api/Segment/DeleteSegment?tripId=${tripId}&segmentId=${segment.id}`, {
         method: "DELETE",
         credentials: "include",
       })
@@ -506,8 +506,8 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
         cost: Number.parseFloat(cost),
         segmentTypeId,
         comment,
-        StartLocation: toLocationDto(startForSave),
-        EndLocation: toLocationDto(endForSave),
+        startLocation: toLocationDto(startForSave),
+        endLocation: toLocationDto(endForSave),
         isUiVisible,
       }
 
