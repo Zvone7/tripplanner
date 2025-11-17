@@ -83,6 +83,20 @@ export interface SegmentModalProps {
   segmentTypes: SegmentType[];
 }
 
+/* -----------------------------------------------------------------------------
+ * Trip types
+ * ---------------------------------------------------------------------------*/
+export interface Trip {
+  id: number;
+  name: string;
+  description: string;
+  isActive: boolean;
+  startTime: string | null;
+  endTime: string | null;
+}
+
+export type TripSave = Omit<Trip, "id">;
+
 
 /* -----------------------------------------------------------------------------
  * Option types
@@ -111,5 +125,10 @@ export interface UserPreference {
 }
 
 export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  imageUrl?: string;
   userPreference: UserPreference;
 }
