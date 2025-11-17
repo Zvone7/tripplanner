@@ -2,10 +2,9 @@
 -------------------------
 
 -------------------------
-add a title to segment and option models - desribing the option briefly based on values
 
 -------------------------
-move all date filtering methods utils/formatters and use those implementations all over code
+frontend: move all date filtering methods utils/formatters and use those implementations all over code
 
 -------------------------
 Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used
@@ -30,8 +29,8 @@ See more info here: https://nextjs.org/docs/messages/react-hydration-error
 
 -------------------------
 
-move all request making methods to utils/apiClient
-create apiClient for options, segments, trips
+frontend:move all request making methods to utils/apiClient
+create apiClient for options, segments, trips, user, geocoding, etc
 
 cleanup if there are models defined in several places, that should be cleaned up (as in, they are duplicated) - define them only in models.ts and import them where needed
 

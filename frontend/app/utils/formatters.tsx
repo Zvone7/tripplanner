@@ -51,3 +51,12 @@ export const formatWeekday = (dateString: string | null, userPreferredOffset: nu
   const offsetDate = applyOffset(dateString, userPreferredOffset)
   return WEEKDAY_FORMATTER.format(offsetDate)
 }
+
+export const formatWeekdayDayMonth = (dateString: string | null, userPreferredOffset: number = 0) => {
+  if (!dateString) return ""
+  const offsetDate = applyOffset(dateString, userPreferredOffset)
+  const weekday = WEEKDAY_FORMATTER.format(offsetDate)
+  const day = pad(offsetDate.getUTCDate())
+  const month = pad(offsetDate.getUTCMonth() + 1)
+  return `${weekday} ${day}.${month}.`
+}

@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import type { ReactNode } from "react";
 import { Dialog, DialogContent, DialogTitle } from "../components/ui/dialog";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -22,10 +23,12 @@ import {
 } from "../components/ui/alert-dialog";
 import { SaveIcon, Trash2Icon, EyeOffIcon, SlidersHorizontal } from "lucide-react";
 import type { SegmentType, SegmentApi, OptionApi, OptionSave } from "../types/models";
-import { formatDateWithUserOffset, formatWeekday } from "../utils/formatters";
+import { formatDateWithUserOffset, formatWeekday, formatWeekdayDayMonth } from "../utils/formatters";
 import { cn } from "../lib/utils";
+import { getStartLocation, getEndLocation } from "../utils/segmentLocations";
 
 const arraysEqual = (a: number[], b: number[]) => a.length === b.length && a.every((val, idx) => val === b[idx])
+type SummaryPart = { key: string; text: string; node: ReactNode }
 interface OptionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -245,14 +248,113 @@ export default function OptionModal({
     return segments.filter((segment) => segment.isUiVisible !== false);
   }, [option, segments, showHiddenSegmentsFilter]);
 
+  const selectedSegmentEntities = useMemo(() => {
+    if (selectedSegments.length === 0) return [];
+    const byId = new Map<number, SegmentApi>();
+    segments.forEach((segment) => byId.set(segment.id, segment));
+    return selectedSegments
+      .map((id) => byId.get(id))
+      .filter((segment): segment is SegmentApi => Boolean(segment));
+  }, [segments, selectedSegments]);
+
+  const optionTitleSummary = useMemo(() => {
+    const parts: SummaryPart[] = [];
+    const trimmedName = name.trim();
+    const fallbackName = trimmedName || option?.name || "New option";
+    parts.push({ key: "name", text: fallbackName, node: <span className="italic">{fallbackName}</span> });
+
+    if (selectedSegmentEntities.length > 0) {
+      const count = selectedSegmentEntities.length;
+      const countText = `${count} segment${count === 1 ? "" : "s"}`;
+      parts.push({ key: "count", text: countText, node: countText });
+
+      const sortedByStart = [...selectedSegmentEntities].sort(
+        (a, b) => new Date(a.startDateTimeUtc).getTime() - new Date(b.startDateTimeUtc).getTime(),
+      );
+      const earliest = sortedByStart[0];
+      const latest = sortedByStart.reduce((prev, segment) => {
+        const prevEnd = new Date(prev.endDateTimeUtc).getTime();
+        const nextEnd = new Date(segment.endDateTimeUtc).getTime();
+        return nextEnd > prevEnd ? segment : prev;
+      }, sortedByStart[0]);
+
+      const firstPlace = getStartLocation(earliest as any)?.name ?? "";
+      const lastPlace = getEndLocation(latest as any)?.name ?? "";
+      if (firstPlace || lastPlace) {
+        const text = `${firstPlace ? `from ${firstPlace}` : ""}${lastPlace ? `${firstPlace ? " to" : "to"} ${lastPlace}` : ""}`.trim();
+        if (text) parts.push({ key: "places", text, node: text });
+      }
+
+      const startDate = earliest.startDateTimeUtc
+        ? formatWeekdayDayMonth(earliest.startDateTimeUtc, earliest.startDateTimeUtcOffset ?? 0)
+        : "";
+      const endDate = latest.endDateTimeUtc
+        ? formatWeekdayDayMonth(latest.endDateTimeUtc, latest.endDateTimeUtcOffset ?? 0)
+        : "";
+      if (startDate || endDate) {
+        const text = startDate && endDate && startDate !== endDate ? `${startDate} -> ${endDate}` : startDate || endDate;
+        if (text) parts.push({ key: "dates", text, node: text });
+      }
+
+      const totalCost = selectedSegmentEntities.reduce((sum, segment) => sum + (Number(segment.cost) || 0), 0);
+      if (totalCost > 0) {
+        const text = `${totalCost.toFixed(2)} $`;
+        parts.push({ key: "cost", text, node: text });
+      }
+    } else if (option) {
+      if (option.startDateTimeUtc || option.endDateTimeUtc) {
+        const startDate = option.startDateTimeUtc ? formatWeekdayDayMonth(option.startDateTimeUtc, 0) : "";
+        const endDate = option.endDateTimeUtc ? formatWeekdayDayMonth(option.endDateTimeUtc, 0) : "";
+        if (startDate || endDate) {
+          const text = startDate && endDate && startDate !== endDate ? `${startDate} -> ${endDate}` : startDate || endDate;
+          if (text) parts.push({ key: "dates", text, node: text });
+        }
+      }
+      if (typeof option.totalCost === "number" && !Number.isNaN(option.totalCost) && option.totalCost > 0) {
+        const text = `${option.totalCost.toFixed(2)} $`;
+        parts.push({ key: "cost", text, node: text });
+      }
+    }
+
+    const label = parts.map((part) => part.text).filter(Boolean).join(", ");
+    const nodes = parts.reduce<ReactNode[]>((acc, part, index) => {
+      const element = (
+        <span key={`option-part-${part.key}`} className="inline-flex items-center gap-1">
+          {part.node}
+        </span>
+      );
+      if (index > 0) acc.push(<span key={`option-sep-${part.key}`} className="text-muted-foreground">, </span>);
+      acc.push(element);
+      return acc;
+    }, []);
+
+    return { label, nodes };
+  }, [name, option, selectedSegmentEntities]);
+
+  const defaultOptionTitle = option ? `Edit Option: ${option.name}` : "Create Option";
+  const optionTitleText = optionTitleSummary.label || defaultOptionTitle;
+  const optionTitleDisplay = optionTitleSummary.nodes.length
+    ? optionTitleSummary.nodes
+    : [
+        <span key="option-title-fallback" className="inline-flex items-center gap-1">
+          {defaultOptionTitle}
+        </span>,
+      ];
+  const optionTitleDescription = option ? "Editing existing option" : "Creating new option";
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
         <DialogContent className="max-w-lg w-full p-0 flex flex-col">
-          <DialogTitle className="sr-only">{option ? `Edit Option: ${name}` : "Create Option"}</DialogTitle>
+          <DialogTitle className="sr-only">{optionTitleText}</DialogTitle>
           <form onSubmit={handleSubmit} className="flex flex-col h-full">
             <div className="border-b bg-background px-4 py-3">
-              <h2 className="text-lg font-semibold mb-3">{option ? `Edit Option: ${name}` : "Create Option"}</h2>
+              <div className="mb-3 space-y-1">
+                <h2 className="text-lg font-semibold leading-snug flex flex-wrap gap-x-1 gap-y-0.5">
+                  {optionTitleDisplay}
+                </h2>
+                <p className="text-xs text-muted-foreground">{optionTitleDescription}</p>
+              </div>
 
               <div className="flex items-center gap-2 mb-2">
                 <div className="flex items-center gap-2 text-sm">
@@ -395,8 +497,7 @@ export default function OptionModal({
 
                               <div className="text-xs text-muted-foreground mt-1">
                                 {(() => {
-                                  const startLoc =
-                                    (segment as any).startLocation ?? null;
+                                  const startLoc = getStartLocation(segment as any);
                                   const startCity = startLoc?.name ? ` (${startLoc.name})` : "";
                                   return (
                                     <>
@@ -409,7 +510,7 @@ export default function OptionModal({
 
                               <div className="text-xs text-muted-foreground">
                                 {(() => {
-                                  const endLoc = (segment as any).endLocation ?? null;
+                                  const endLoc = getEndLocation(segment as any);
                                   const endCity = endLoc?.name ? ` (${endLoc.name})` : "";
                                   return (
                                     <>

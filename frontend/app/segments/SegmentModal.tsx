@@ -45,8 +45,19 @@ import { RangeDateTimePicker, type RangeDateTimePickerValue } from "../component
 import { RangeLocationPicker, type RangeLocationPickerValue } from "../components/RangeLocationPicker"
 
 import { localToUtcMs, utcMsToIso, utcIsoToLocalInput } from "../lib/utils"
+import { formatWeekdayDayMonth } from "../utils/formatters"
 
 const arraysEqual = (a: number[], b: number[]) => a.length === b.length && a.every((val, idx) => val === b[idx])
+
+type SummaryPart = { key: string; text: string; node: React.ReactNode }
+
+const toIsoFromLocalValue = (localValue: string | null, offset?: number | null) => {
+  if (!localValue) return null
+  if (typeof offset !== "number" || Number.isNaN(offset)) return null
+  const ms = localToUtcMs(localValue, offset)
+  if (!Number.isFinite(ms)) return null
+  return utcMsToIso(ms)
+}
 
 /* ------------------------- comment preview helper ------------------------- */
 
@@ -554,15 +565,93 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
 
   const hasMissingFields = missingFieldMessages.length > 0
 
+  const segmentTitleSummary = useMemo(() => {
+    const parts: SummaryPart[] = []
+    const trimmedName = name.trim()
+    const fallbackName = trimmedName || segment?.name || "New segment"
+    parts.push({ key: "name", text: fallbackName, node: <span className="italic">{fallbackName}</span> })
+
+    const selectedType = segmentTypes.find((type) => type.id === segmentTypeId)
+    if (selectedType) {
+      parts.push({
+        key: "type",
+        text: selectedType.name ?? "",
+        node: (
+          <span className="inline-flex items-center gap-1">
+            {selectedType.iconSvg ? (
+              <span
+                className="inline-flex h-4 w-4"
+                dangerouslySetInnerHTML={{ __html: selectedType.iconSvg }}
+              />
+            ) : null}
+            {selectedType.name}
+          </span>
+        ),
+      })
+    }
+
+    const startPlace = locRange.start?.name?.trim() ?? ""
+    const endPlace = locRange.end?.name?.trim() ?? ""
+    if (startPlace || endPlace) {
+      const text = `${startPlace ? `from ${startPlace}` : ""}${endPlace ? `${startPlace ? " to" : "to"} ${endPlace}` : ""}`.trim()
+      parts.push({ key: "places", text, node: text })
+    }
+
+    const startIso = toIsoFromLocalValue(range.startLocal, range.startOffsetH)
+    const endIso = toIsoFromLocalValue(range.endLocal ?? range.startLocal, range.endOffsetH ?? range.startOffsetH)
+    const startDate = startIso ? formatWeekdayDayMonth(startIso, range.startOffsetH) : ""
+    const endDate = endIso ? formatWeekdayDayMonth(endIso, range.endOffsetH ?? range.startOffsetH) : ""
+    if (startDate || endDate) {
+      const text = startDate && endDate && startDate !== endDate ? `${startDate} -> ${endDate}` : startDate || endDate
+      if (text) parts.push({ key: "dates", text, node: text })
+    }
+
+    const parsedCost = Number.parseFloat(cost)
+    if (!Number.isNaN(parsedCost) && cost.trim() !== "") {
+      const text = `${parsedCost.toFixed(2)} $`
+      parts.push({ key: "cost", text, node: text })
+    }
+
+    const label = parts.map((part) => part.text).filter(Boolean).join(", ")
+    const nodes = parts.reduce<React.ReactNode[]>((acc, part, index) => {
+      const element = (
+        <span key={`segment-part-${part.key}`} className="inline-flex items-center gap-1">
+          {part.node}
+        </span>
+      )
+      if (index > 0) acc.push(<span key={`segment-sep-${part.key}`} className="text-muted-foreground">, </span>)
+      acc.push(element)
+      return acc
+    }, [])
+
+    return { label, nodes }
+  }, [name, segment, segmentTypeId, segmentTypes, locRange, range, cost])
+
+  const defaultSegmentTitle = isCreateMode ? "Create Segment" : segment ? `Edit Segment: ${segment.name}` : "Edit Segment"
+  const segmentTitleText = segmentTitleSummary.label || defaultSegmentTitle
+  const segmentTitleDisplay = segmentTitleSummary.nodes.length
+    ? segmentTitleSummary.nodes
+    : [
+        <span key="segment-title-fallback" className="inline-flex items-center gap-1">
+          {defaultSegmentTitle}
+        </span>,
+      ]
+  const segmentTitleDescription = isCreateMode ? "Creating new segment" : "Editing existing segment"
+
 
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl w-full h-[85vh] p-0 flex flex-col">
-          <DialogTitle className="sr-only">{isCreateMode ? "Create Segment" : `Edit Segment: ${name}`}</DialogTitle>
+          <DialogTitle className="sr-only">{segmentTitleText}</DialogTitle>
           <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
-            <h2 className="text-lg font-semibold mb-3">{isCreateMode ? "Create Segment" : `Edit Segment: ${name}`}</h2>
+            <div className="mb-3 space-y-1">
+              <h2 className="text-lg font-semibold leading-snug flex flex-wrap gap-x-1 gap-y-0.5">
+                {segmentTitleDisplay}
+              </h2>
+              <p className="text-xs text-muted-foreground">{segmentTitleDescription}</p>
+            </div>
 
             <div className="flex items-center justify-between gap-2 mb-2">
               <div className="flex items-center gap-2 text-sm">
