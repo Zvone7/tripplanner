@@ -10,19 +10,7 @@ import { Badge } from "../components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeftIcon, CheckIcon, SaveIcon } from "lucide-react"
 import { TimezoneSelector } from "../components/TimeZoneSelector"
-
-interface UserPreference {
-  preferredUtcOffset: number
-}
-
-interface User {
-  id: string
-  name: string
-  email: string
-  role: string
-  imageUrl?: string
-  userPreference: UserPreference
-}
+import type { User } from "../types/models"
 
 interface PendingUser {
   id: string

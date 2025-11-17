@@ -5,20 +5,12 @@ import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
 import { Textarea } from "../components/ui/textarea"
 import { Switch } from "../components/ui/switch"
-
-interface Trip {
-  id: number;
-  name: string;
-  description: string;
-  isActive: boolean;
-  startTime: string | null;
-  endTime: string | null;
-}
+import type { Trip, TripSave } from "../types/models"
 
 interface TripModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (trip: Omit<Trip, "id">) => void;
+  onSave: (trip: TripSave) => void;
   trip?: Trip | null;
 }
 

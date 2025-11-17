@@ -8,20 +8,12 @@ import { Button } from "../components/ui/button"
 import { PlusIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, EditIcon, EyeIcon } from "lucide-react"
 import TripModal from "./TripModal"
 import { formatDateStr, formatWeekday } from "../utils/dateformatters"
+import type { Trip } from "../types/models"
 
 const formatTripDateWithWeekday = (iso: string | null) => {
   if (!iso) return "N/A"
   const weekday = formatWeekday(iso)
   return `${weekday}, ${formatDateStr(iso)}`
-}
-
-interface Trip {
-  id: number
-  name: string
-  description: string
-  isActive: boolean
-  startTime: string | null
-  endTime: string | null
 }
 
 // Reusable Trip Card (used on all breakpoints)
