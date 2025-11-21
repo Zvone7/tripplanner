@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
@@ -10,25 +10,8 @@ import { Badge } from "../components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeftIcon, CheckIcon, SaveIcon } from "lucide-react"
 import { TimezoneSelector } from "../components/TimeZoneSelector"
-
-interface UserPreference {
-  preferredUtcOffset: number
-}
-
-interface User {
-  id: string
-  name: string
-  email: string
-  role: string
-  imageUrl?: string
-  userPreference: UserPreference
-}
-
-interface PendingUser {
-  id: string
-  name: string
-  email: string
-}
+import type { User, PendingUser } from "../types/models"
+import { userApi } from "../utils/apiClient"
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null)
@@ -41,14 +24,24 @@ export default function ProfilePage() {
   const { toast } = useToast()
   const router = useRouter()
 
+  const fetchPendingApprovals = useCallback(async () => {
+    try {
+      const pendingData = await userApi.getPendingApprovals()
+      setPendingUsers(pendingData)
+    } catch (err) {
+      console.error("Error fetching pending approvals:", err)
+      toast({
+        title: "Error",
+        description: "Failed to load pending user approvals",
+        variant: "destructive",
+      })
+    }
+  }, [toast])
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await fetch("/api/account/info")
-        if (!response.ok) {
-          throw new Error("Failed to fetch user data")
-        }
-        const userData = await response.json()
+        const userData = await userApi.getAccountInfo()
         setUser(userData)
         setPreferredUtcOffset(userData.userPreference?.preferredUtcOffset || 0)
 
@@ -64,39 +57,14 @@ export default function ProfilePage() {
     }
 
     fetchUserData()
-  }, [])
-
-  // Fetch pending approvals for admin users
-  const fetchPendingApprovals = async () => {
-    try {
-      const response = await fetch("/api/user/pendingapprovals")
-      if (!response.ok) {
-        throw new Error("Failed to fetch pending approvals")
-      }
-      const pendingData = await response.json()
-      setPendingUsers(pendingData)
-    } catch (err) {
-      console.error("Error fetching pending approvals:", err)
-      toast({
-        title: "Error",
-        description: "Failed to load pending user approvals",
-        variant: "destructive",
-      })
-    }
-  }
+  }, [fetchPendingApprovals])
 
   // Handle user approval
   const handleApproveUser = async (userId: string) => {
     setIsApproving((prev) => ({ ...prev, [userId]: true }))
 
     try {
-      const response = await fetch(`/api/user/approveuser?userIdToApprove=${userId}`, {
-        method: "POST",
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to approve user")
-      }
+      await userApi.approveUser(userId)
 
       // Remove approved user from the list
       setPendingUsers((prev) => prev.filter((user) => user.id !== userId))
@@ -122,19 +90,7 @@ export default function ProfilePage() {
     setIsSavingPreferences(true)
 
     try {
-      const response = await fetch("/api/user/UpdateUserPreference", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          preferredUtcOffset: preferredUtcOffset,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to update user preferences")
-      }
+      await userApi.updatePreference(preferredUtcOffset)
 
       if (user) {
         setUser({

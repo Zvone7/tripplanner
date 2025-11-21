@@ -7,15 +7,14 @@ import { Skeleton } from "../components/ui/skeleton"
 import { Button } from "../components/ui/button"
 import { PlusIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, EditIcon, EyeIcon } from "lucide-react"
 import TripModal from "./TripModal"
-import { formatDateStr } from "../utils/formatters"
+import { formatDateStr, formatWeekday } from "../utils/dateformatters"
+import type { Trip, TripSave } from "../types/models"
+import { tripsApi } from "../utils/apiClient"
 
-interface Trip {
-  id: number
-  name: string
-  description: string
-  isActive: boolean
-  startTime: string | null
-  endTime: string | null
+const formatTripDateWithWeekday = (iso: string | null) => {
+  if (!iso) return "N/A"
+  const weekday = formatWeekday(iso)
+  return `${weekday}, ${formatDateStr(iso)}`
 }
 
 // Reusable Trip Card (used on all breakpoints)
@@ -48,10 +47,10 @@ function TripCard({
             <div className="mt-1 text-sm text-muted-foreground space-y-1">
               {trip.description && <div className="line-clamp-2">{trip.description}</div>}
               <div>
-                <span className="font-medium">Start:</span> {formatDateStr(trip.startTime)}
+                <span className="font-medium">Start:</span> {formatTripDateWithWeekday(trip.startTime)}
               </div>
               <div>
-                <span className="font-medium">End:</span> {formatDateStr(trip.endTime)}
+                <span className="font-medium">End:</span> {formatTripDateWithWeekday(trip.endTime)}
               </div>
             </div>
           </div>
@@ -157,9 +156,7 @@ export default function TripList() {
   const fetchTrips = useCallback(async () => {
     setIsLoading(true)
     try {
-      const response = await fetch("/api/trip/getalltrips")
-      if (!response.ok) throw new Error("Failed to fetch trips")
-      const data: Trip[] = await response.json()
+      const data = await tripsApi.getAll()
       setTrips(data)
     } catch (err) {
       setError("An error occurred while fetching trips")
@@ -217,23 +214,13 @@ export default function TripList() {
     setEditingTrip(null)
   }
 
-  const handleSaveTrip = async (tripData: Omit<Trip, "id">) => {
+  const handleSaveTrip = async (tripData: TripSave) => {
     try {
-      let response: Response
       if (editingTrip) {
-        response = await fetch(`/api/trip/updatetrip?tripId=${editingTrip.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...tripData, id: editingTrip.id }),
-        })
+        await tripsApi.update(editingTrip.id, tripData)
       } else {
-        response = await fetch("/api/trip/createtrip", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(tripData),
-        })
+        await tripsApi.create(tripData)
       }
-      if (!response.ok) throw new Error("Failed to save trip")
       handleCloseModal()
       await fetchTrips()
     } catch (err) {
@@ -245,8 +232,7 @@ export default function TripList() {
   const handleDeleteTrip = async (tripId: number) => {
     if (!window.confirm("Are you sure you want to delete this trip?")) return
     try {
-      const response = await fetch(`/api/trip/deletetrip?tripId=${tripId}`, { method: "DELETE" })
-      if (!response.ok) throw new Error("Failed to delete trip")
+      await tripsApi.remove(tripId)
       await fetchTrips()
     } catch (err) {
       console.error("Error deleting trip:", err)

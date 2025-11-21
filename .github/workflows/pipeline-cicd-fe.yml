@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - release-fe-dev
+      - feature/ui-update
   workflow_dispatch:
     inputs:
       buildNumber:

@@ -17,3 +17,7 @@ ADD start_location_id INT NULL,
     end_location_id INT NULL,
     FOREIGN KEY (start_location_id) REFERENCES location(id),
     FOREIGN KEY (end_location_id) REFERENCES location(id);
+
+
+ALTER TABLE segment
+ADD is_ui_visible BIT NOT NULL DEFAULT 1;

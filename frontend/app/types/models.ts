@@ -62,9 +62,10 @@ export interface SegmentApi {
 
   comment?: string;
   color?: string;
+  isUiVisible: boolean;
 
-  StartLocation?: LocationOption | LocationDto | null;
-  EndLocation?: LocationOption | LocationDto | null;
+  startLocation?: LocationOption | LocationDto | null;
+  endLocation?: LocationOption | LocationDto | null;
 }
 
 export interface Segment extends SegmentApi {
@@ -82,6 +83,20 @@ export interface SegmentModalProps {
   segmentTypes: SegmentType[];
 }
 
+/* -----------------------------------------------------------------------------
+ * Trip types
+ * ---------------------------------------------------------------------------*/
+export interface Trip {
+  id: number;
+  name: string;
+  description: string;
+  isActive: boolean;
+  startTime: string | null;
+  endTime: string | null;
+}
+
+export type TripSave = Omit<Trip, "id">;
+
 
 /* -----------------------------------------------------------------------------
  * Option types
@@ -92,6 +107,7 @@ export interface OptionApi {
   startDateTimeUtc: string | null;
   endDateTimeUtc: string | null;
   tripId: number;
+  isUiVisible: boolean;
 
   totalCost: number;
   totalDays: number;
@@ -109,5 +125,16 @@ export interface UserPreference {
 }
 
 export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  imageUrl?: string;
   userPreference: UserPreference;
+}
+
+export interface PendingUser {
+  id: string;
+  name: string;
+  email: string;
 }
