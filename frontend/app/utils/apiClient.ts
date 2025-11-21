@@ -12,6 +12,7 @@ import type {
   LocationOption,
   PendingUser,
   Currency,
+  CurrencyConversion,
 } from "../types/models"
 
 export type ResponseType = "json" | "text" | "void"
@@ -151,4 +152,12 @@ export const locationApi = {
 
 export const currencyApi = {
   getCurrencies: () => request<Currency[]>("/api/Currency/GetCurrencies"),
+  getConversions: () => request<CurrencyConversion[]>("/api/Currency/GetConversions"),
+  upsertConversion: (payload: CurrencyConversion) =>
+    request<void>("/api/Currency/UpsertConversion", {
+      method: "PUT",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload),
+      responseType: "void",
+    }),
 }

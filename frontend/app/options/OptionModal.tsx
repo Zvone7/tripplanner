@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
 import { SaveIcon, Trash2Icon, EyeOffIcon, SlidersHorizontal } from "lucide-react";
-import type { SegmentType, SegmentApi, OptionApi, OptionSave } from "../types/models";
+import type { SegmentType, SegmentApi, OptionApi, OptionSave, Currency, CurrencyConversion } from "../types/models";
 import { cn } from "../lib/utils";
 import { TitleTokens } from "../components/TitleTokens";
 import {
@@ -32,9 +32,11 @@ import {
   summarizeSegmentsForOption,
   tokensToLabel,
 } from "../utils/formatters";
+import { formatCurrencyAmount, formatConvertedAmount } from "../utils/currency";
 import { optionsApi, segmentsApi } from "../utils/apiClient";
 
 const arraysEqual = (a: number[], b: number[]) => a.length === b.length && a.every((val, idx) => val === b[idx])
+
 interface OptionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -42,6 +44,10 @@ interface OptionModalProps {
   option?: OptionApi | null;
   tripId: number;
   refreshOptions: () => void;
+  tripCurrencyId: number | null;
+  displayCurrencyId: number | null;
+  currencies: Currency[];
+  conversions: CurrencyConversion[];
 }
 
 export default function OptionModal({
@@ -51,6 +57,10 @@ export default function OptionModal({
   option,
   tripId,
   refreshOptions,
+  tripCurrencyId,
+  displayCurrencyId,
+  currencies,
+  conversions,
 }: OptionModalProps) {
   const [name, setName] = useState("");
   const [segments, setSegments] = useState<SegmentApi[]>([]);
@@ -65,6 +75,23 @@ export default function OptionModal({
   const initialSelectedSegmentsRef = useRef<number[] | null>(null);
   const [segmentsFilterOpen, setSegmentsFilterOpen] = useState(false);
   const [showHiddenSegmentsFilter, setShowHiddenSegmentsFilter] = useState(false);
+  const resolvedDisplayCurrencyId = displayCurrencyId ?? tripCurrencyId ?? null;
+
+  const formatSegmentCost = useCallback(
+    (segment: SegmentApi) => {
+      if (segment.cost === null || segment.cost === undefined) return null
+      return (
+        formatConvertedAmount({
+          amount: segment.cost,
+          fromCurrencyId: segment.currencyId ?? tripCurrencyId ?? null,
+          toCurrencyId: resolvedDisplayCurrencyId,
+          currencies,
+          conversions,
+        }) ?? formatCurrencyAmount(segment.cost, segment.currencyId ?? tripCurrencyId ?? null, currencies)
+      )
+    },
+    [tripCurrencyId, resolvedDisplayCurrencyId, currencies, conversions],
+  )
 
   // fetch user offset (for time formatting)
 
@@ -351,9 +378,12 @@ export default function OptionModal({
                     ) : (
                       filteredSegmentsForDisplay.map((segment) => {
                         const segmentType = segmentTypes.find((st) => st.id === segment.segmentTypeId) ?? null;
-                        const tokens = buildSegmentTitleTokens(
-                          buildSegmentConfigFromApi(segment, segmentType ?? undefined),
-                        );
+                        const segmentCostLabel = formatSegmentCost(segment);
+                        const segmentConfig = buildSegmentConfigFromApi(segment, segmentType ?? undefined);
+                        const tokens = buildSegmentTitleTokens({
+                          ...segmentConfig,
+                          cost: segmentCostLabel ?? segmentConfig.cost,
+                        });
                         const summaryLabel = tokensToLabel(tokens) || segment.name;
                         const isHiddenSegment = segment.isUiVisible === false;
                         const dimmed = showHiddenSegmentsFilter && isHiddenSegment;

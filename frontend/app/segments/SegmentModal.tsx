@@ -45,7 +45,7 @@ import type {
 import { RangeDateTimePicker, type RangeDateTimePickerValue } from "../components/RangeDateTimePicker"
 
 import { RangeLocationPicker, type RangeLocationPickerValue } from "../components/RangeLocationPicker"
-import { CurrencyDropdown } from "../components/CurrencyDropdown"
+import { useCurrencyConversions } from "../hooks/useCurrencyConversions"
 
 import { localToUtcMs, utcMsToIso, utcIsoToLocalInput } from "../lib/utils"
 import {
@@ -56,6 +56,7 @@ import {
 } from "../utils/formatters"
 import { optionsApi, segmentsApi, userApi } from "../utils/apiClient"
 import { getDefaultCurrencyId, useCurrencies } from "../hooks/useCurrencies"
+import { formatCurrencyAmount, formatConvertedAmount } from "../utils/currency"
 
 const arraysEqual = (a: number[], b: number[]) => a.length === b.length && a.every((val, idx) => val === b[idx])
 
@@ -132,7 +133,16 @@ const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
 
 /* ------------------------------- main modal ------------------------------- */
 
-export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId, segmentTypes }: SegmentModalProps) {
+export default function SegmentModal({
+  isOpen,
+  onClose,
+  onSave,
+  segment,
+  tripId,
+  segmentTypes,
+  tripCurrencyId,
+  displayCurrencyId,
+}: SegmentModalProps) {
   const [name, setName] = useState("")
   const [range, setRange] = useState<RangeDateTimePickerValue>({
     startLocal: "",
@@ -179,7 +189,57 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
   }, [segmentTypeId, segmentTypes])
 
   const { currencies, isLoading: isLoadingCurrencies } = useCurrencies()
+  const { conversions } = useCurrencyConversions()
   const defaultCurrencyId = useMemo(() => getDefaultCurrencyId(currencies), [currencies])
+  const resolvedDisplayCurrencyId = useMemo(() => {
+    if (typeof displayCurrencyId === "number") return displayCurrencyId
+    if (typeof tripCurrencyId === "number") return tripCurrencyId
+    if (typeof userPreferredCurrencyId === "number" && userPreferredCurrencyId > 0) return userPreferredCurrencyId
+    return defaultCurrencyId ?? null
+  }, [displayCurrencyId, tripCurrencyId, userPreferredCurrencyId, defaultCurrencyId])
+  const parsedCost = Number.parseFloat(cost)
+  const hasCostValue = Number.isFinite(parsedCost)
+  const formattedSegmentCost = useMemo(() => {
+    if (!hasCostValue || !currencyId) return null
+    return formatCurrencyAmount(parsedCost, currencyId, currencies)
+  }, [hasCostValue, parsedCost, currencyId, currencies])
+  const userConversionLabel = useMemo(() => {
+    if (!hasCostValue) return null
+    if (!currencyId || !userPreferredCurrencyId || currencyId === userPreferredCurrencyId) return null
+    return (
+      formatConvertedAmount({
+        amount: parsedCost,
+        fromCurrencyId: currencyId,
+        toCurrencyId: userPreferredCurrencyId,
+        currencies,
+        conversions,
+      }) ?? null
+    )
+  }, [hasCostValue, parsedCost, currencyId, userPreferredCurrencyId, currencies, conversions])
+  const tripConversionLabel = useMemo(() => {
+    if (!hasCostValue) return null
+    if (!currencyId || !tripCurrencyId) return null
+    if (!userPreferredCurrencyId || tripCurrencyId === userPreferredCurrencyId) return null
+    if (!userConversionLabel) return null
+    return (
+      formatConvertedAmount({
+        amount: parsedCost,
+        fromCurrencyId: currencyId,
+        toCurrencyId: tripCurrencyId,
+        currencies,
+        conversions,
+      }) ?? null
+    )
+  }, [
+    hasCostValue,
+    parsedCost,
+    currencyId,
+    tripCurrencyId,
+    userPreferredCurrencyId,
+    userConversionLabel,
+    currencies,
+    conversions,
+  ])
 
   // Fetch user preferences (preferred offset)
   const fetchUserPreferences = useCallback(async () => {
@@ -263,6 +323,22 @@ type SegmentBaseline = {
       currencyId: segmentData.currencyId ?? null,
     }
   }
+
+  const formatOptionCostForDisplay = useCallback(
+    (option: OptionApi) => {
+      if (option.totalCost === null || option.totalCost === undefined) return null
+      return (
+        formatConvertedAmount({
+          amount: option.totalCost,
+          fromCurrencyId: tripCurrencyId ?? null,
+          toCurrencyId: resolvedDisplayCurrencyId,
+          currencies,
+          conversions,
+        }) ?? formatCurrencyAmount(option.totalCost, tripCurrencyId ?? null, currencies)
+      )
+    },
+    [tripCurrencyId, resolvedDisplayCurrencyId, currencies, conversions],
+  )
 
   const fetchConnectedOptions = useCallback(
     async (segmentId: number) => {
@@ -369,10 +445,14 @@ type SegmentBaseline = {
       setCurrencyId(userPreferredCurrencyId)
       return
     }
+    if (typeof tripCurrencyId === "number" && tripCurrencyId > 0) {
+      setCurrencyId(tripCurrencyId)
+      return
+    }
     if (defaultCurrencyId) {
       setCurrencyId(defaultCurrencyId)
     }
-  }, [segment, currencyId, userPreferredCurrencyId, defaultCurrencyId])
+  }, [segment, currencyId, userPreferredCurrencyId, tripCurrencyId, defaultCurrencyId])
 
   const handleOptionChange = (optionId: number, checkedState: boolean | "indeterminate") => {
     const checked = checkedState === true
@@ -522,7 +602,7 @@ type SegmentBaseline = {
       const startForSave = locRange.start ? { ...locRange.start, id: prefilledStart?.id } : null
       const endForSave = locRange.end ? { ...locRange.end, id: prefilledEnd?.id } : null
 
-      const currencyIdForSave = currencyId ?? userPreferredCurrencyId ?? defaultCurrencyId
+      const currencyIdForSave = currencyId ?? userPreferredCurrencyId ?? tripCurrencyId ?? defaultCurrencyId
       if (!currencyIdForSave) {
         toast({ title: "Error", description: "Select a currency before saving." })
         return
@@ -574,6 +654,7 @@ type SegmentBaseline = {
       handleUpdateConnectedOptions,
       currencyId,
       userPreferredCurrencyId,
+      tripCurrencyId,
       defaultCurrencyId,
       toast,
     ],
@@ -594,7 +675,7 @@ type SegmentBaseline = {
   const segmentTitleTokens = useMemo(() => {
     const startIso = toIsoFromLocalValue(range.startLocal, range.startOffsetH)
     const endIso = toIsoFromLocalValue(range.endLocal ?? range.startLocal, range.endOffsetH ?? range.startOffsetH)
-    return buildSegmentTitleTokens({
+    const tokens = buildSegmentTitleTokens({
       name,
       fallbackName: segment?.name || "New segment",
       segmentType: selectedSegmentType,
@@ -604,9 +685,13 @@ type SegmentBaseline = {
       endDateIso: endIso,
       startOffset: range.startOffsetH,
       endOffset: range.endOffsetH ?? range.startOffsetH,
-      cost,
+      cost: null,
     })
-  }, [name, segment, selectedSegmentType, locRange, range, cost])
+    if (formattedSegmentCost) {
+      tokens.push({ key: "cost", text: formattedSegmentCost })
+    }
+    return tokens
+  }, [name, segment, selectedSegmentType, locRange, range, formattedSegmentCost])
 
   const defaultSegmentTitle = isCreateMode ? "Create Segment" : segment ? `Edit Segment: ${segment.name}` : "Edit Segment"
   const segmentTitleText = tokensToLabel(segmentTitleTokens) || defaultSegmentTitle
@@ -740,16 +825,29 @@ type SegmentBaseline = {
                   step="0.01"
                   inputMode="decimal"
                 />
-                <CurrencyDropdown
-                  value={currencyId}
-                  onChange={setCurrencyId}
-                  currencies={currencies}
-                  placeholder={isLoadingCurrencies ? "Loading..." : "Currency"}
+                <Select
+                  value={currencyId?.toString() ?? ""}
+                  onValueChange={(value) => setCurrencyId(Number.parseInt(value, 10))}
                   disabled={isLoadingCurrencies}
-                  className="sm:w-[220px]"
-                  triggerClassName="w-full"
-                />
+                >
+                  <SelectTrigger className="sm:w-[220px] w-full">
+                    <SelectValue placeholder={isLoadingCurrencies ? "Loading..." : "Currency"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {currencies.map((currency) => (
+                      <SelectItem key={currency.id} value={currency.id.toString()}>
+                        {currency.symbol} {currency.shortName} · {currency.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+              {(userConversionLabel || tripConversionLabel) && (
+                <div className="col-span-3 col-start-2 text-xs text-muted-foreground">
+                  {userConversionLabel ? <>≈ {userConversionLabel}</> : null}
+                  {tripConversionLabel ? <span className="ml-1">({tripConversionLabel})</span> : null}
+                </div>
+              )}
             </div>
 
             <Collapsible title="Time" open={timesOpen} onToggle={() => setTimesOpen((o) => !o)}>
@@ -831,7 +929,12 @@ Or paste URLs directly: https://example.com`}
                       filteredOptionsForDisplay.map((option) => {
                         const optionHidden = option.isUiVisible === false
                         const dimmed = showHiddenOptionsFilter && optionHidden
-                        const tokens = buildOptionTitleTokens(buildOptionConfigFromApi(option))
+                        const optionCostLabel = formatOptionCostForDisplay(option)
+                        const optionConfig = buildOptionConfigFromApi(option)
+                        const tokens = buildOptionTitleTokens({
+                          ...optionConfig,
+                          totalCost: optionCostLabel ?? optionConfig.totalCost,
+                        })
                         const summaryLabel = tokensToLabel(tokens) || option.name
 
                         return (

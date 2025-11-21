@@ -59,7 +59,7 @@ export function CurrencyDropdown({
 
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen} modal={false}>
         <PopoverTrigger asChild>
           <Button
             type="button"

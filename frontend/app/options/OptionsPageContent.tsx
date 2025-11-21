@@ -14,9 +14,14 @@ import type { OptionSortValue } from "../components/sorting/optionSortTypes";
 import { applyOptionFilters, buildOptionMetadata } from "../services/optionFiltering";
 import { cn } from "../lib/utils";
 import { optionsApi, segmentsApi, tripsApi } from "../utils/apiClient";
+import { CurrencyDropdown } from "../components/CurrencyDropdown";
+import { useCurrencies } from "../hooks/useCurrencies";
+import { useCurrencyConversions } from "../hooks/useCurrencyConversions";
+import { useCurrentUser } from "../hooks/useCurrentUser";
+import { formatCurrencyAmount, convertWithFallback } from "../utils/currency";
 
 // shared API types
-import type { OptionApi, OptionSave, SegmentApi, SegmentType } from "../types/models";
+import type { OptionApi, OptionSave, SegmentApi, SegmentType, Currency, CurrencyConversion } from "../types/models";
 
 const formatOptionDateWithWeekday = (iso: string | null) => {
   if (!iso) return "N/A";
@@ -32,11 +37,6 @@ const formatLocationLabel = (loc: any | null) => {
 };
 
 /* ---------------------------------- helpers ---------------------------------- */
-
-const CURRENCY = "$";
-
-const formatMoney = (n?: number | null) =>
-  typeof n === "number" && !Number.isNaN(n) ? `${CURRENCY}${n.toFixed(2)}` : "—";
 
 // Normalize backend enum/string keys into { Accommodation, Transport, Other }
 function normalizeCostPerType(raw?: Record<string | number, number> | null) {
@@ -114,17 +114,68 @@ function CostPieChart({
   );
 }
 
-function CostSummary({ option }: { option: OptionApi }) {
+function CostSummary({
+  option,
+  displayCurrencyId,
+  tripCurrencyId,
+  currencies,
+  conversions,
+}: {
+  option: OptionApi;
+  displayCurrencyId: number | null;
+  tripCurrencyId: number | null;
+  currencies: Currency[];
+  conversions: CurrencyConversion[];
+}) {
   const split = useMemo(() => normalizeCostPerType(option.costPerType), [option.costPerType]);
+  const effectiveCurrencyId = displayCurrencyId ?? tripCurrencyId ?? null;
+  const primaryCurrencyId = effectiveCurrencyId ?? tripCurrencyId ?? null;
+  const totalDisplay = convertWithFallback({
+    amount: option.totalCost ?? 0,
+    fromCurrencyId: tripCurrencyId ?? null,
+    toCurrencyId: effectiveCurrencyId,
+    conversions,
+  });
+  const perDayDisplay = convertWithFallback({
+    amount: option.costPerDay ?? 0,
+    fromCurrencyId: tripCurrencyId ?? null,
+    toCurrencyId: effectiveCurrencyId,
+    conversions,
+  });
+  const totalLabel = formatCurrencyAmount(totalDisplay.amount, totalDisplay.currencyId ?? primaryCurrencyId, currencies);
+  const perDayLabel = formatCurrencyAmount(perDayDisplay.amount, perDayDisplay.currencyId ?? primaryCurrencyId, currencies);
+  const showOriginalTotal =
+    displayCurrencyId !== null && tripCurrencyId !== null && tripCurrencyId !== displayCurrencyId && option.totalCost !== null;
+  const originalTotalLabel = showOriginalTotal
+    ? formatCurrencyAmount(option.totalCost ?? 0, tripCurrencyId, currencies)
+    : null;
+  const convertSplitValue = (value: number) =>
+    convertWithFallback({
+      amount: value,
+      fromCurrencyId: tripCurrencyId ?? null,
+      toCurrencyId: effectiveCurrencyId,
+      conversions,
+    });
+  const displaySplit = {
+    Accommodation: convertSplitValue(split.Accommodation),
+    Transport: convertSplitValue(split.Transport),
+    Other: convertSplitValue(split.Other),
+  };
+  const splitLabel = (value: ReturnType<typeof convertSplitValue>) =>
+    formatCurrencyAmount(value.amount, value.currencyId ?? primaryCurrencyId, currencies);
+
   return (
     <div className="rounded-md border p-3 space-y-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div className="text-sm font-medium">Costs</div>
         <div className="text-sm text-muted-foreground">
-          <span className="font-medium">{formatMoney(option.totalCost)}</span>{" "}
-          <span className="font-medium">
-            ({option.totalDays} {option.totalDays === 1 ? "day" : "days"} at {formatMoney(option.costPerDay)} per day)
-          </span>
+          <span className="font-medium">{totalLabel}</span>
+          {originalTotalLabel ? (
+            <span className="font-medium text-xs text-muted-foreground ml-2">({originalTotalLabel})</span>
+          ) : null}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {option.totalDays} {option.totalDays === 1 ? "day" : "days"} at {perDayLabel} per day
         </div>
       </div>
       <div className="flex items-center gap-4">
@@ -136,15 +187,15 @@ function CostSummary({ option }: { option: OptionApi }) {
         <div className="space-y-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <span className="inline-block h-2 w-2 rounded-sm bg-sky-200" />
-            Transport ({formatMoney(split.Transport)})
+            Transport ({splitLabel(displaySplit.Transport)})
           </div>
           <div className="flex items-center gap-2">
             <span className="inline-block h-2 w-2 rounded-sm bg-green-200" />
-            Accommodation ({formatMoney(split.Accommodation)})
+            Accommodation ({splitLabel(displaySplit.Accommodation)})
           </div>
           <div className="flex items-center gap-2">
             <span className="inline-block h-2 w-2 rounded-sm bg-gray-300" />
-            Other ({formatMoney(split.Other)})
+            Other ({splitLabel(displaySplit.Other)})
           </div>
         </div>
       </div>
@@ -202,11 +253,19 @@ function OptionCard({
   connectedSegments,
   onEdit,
   showVisibilityIndicator,
+  displayCurrencyId,
+  tripCurrencyId,
+  currencies,
+  conversions,
 }: {
   option: OptionApi;
   connectedSegments: ConnectedSegment[];
   onEdit: (option: OptionApi) => void;
   showVisibilityIndicator: boolean;
+  displayCurrencyId: number | null;
+  tripCurrencyId: number | null;
+  currencies: Currency[];
+  conversions: CurrencyConversion[];
 }) {
   const isHidden = option.isUiVisible === false;
 
@@ -263,7 +322,13 @@ function OptionCard({
       </CardHeader>
 
       <CardContent className="pt-0 space-y-3">
-        <CostSummary option={option} />
+        <CostSummary
+          option={option}
+          displayCurrencyId={displayCurrencyId}
+          tripCurrencyId={tripCurrencyId}
+          currencies={currencies}
+          conversions={conversions}
+        />
         <SegmentDiagram segments={connectedSegments} />
       </CardContent>
     </Card>
@@ -284,12 +349,18 @@ export default function OptionsPageContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOption, setEditingOption] = useState<OptionApi | null>(null);
   const [tripName, setTripName] = useState<string>("");
+  const [tripCurrencyId, setTripCurrencyId] = useState<number | null>(null);
+  const [displayCurrencyId, setDisplayCurrencyId] = useState<number | null>(null);
+  const [userPreferredCurrencyId, setUserPreferredCurrencyId] = useState<number | null>(null);
   const [filterState, setFilterState] = useState<OptionFilterValue>({
     locations: [],
     dateRange: { start: "", end: "" },
     showHidden: false,
   });
   const [sortState, setSortState] = useState<OptionSortValue | null>(null);
+  const { currencies, isLoading: isLoadingCurrencies } = useCurrencies();
+  const { conversions } = useCurrencyConversions();
+  const { user } = useCurrentUser();
 
   const searchParams = useSearchParams();
   const tripId = searchParams.get("tripId");
@@ -300,9 +371,11 @@ export default function OptionsPageContent() {
     try {
       const data = await tripsApi.getById(tripId);
       setTripName(data.name);
+      setTripCurrencyId(data.currencyId ?? null);
     } catch (err) {
       console.error("Error fetching trip details:", err);
       setTripName("Unknown Trip");
+      setTripCurrencyId(null);
     }
   }, [tripId]);
 
@@ -373,6 +446,22 @@ export default function OptionsPageContent() {
     fetchSegments();
     fetchSegmentTypes();
   }, [fetchTripName, fetchOptions, fetchSegments, fetchSegmentTypes]);
+
+  useEffect(() => {
+    if (!user) return
+    setUserPreferredCurrencyId(user.userPreference?.preferredCurrencyId ?? null)
+  }, [user])
+
+  useEffect(() => {
+    if (displayCurrencyId !== null) return
+    if (tripCurrencyId) {
+      setDisplayCurrencyId(tripCurrencyId)
+      return
+    }
+    if (userPreferredCurrencyId) {
+      setDisplayCurrencyId(userPreferredCurrencyId)
+    }
+  }, [displayCurrencyId, tripCurrencyId, userPreferredCurrencyId])
 
   const segmentLookup = useMemo(() => {
     const map = new Map<number, SegmentApi>()
@@ -478,6 +567,16 @@ export default function OptionsPageContent() {
     [options, filterState, sortState, connectedSegments],
   )
 
+  const effectiveDisplayCurrencyId = displayCurrencyId ?? tripCurrencyId ?? userPreferredCurrencyId ?? null
+  const selectedCurrencyMeta = useMemo(
+    () => currencies.find((c) => c.id === effectiveDisplayCurrencyId) ?? null,
+    [currencies, effectiveDisplayCurrencyId],
+  )
+  const tripCurrencyMeta = useMemo(
+    () => currencies.find((c) => c.id === (tripCurrencyId ?? undefined)) ?? null,
+    [currencies, tripCurrencyId],
+  )
+
 
   if (!tripId) {
     return <div>No trip ID provided</div>;
@@ -511,6 +610,18 @@ export default function OptionsPageContent() {
           minDate={optionMetadata.dateBounds.min}
           maxDate={optionMetadata.dateBounds.max}
         />
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="w-full sm:w-[240px]">
+            <CurrencyDropdown
+              value={effectiveDisplayCurrencyId}
+              onChange={setDisplayCurrencyId}
+              currencies={currencies}
+              placeholder={isLoadingCurrencies ? "Loading currencies..." : "Display currency"}
+              disabled={isLoadingCurrencies}
+              triggerClassName="w-full"
+            />
+          </div>
+        </div>
 
         {isLoading ? (
           <LoadingSkeleton />
@@ -528,6 +639,10 @@ export default function OptionsPageContent() {
                   connectedSegments={connectedSegments[option.id] || []}
                   onEdit={handleEditOption}
                   showVisibilityIndicator={filterState.showHidden}
+                  displayCurrencyId={effectiveDisplayCurrencyId}
+                  tripCurrencyId={tripCurrencyId}
+                  currencies={currencies}
+                  conversions={conversions}
                 />
               ))
             )}
@@ -542,6 +657,10 @@ export default function OptionsPageContent() {
         option={editingOption ?? undefined}
         tripId={Number(tripId)}
         refreshOptions={fetchOptions}
+        tripCurrencyId={tripCurrencyId}
+        displayCurrencyId={effectiveDisplayCurrencyId}
+        currencies={currencies}
+        conversions={conversions}
       />
     </Card>
   );

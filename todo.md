@@ -11,10 +11,8 @@
 I want you to
 
 
-when a user is seing total cost, it should be displayed in their preferred currency.
-each trip should also have a default currency - this is auto populated by user default when creating the trip. the preferred currency view can be also set on options and segments view.
+each trip should also have a default currency - this is auto populated by user default when creating the trip.*(but different currency can ofc be elected.) the preferred currency view can be also set on options and segments view.
 
-add a way for user to edit currency conversion on admin view
 
 --------------
 

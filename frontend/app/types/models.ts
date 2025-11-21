@@ -82,6 +82,8 @@ export interface SegmentModalProps {
   segment?: Segment | null;
   tripId: number;
   segmentTypes: SegmentType[];
+  tripCurrencyId?: number | null;
+  displayCurrencyId?: number | null;
 }
 
 /* -----------------------------------------------------------------------------
@@ -94,6 +96,7 @@ export interface Trip {
   isActive: boolean;
   startTime: string | null;
   endTime: string | null;
+  currencyId: number;
 }
 
 export type TripSave = Omit<Trip, "id">;
@@ -126,6 +129,12 @@ export interface Currency {
   symbol: string;
   shortName: string;
   name: string;
+}
+
+export interface CurrencyConversion {
+  fromCurrencyId: number;
+  toCurrencyId: number;
+  rate: number;
 }
 
 /* -----------------------------------------------------------------------------
