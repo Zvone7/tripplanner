@@ -610,8 +610,8 @@ export default function OptionsPageContent() {
           minDate={optionMetadata.dateBounds.min}
           maxDate={optionMetadata.dateBounds.max}
         />
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="w-full sm:w-[240px]">
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+          <div className="w-full sm:w-[220px]">
             <CurrencyDropdown
               value={effectiveDisplayCurrencyId}
               onChange={setDisplayCurrencyId}

@@ -945,15 +945,18 @@ Or paste URLs directly: https://example.com`}
                               dimmed && "bg-muted text-muted-foreground"
                             )}
                           >
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3 w-full">
                               <Checkbox
                                 id={`option-${option.id}`}
                                 checked={selectedOptions.includes(Number(option.id))}
                                 onCheckedChange={(checked) => handleOptionChange(Number(option.id), checked)}
                                 aria-label={`Select ${summaryLabel}`}
                               />
-                              <div className={cn("text-sm", dimmed && "text-muted-foreground")} aria-label={summaryLabel}>
+                              <div className="flex flex-col flex-1 min-w-0" aria-label={summaryLabel}>
                                 <TitleTokens tokens={tokens} size="sm" />
+                                {optionCostLabel ? (
+                                  <span className="text-xs text-muted-foreground">{optionCostLabel}</span>
+                                ) : null}
                               </div>
                             </div>
                             {dimmed && <EyeOffIcon className="h-4 w-4" aria-hidden="true" />}

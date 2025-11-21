@@ -409,6 +409,9 @@ export default function OptionModal({
                               <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-sm">
                                 <TitleTokens tokens={tokens} size="sm" />
                               </div>
+                              {segmentCostLabel ? (
+                                <div className="text-xs text-muted-foreground mt-0.5">{segmentCostLabel}</div>
+                              ) : null}
                             </div>
                             {dimmed && <EyeOffIcon className="h-4 w-4 mt-1" aria-hidden="true" />}
                           </label>
