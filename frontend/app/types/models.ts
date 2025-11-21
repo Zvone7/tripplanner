@@ -59,6 +59,7 @@ export interface SegmentApi {
 
   segmentTypeId: number;
   cost: number;
+  currencyId: number;
 
   comment?: string;
   color?: string;
@@ -118,10 +119,21 @@ export interface OptionApi {
 export type OptionSave = Omit<OptionApi, "id" | "totalCost" | "totalDays">;
 
 /* -----------------------------------------------------------------------------
+ * Currency
+ * ---------------------------------------------------------------------------*/
+export interface Currency {
+  id: number;
+  symbol: string;
+  shortName: string;
+  name: string;
+}
+
+/* -----------------------------------------------------------------------------
  * User
  * ---------------------------------------------------------------------------*/
 export interface UserPreference {
   preferredUtcOffset: number;
+  preferredCurrencyId: number;
 }
 
 export interface User {
@@ -130,7 +142,7 @@ export interface User {
   email: string;
   role: string;
   imageUrl?: string;
-  userPreference: UserPreference;
+  userPreference?: UserPreference | null;
 }
 
 export interface PendingUser {

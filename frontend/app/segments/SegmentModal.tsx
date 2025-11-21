@@ -45,6 +45,7 @@ import type {
 import { RangeDateTimePicker, type RangeDateTimePickerValue } from "../components/RangeDateTimePicker"
 
 import { RangeLocationPicker, type RangeLocationPickerValue } from "../components/RangeLocationPicker"
+import { CurrencyDropdown } from "../components/CurrencyDropdown"
 
 import { localToUtcMs, utcMsToIso, utcIsoToLocalInput } from "../lib/utils"
 import {
@@ -54,6 +55,7 @@ import {
   tokensToLabel,
 } from "../utils/formatters"
 import { optionsApi, segmentsApi, userApi } from "../utils/apiClient"
+import { getDefaultCurrencyId, useCurrencies } from "../hooks/useCurrencies"
 
 const arraysEqual = (a: number[], b: number[]) => a.length === b.length && a.every((val, idx) => val === b[idx])
 
@@ -150,12 +152,14 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
 
   const [cost, setCost] = useState("")
   const [comment, setComment] = useState("")
+  const [currencyId, setCurrencyId] = useState<number | null>(null)
   const [segmentTypeId, setSegmentTypeId] = useState<number | null>(null)
   const [options, setOptions] = useState<OptionApi[]>([])
   const [selectedOptions, setSelectedOptions] = useState<number[]>([])
   const [optionsTouched, setOptionsTouched] = useState(false)
   const [isDuplicateMode, setIsDuplicateMode] = useState(false)
   const [userPreferredOffset, setUserPreferredOffset] = useState<number>(0)
+  const [userPreferredCurrencyId, setUserPreferredCurrencyId] = useState<number | null>(null)
   const [isUiVisible, setIsUiVisible] = useState(true)
   const [baselineReady, setBaselineReady] = useState(!segment)
 
@@ -174,13 +178,18 @@ export default function SegmentModal({ isOpen, onClose, onSave, segment, tripId,
     return segmentTypes.find((type) => type.id === segmentTypeId) ?? null
   }, [segmentTypeId, segmentTypes])
 
+  const { currencies, isLoading: isLoadingCurrencies } = useCurrencies()
+  const defaultCurrencyId = useMemo(() => getDefaultCurrencyId(currencies), [currencies])
+
   // Fetch user preferences (preferred offset)
   const fetchUserPreferences = useCallback(async () => {
     try {
       const userData: User = await userApi.getAccountInfo()
       setUserPreferredOffset(userData.userPreference?.preferredUtcOffset ?? 0)
+      setUserPreferredCurrencyId(userData.userPreference?.preferredCurrencyId ?? null)
     } catch {
       setUserPreferredOffset(0)
+      setUserPreferredCurrencyId(null)
     }
   }, [])
 
@@ -221,6 +230,7 @@ type SegmentBaseline = {
     isUiVisible: boolean
     startLocation: LocationOption | null
     endLocation: LocationOption | null
+    currencyId: number | null
   }
 
   const segmentBaselineRef = useRef<SegmentBaseline | null>(null)
@@ -250,6 +260,7 @@ type SegmentBaseline = {
       isUiVisible: (segmentData as any)?.isUiVisible ?? true,
       startLocation: startNorm ?? null,
       endLocation: endNorm ?? null,
+      currencyId: segmentData.currencyId ?? null,
     }
   }
 
@@ -302,6 +313,7 @@ type SegmentBaseline = {
       setComment(segment.comment || "")
       setSegmentTypeId(segment.segmentTypeId)
       setIsUiVisible((segment as any)?.isUiVisible ?? true)
+      setCurrencyId(segment.currencyId ?? null)
 
       // Prefill locations if backend provides them
       const startLocRaw = (segment as any)?.startLocation ?? (segment as any)?.startLocation
@@ -342,12 +354,25 @@ type SegmentBaseline = {
       setSegmentTypeId(null)
       setSelectedOptions([])
       setIsUiVisible(true)
+      setCurrencyId(null)
 
       setTimesOpen(true)
       setLocationsOpen(true)
       setAdditionalOptionsOpen(false)
     }
   }, [segment, userPreferredOffset, fetchConnectedOptions])
+
+  useEffect(() => {
+    if (segment) return
+    if (currencyId !== null) return
+    if (typeof userPreferredCurrencyId === "number" && userPreferredCurrencyId > 0) {
+      setCurrencyId(userPreferredCurrencyId)
+      return
+    }
+    if (defaultCurrencyId) {
+      setCurrencyId(defaultCurrencyId)
+    }
+  }, [segment, currencyId, userPreferredCurrencyId, defaultCurrencyId])
 
   const handleOptionChange = (optionId: number, checkedState: boolean | "indeterminate") => {
     const checked = checkedState === true
@@ -423,6 +448,7 @@ type SegmentBaseline = {
     if ((baseline.comment ?? "") !== (comment ?? "")) return true
     if ((baseline.segmentTypeId ?? null) !== (segmentTypeId ?? null)) return true
     if (baseline.isUiVisible !== isUiVisible) return true
+    if ((baseline.currencyId ?? null) !== (currencyId ?? null)) return true
 
     if (baseline.startLocal !== range.startLocal) return true
     if ((baseline.endLocal ?? null) !== (range.endLocal ?? null)) return true
@@ -453,6 +479,7 @@ type SegmentBaseline = {
     range,
     locRange,
     selectedOptions,
+    currencyId,
   ])
   const isSaveDisabled = isCreateMode ? false : (!baselineReady || !hasChanges)
 
@@ -495,6 +522,12 @@ type SegmentBaseline = {
       const startForSave = locRange.start ? { ...locRange.start, id: prefilledStart?.id } : null
       const endForSave = locRange.end ? { ...locRange.end, id: prefilledEnd?.id } : null
 
+      const currencyIdForSave = currencyId ?? userPreferredCurrencyId ?? defaultCurrencyId
+      if (!currencyIdForSave) {
+        toast({ title: "Error", description: "Select a currency before saving." })
+        return
+      }
+
       const payload: SegmentSave = {
         tripId,
         name,
@@ -503,6 +536,7 @@ type SegmentBaseline = {
         startDateTimeUtcOffset: range.startOffsetH,
         endDateTimeUtcOffset: effEndOffset,
         cost: Number.parseFloat(cost),
+        currencyId: currencyIdForSave,
         segmentTypeId,
         comment,
         startLocation: toLocationDto(startForSave),
@@ -538,6 +572,9 @@ type SegmentBaseline = {
       isUiVisible,
       isSaveDisabled,
       handleUpdateConnectedOptions,
+      currencyId,
+      userPreferredCurrencyId,
+      defaultCurrencyId,
       toast,
     ],
   )
@@ -548,8 +585,9 @@ type SegmentBaseline = {
     if (!range.startLocal) messages.push("Choose a start date and time")
     const parsedCost = Number.parseFloat(cost)
     if (!cost || Number.isNaN(parsedCost)) messages.push("Enter a valid cost amount")
+    if (!currencyId && !isLoadingCurrencies) messages.push("Select a currency")
     return messages
-  }, [segmentTypeId, range.startLocal, cost])
+  }, [segmentTypeId, range.startLocal, cost, currencyId, isLoadingCurrencies])
 
   const hasMissingFields = missingFieldMessages.length > 0
 
@@ -687,20 +725,31 @@ type SegmentBaseline = {
             </div>
 
             {/* Cost */}
-            <div className="grid grid-cols-4 items-center gap-3">
-              <Label htmlFor="cost" className="text-right text-sm">
+            <div className="grid grid-cols-4 items-start gap-3">
+              <Label htmlFor="cost" className="text-right text-sm pt-2 sm:pt-0">
                 Cost
               </Label>
-              <Input
-                id="cost"
-                type="number"
-                value={cost}
-                onChange={(e) => setCost(e.target.value)}
-                className="col-span-3"
-                required
-                step="0.01"
-                inputMode="decimal"
-              />
+              <div className="col-span-3 flex flex-col gap-2 sm:flex-row">
+                <Input
+                  id="cost"
+                  type="number"
+                  value={cost}
+                  onChange={(e) => setCost(e.target.value)}
+                  className="w-full sm:flex-1"
+                  required
+                  step="0.01"
+                  inputMode="decimal"
+                />
+                <CurrencyDropdown
+                  value={currencyId}
+                  onChange={setCurrencyId}
+                  currencies={currencies}
+                  placeholder={isLoadingCurrencies ? "Loading..." : "Currency"}
+                  disabled={isLoadingCurrencies}
+                  className="sm:w-[220px]"
+                  triggerClassName="w-full"
+                />
+              </div>
             </div>
 
             <Collapsible title="Time" open={timesOpen} onToggle={() => setTimesOpen((o) => !o)}>

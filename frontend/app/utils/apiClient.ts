@@ -11,6 +11,7 @@ import type {
   UserPreference,
   LocationOption,
   PendingUser,
+  Currency,
 } from "../types/models"
 
 export type ResponseType = "json" | "text" | "void"
@@ -130,11 +131,11 @@ export const userApi = {
   getPendingApprovals: () => request<PendingUser[]>("/api/user/pendingapprovals"),
   approveUser: (userId: string) =>
     request<void>(`/api/user/approveuser?userIdToApprove=${userId}`, { method: "POST", responseType: "void" }),
-  updatePreference: (preferredUtcOffset: number) =>
+  updatePreference: (payload: { preferredUtcOffset: number; preferredCurrencyId: number }) =>
     request<void>("/api/user/UpdateUserPreference", {
       method: "POST",
       headers: jsonHeaders,
-      body: JSON.stringify({ preferredUtcOffset }),
+      body: JSON.stringify(payload),
       responseType: "void",
     }),
 }
@@ -146,4 +147,8 @@ export const geocodingApi = {
 
 export const locationApi = {
   search: geocodingApi.search,
+}
+
+export const currencyApi = {
+  getCurrencies: () => request<Currency[]>("/api/Currency/GetCurrencies"),
 }

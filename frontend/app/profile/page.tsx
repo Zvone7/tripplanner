@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
@@ -10,8 +10,10 @@ import { Badge } from "../components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeftIcon, CheckIcon, SaveIcon } from "lucide-react"
 import { TimezoneSelector } from "../components/TimeZoneSelector"
+import { CurrencyDropdown } from "../components/CurrencyDropdown"
 import type { User, PendingUser } from "../types/models"
 import { userApi } from "../utils/apiClient"
+import { getDefaultCurrencyId, useCurrencies } from "../hooks/useCurrencies"
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null)
@@ -21,8 +23,11 @@ export default function ProfilePage() {
   const [isSavingPreferences, setIsSavingPreferences] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [preferredUtcOffset, setPreferredUtcOffset] = useState(0)
+  const [preferredCurrencyId, setPreferredCurrencyId] = useState<number | null>(null)
   const { toast } = useToast()
   const router = useRouter()
+  const { currencies, isLoading: isLoadingCurrencies } = useCurrencies()
+  const defaultCurrencyId = useMemo(() => getDefaultCurrencyId(currencies), [currencies])
 
   const fetchPendingApprovals = useCallback(async () => {
     try {
@@ -44,6 +49,7 @@ export default function ProfilePage() {
         const userData = await userApi.getAccountInfo()
         setUser(userData)
         setPreferredUtcOffset(userData.userPreference?.preferredUtcOffset || 0)
+        setPreferredCurrencyId(userData.userPreference?.preferredCurrencyId ?? null)
 
         if (userData.role === "admin") {
           fetchPendingApprovals()
@@ -86,17 +92,44 @@ export default function ProfilePage() {
     }
   }
 
+  useEffect(() => {
+    if (preferredCurrencyId !== null) return
+    const fromUser = user?.userPreference?.preferredCurrencyId
+    if (typeof fromUser === "number" && fromUser > 0) {
+      setPreferredCurrencyId(fromUser)
+      return
+    }
+    if (defaultCurrencyId) {
+      setPreferredCurrencyId(defaultCurrencyId)
+    }
+  }, [user?.userPreference?.preferredCurrencyId, defaultCurrencyId, preferredCurrencyId])
+
   const handleSavePreferences = async () => {
     setIsSavingPreferences(true)
 
+    const currencyIdForSave = preferredCurrencyId ?? defaultCurrencyId
+    if (!currencyIdForSave) {
+      toast({
+        title: "Error",
+        description: "Please select a preferred currency before saving",
+        variant: "destructive",
+      })
+      setIsSavingPreferences(false)
+      return
+    }
+
     try {
-      await userApi.updatePreference(preferredUtcOffset)
+      await userApi.updatePreference({
+        preferredUtcOffset,
+        preferredCurrencyId: currencyIdForSave,
+      })
 
       if (user) {
         setUser({
           ...user,
           userPreference: {
             preferredUtcOffset: preferredUtcOffset,
+            preferredCurrencyId: currencyIdForSave,
           },
         })
       }
@@ -130,6 +163,13 @@ export default function ProfilePage() {
       </div>
     )
   }
+
+  const currentCurrencySelection = preferredCurrencyId ?? defaultCurrencyId ?? null
+  const baselineCurrencyId = user?.userPreference?.preferredCurrencyId ?? defaultCurrencyId ?? null
+  const baselineOffset = user?.userPreference?.preferredUtcOffset ?? 0
+  const preferenceChanged =
+    preferredUtcOffset !== baselineOffset || (currentCurrencySelection ?? baselineCurrencyId) !== baselineCurrencyId
+  const saveDisabled = isSavingPreferences || !preferenceChanged || !currentCurrencySelection
 
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4">
@@ -172,12 +212,26 @@ export default function ProfilePage() {
               onChange={setPreferredUtcOffset}
               id="preferred-timezone"
             />
+            <div className="mt-4 space-y-2">
+              <p className="text-sm text-muted-foreground">Preferred Currency</p>
+              {isLoadingCurrencies ? (
+                <Skeleton className="h-10 w-64" />
+              ) : (
+                <CurrencyDropdown
+                  value={currentCurrencySelection}
+                  onChange={setPreferredCurrencyId}
+                  currencies={currencies}
+                  placeholder="Select currency"
+                  triggerClassName="w-full md:w-64"
+                />
+              )}
+            </div>
           </div>
         </CardContent>
         <CardFooter>
           <Button
             onClick={handleSavePreferences}
-            disabled={isSavingPreferences || preferredUtcOffset === (user?.userPreference?.preferredUtcOffset || 0)}
+            disabled={saveDisabled}
           >
             {isSavingPreferences ? (
               <span className="flex items-center">
