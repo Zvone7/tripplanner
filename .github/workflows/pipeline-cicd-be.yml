@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - release-be-dev
-      - feature/ui-update
+      - feature/currency
   workflow_dispatch:
     inputs:
       buildNumber:

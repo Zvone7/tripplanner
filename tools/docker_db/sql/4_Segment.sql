@@ -8,8 +8,10 @@ CREATE TABLE segment (
     end_datetime_utc_offset INT,
     name NVARCHAR(255),
     cost DECIMAL(10, 2),
+    currency_id INT NOT NULL DEFAULT 1,
     FOREIGN KEY (trip_id) REFERENCES trip(id),
-    FOREIGN KEY (segment_type_id) REFERENCES segment_type(id)
+    FOREIGN KEY (segment_type_id) REFERENCES segment_type(id),
+    FOREIGN KEY (currency_id) REFERENCES currency(id)
 );
 
 ALTER TABLE segment

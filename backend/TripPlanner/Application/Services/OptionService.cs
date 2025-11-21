@@ -182,6 +182,7 @@ public class OptionService
             Cost = s.cost,
             SegmentTypeId = s.segment_type_id,
             IsUiVisible = s.is_ui_visible,
+            CurrencyId = s.currency_id,
         }).ToList();
         return result;
     }

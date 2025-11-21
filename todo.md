@@ -8,16 +8,20 @@
 -------------------------
 
 -------------------------
+I want you to
+
+add a specialized currency dropdown on frontend (component) that will display both character and short_name. currencies will be alphabetically (short _name) sorted and can be searched for. auto select user's preferred currency if set, otherwise default to EUR.
+add this dropdown both to user_preference view (where they can choose default time zone) and to the segment create/edit view, right next to the price
+when a user is seing total cost, it should be displayed in their preferred currency.
+each trip should also have a default currency - this is auto populated by user default when creating the trip. the preferred currency view can be also set on options and segments view.
+
+add a way for user to edit currency conversion on admin view
 
 --------------
 
 dark mode - css revamp?
 
 -------------
-
-change default currency - make it configurable as timezone - so both backend and frontend updates.
-as of right now, there will be no recalculation of prices - user is just choosing a simbol for currency (so $ or € or £ or kr etc) - these will bepredefined set of symbols, can be stored on frontend
-on backend, 
 
 --------------
 

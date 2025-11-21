@@ -22,7 +22,8 @@ public class TripService
             Description = t.Description,
             IsActive = t.is_active,
             StartTime = t.StartTime,
-            EndTime = t.EndTime
+            EndTime = t.EndTime,
+            CurrencyId = t.currency_id
         }).ToList();
         return result;
     }
@@ -35,7 +36,8 @@ public class TripService
             Id = trip.Id,
             Name = trip.Name,
             Description = trip.Description,
-            IsActive = trip.is_active
+            IsActive = trip.is_active,
+            CurrencyId = trip.currency_id
         };
         return result;
     }
@@ -47,7 +49,8 @@ public class TripService
             {
                 Name = trip.Name,
                 Description = trip.Description,
-                is_active = trip.IsActive
+                is_active = trip.IsActive,
+                currency_id = trip.CurrencyId == 0 ? 1 : trip.CurrencyId
             }, cancellationToken);
 
         var result = new TripDto
@@ -55,7 +58,8 @@ public class TripService
             Id = created.Id,
             Name = created.Name,
             Description = created.Description,
-            IsActive = created.is_active
+            IsActive = created.is_active,
+            CurrencyId = created.currency_id
         };
 
         return result;
@@ -63,12 +67,15 @@ public class TripService
 
     public async Task<TripDto> UpdateAsync(TripDto trip, CancellationToken cancellationToken)
     {
+        var persisted = await _tripRepository_.GetAsync(trip.Id, cancellationToken);
+        var currencyId = trip.CurrencyId == 0 ? persisted?.currency_id ?? 1 : trip.CurrencyId;
         var updated = await _tripRepository_.UpdateAsync(new TripDbm
         {
             Id = trip.Id,
             Name = trip.Name,
             Description = trip.Description,
-            is_active = trip.IsActive
+            is_active = trip.IsActive,
+            currency_id = currencyId
         }, cancellationToken);
 
         var result = new TripDto
@@ -76,7 +83,8 @@ public class TripService
             Id = updated.Id,
             Name = updated.Name,
             Description = updated.Description,
-            IsActive = updated.is_active
+            IsActive = updated.is_active,
+            CurrencyId = updated.currency_id
         };
 
         return result;
