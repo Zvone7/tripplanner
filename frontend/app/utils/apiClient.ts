@@ -41,8 +41,15 @@ async function request<T = void>(url: string, options: RequestOptions = {}): Pro
     return text as T
   }
 
-  const data = (await res.json()) as T
-  return data
+  const raw = await res.text()
+  const trimmed = raw.trim()
+  if (!trimmed) return undefined as T
+  try {
+    return JSON.parse(trimmed) as T
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    throw new Error(`Failed to parse JSON response: ${message}`)
+  }
 }
 
 const jsonHeaders = { "Content-Type": "application/json" }

@@ -167,6 +167,7 @@ export default function SegmentModal({
   const [options, setOptions] = useState<OptionApi[]>([])
   const [selectedOptions, setSelectedOptions] = useState<number[]>([])
   const [optionsTouched, setOptionsTouched] = useState(false)
+  const optionsTouchedRef = useRef(optionsTouched)
   const [isDuplicateMode, setIsDuplicateMode] = useState(false)
   const [userPreferredOffset, setUserPreferredOffset] = useState<number>(0)
   const [userPreferredCurrencyId, setUserPreferredCurrencyId] = useState<number | null>(null)
@@ -340,24 +341,28 @@ type SegmentBaseline = {
     [tripCurrencyId, resolvedDisplayCurrencyId, currencies, conversions],
   )
 
+  useEffect(() => {
+    optionsTouchedRef.current = optionsTouched
+  }, [optionsTouched])
+
   const fetchConnectedOptions = useCallback(
     async (segmentId: number) => {
       try {
         const data = await segmentsApi.getConnectedOptions(tripId, segmentId)
         const ids = data.map((o) => Number(o.id))
 
-        if (!optionsTouched) {
+        if (!optionsTouchedRef.current) {
           setSelectedOptions(ids)
           initialSelectedOptionsRef.current = [...ids].sort((a, b) => a - b)
-          setBaselineReady(true)
         }
+        setBaselineReady(true)
       } catch (error) {
         console.error("Error fetching connected options:", error)
         toast({ title: "Error", description: "Failed to fetch connected options. Please try again." })
         setBaselineReady(true)
       }
     },
-    [tripId, optionsTouched, toast],
+    [tripId, toast],
   )
 
   useEffect(() => {
