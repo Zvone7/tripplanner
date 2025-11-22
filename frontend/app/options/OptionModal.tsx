@@ -38,6 +38,17 @@ import { optionsApi, segmentsApi } from "../utils/apiClient";
 const arraysEqual = (a: number[], b: number[]) => a.length === b.length && a.every((val, idx) => val === b[idx])
 type DiagramSegment = SegmentApi & { segmentType: SegmentType }
 
+const SEGMENT_COLOR_PALETTE = [
+  "#0ea5e9",
+  "#22c55e",
+  "#f97316",
+  "#a855f7",
+  "#ec4899",
+  "#14b8a6",
+  "#f59e0b",
+  "#6366f1",
+]
+
 interface OptionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -480,22 +491,24 @@ function SegmentDiagram({ segments }: { segments: DiagramSegment[] }) {
 
   return (
     <div className="mt-2 flex w-full space-x-1 overflow-x-auto py-2">
-      {sorted.map((segment) => {
-        const bgColor = segment.segmentType.color || "#94a3b8"
+      {sorted.map((segment, index) => {
+        const paletteColor = SEGMENT_COLOR_PALETTE[index % SEGMENT_COLOR_PALETTE.length]
+        const bgColor = segment.segmentType.color?.trim() ? segment.segmentType.color : paletteColor
         return (
           <div key={segment.id} className="flex-grow" style={{ width: `${segmentWidth}%`, minWidth: "80px" }}>
             <div
-              className="relative flex h-12 items-center justify-center overflow-hidden rounded-md"
+              className="relative flex h-12 items-center justify-center overflow-hidden rounded-md shadow-lg ring-1 ring-black/10 dark:ring-white/20"
               style={{
                 backgroundColor: bgColor,
                 clipPath: "polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%)",
               }}
               title={`${segment.segmentType.name} - ${segment.name}`}
             >
-              <div className="relative z-10 flex h-8 w-8 items-center justify-center">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/25 to-transparent mix-blend-overlay pointer-events-none" />
+              <div className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white text-black shadow-md">
                 {segment.segmentType.iconSvg ? (
                   <div
-                    className="h-6 w-6"
+                    className="h-5 w-5"
                     dangerouslySetInnerHTML={{ __html: segment.segmentType.iconSvg as string }}
                     suppressHydrationWarning
                   />

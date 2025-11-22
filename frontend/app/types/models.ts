@@ -140,9 +140,12 @@ export interface CurrencyConversion {
 /* -----------------------------------------------------------------------------
  * User
  * ---------------------------------------------------------------------------*/
+export type DarkModePreference = "system" | "light" | "dark"
+
 export interface UserPreference {
   preferredUtcOffset: number;
   preferredCurrencyId: number;
+  preferredDarkMode?: DarkModePreference;
 }
 
 export interface User {

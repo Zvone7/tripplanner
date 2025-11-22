@@ -139,12 +139,11 @@ export const userApi = {
   getPendingApprovals: () => request<PendingUser[]>("/api/user/pendingapprovals"),
   approveUser: (userId: string) =>
     request<void>(`/api/user/approveuser?userIdToApprove=${userId}`, { method: "POST", responseType: "void" }),
-  updatePreference: (payload: { preferredUtcOffset: number; preferredCurrencyId: number }) =>
-    request<void>("/api/user/UpdateUserPreference", {
+  updatePreference: (payload: { preferredUtcOffset: number; preferredCurrencyId: number; preferredDarkMode: string }) =>
+    request<User>("/api/user/UpdateUserPreference", {
       method: "POST",
       headers: jsonHeaders,
       body: JSON.stringify(payload),
-      responseType: "void",
     }),
 }
 

@@ -30,7 +30,8 @@ public class UserService
         var userPreference = await _userPreferenceRepository.CreateAsync(new UserPreference
             {
                 preferred_utc_offset = 1,
-                preferred_currency_id = 1
+                preferred_currency_id = 1,
+                preferred_dark_mode = DarkModePreference.System
             }, created.Id,
             cancellationToken);
 
@@ -121,7 +122,8 @@ public class UserService
             {
                 app_user_id = userId,
                 preferred_utc_offset = userPreferenceDto.PreferredUtcOffset,
-                preferred_currency_id = userPreferenceDto.PreferredCurrencyId == 0 ? 1 : userPreferenceDto.PreferredCurrencyId
+                preferred_currency_id = userPreferenceDto.PreferredCurrencyId == 0 ? 1 : userPreferenceDto.PreferredCurrencyId,
+                preferred_dark_mode = NormalizeDarkMode(userPreferenceDto.PreferredDarkMode)
             };
             userPreference = await _userPreferenceRepository.CreateAsync(userPreference, userId, cancellationToken);
             user = await GetAsync(userId, cancellationToken);
@@ -134,6 +136,7 @@ public class UserService
         {
             userPreference.preferred_utc_offset = userPreferenceDto.PreferredUtcOffset;
             userPreference.preferred_currency_id = userPreferenceDto.PreferredCurrencyId == 0 ? 1 : userPreferenceDto.PreferredCurrencyId;
+            userPreference.preferred_dark_mode = NormalizeDarkMode(userPreferenceDto.PreferredDarkMode);
             var updatedPreference = await _userPreferenceRepository.UpdateAsync(userPreference, userId, cancellationToken);
 
             user = await GetAsync(userId, cancellationToken);
@@ -145,4 +148,6 @@ public class UserService
 
         return user;
     }
+
+    private static string NormalizeDarkMode(string? preference) => DarkModePreference.Normalize(preference);
 }

@@ -209,6 +209,7 @@ CREATE TABLE user_preference (
     app_user_id INT UNIQUE NOT NULL,
     preferred_utc_offset INT,
     preferred_currency_id INT NOT NULL DEFAULT 1,
+    preferred_dark_mode NVARCHAR(10) NOT NULL DEFAULT 'system' CHECK (preferred_dark_mode IN ('system', 'dark', 'light')),
     FOREIGN KEY (app_user_id) REFERENCES app_user(id),
     FOREIGN KEY (preferred_currency_id) REFERENCES currency(id)
 );
