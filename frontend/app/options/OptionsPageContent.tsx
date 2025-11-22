@@ -609,19 +609,18 @@ export default function OptionsPageContent() {
           availableLocations={locationOptions}
           minDate={optionMetadata.dateBounds.min}
           maxDate={optionMetadata.dateBounds.max}
-        />
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-          <div className="w-full sm:w-[220px]">
+          toolbarAddon={
             <CurrencyDropdown
               value={effectiveDisplayCurrencyId}
               onChange={setDisplayCurrencyId}
               currencies={currencies}
               placeholder={isLoadingCurrencies ? "Loading currencies..." : "Display currency"}
               disabled={isLoadingCurrencies}
+              className="w-full sm:w-[220px]"
               triggerClassName="w-full"
             />
-          </div>
-        </div>
+          }
+        />
 
         {isLoading ? (
           <LoadingSkeleton />

@@ -57,6 +57,8 @@ export function CurrencyDropdown({
     if (!open) setSearch("")
   }, [open])
 
+  const selectedShortLabel = selectedCurrency ? `${selectedCurrency.symbol} - ${selectedCurrency.shortName}` : null
+
   return (
     <div className={cn("flex flex-col gap-1", className)}>
       <Popover open={open} onOpenChange={setOpen} modal={false}>
@@ -70,10 +72,15 @@ export function CurrencyDropdown({
             disabled={disabled || !currencies.length}
           >
             {selectedCurrency ? (
-              <span className="truncate">
-                <span className="font-medium">{selectedCurrency.symbol} </span>
-                <span className="font-medium">{selectedCurrency.shortName}</span>
-                <span className="text-muted-foreground"> · {selectedCurrency.name}</span>
+              <span className="truncate font-medium">
+                {open ? (
+                  <>
+                    {selectedShortLabel}
+                    <span className="text-muted-foreground"> · {selectedCurrency.name}</span>
+                  </>
+                ) : (
+                  selectedShortLabel
+                )}
               </span>
             ) : (
               <span className="text-muted-foreground">{placeholder}</span>
