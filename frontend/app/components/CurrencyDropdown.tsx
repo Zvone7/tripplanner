@@ -68,7 +68,7 @@ export function CurrencyDropdown({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className={cn("w-full justify-between", triggerClassName)}
+            className={cn("w-full justify-between text-sm", triggerClassName)}
             disabled={disabled || !currencies.length}
           >
             {selectedCurrency ? (

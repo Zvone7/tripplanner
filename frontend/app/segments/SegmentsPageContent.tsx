@@ -492,7 +492,7 @@ export default function SegmentsPage() {
               currencies={currencies}
               placeholder={isLoadingCurrencies ? "Loading currencies..." : "Display currency"}
               disabled={isLoadingCurrencies}
-              className="w-full sm:w-[220px]"
+              className="w-full sm:w-[180px]"
               triggerClassName="w-full"
             />
           }

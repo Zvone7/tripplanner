@@ -57,6 +57,7 @@ import {
 import { optionsApi, segmentsApi, userApi } from "../utils/apiClient"
 import { getDefaultCurrencyId, useCurrencies } from "../hooks/useCurrencies"
 import { formatCurrencyAmount, formatConvertedAmount } from "../utils/currency"
+import { CurrencyDropdown } from "../components/CurrencyDropdown"
 
 const arraysEqual = (a: number[], b: number[]) => a.length === b.length && a.every((val, idx) => val === b[idx])
 
@@ -830,22 +831,15 @@ type SegmentBaseline = {
                   step="0.01"
                   inputMode="decimal"
                 />
-                <Select
-                  value={currencyId?.toString() ?? ""}
-                  onValueChange={(value) => setCurrencyId(Number.parseInt(value, 10))}
+                <CurrencyDropdown
+                  value={currencyId}
+                  onChange={setCurrencyId}
+                  currencies={currencies}
+                  placeholder={isLoadingCurrencies ? "Loading..." : "Currency"}
                   disabled={isLoadingCurrencies}
-                >
-                  <SelectTrigger className="sm:w-[220px] w-full">
-                    <SelectValue placeholder={isLoadingCurrencies ? "Loading..." : "Currency"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currencies.map((currency) => (
-                      <SelectItem key={currency.id} value={currency.id.toString()}>
-                        {currency.symbol} {currency.shortName} · {currency.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  className="w-full sm:w-[220px]"
+                  triggerClassName="w-full"
+                />
               </div>
               {(userConversionLabel || tripConversionLabel) && (
                 <div className="col-span-3 col-start-2 text-xs text-muted-foreground">
