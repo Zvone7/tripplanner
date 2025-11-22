@@ -13,9 +13,18 @@ import { useToast } from "@/hooks/use-toast"
 import { ArrowLeftIcon, CheckIcon, SaveIcon } from "lucide-react"
 import { TimezoneSelector } from "../components/TimeZoneSelector"
 import { CurrencyDropdown } from "../components/CurrencyDropdown"
-import type { User, PendingUser, CurrencyConversion } from "../types/models"
+import type { User, PendingUser, CurrencyConversion, DarkModePreference } from "../types/models"
 import { currencyApi, userApi } from "../utils/apiClient"
 import { getDefaultCurrencyId, useCurrencies } from "../hooks/useCurrencies"
+import { useThemePreference } from "../providers/ThemeProvider"
+import { setCachedCurrentUser } from "../hooks/useCurrentUser"
+
+const DARK_MODE_OPTIONS: DarkModePreference[] = ["system", "light", "dark"]
+
+const normalizeDarkPreference = (value?: string | null): DarkModePreference =>
+  DARK_MODE_OPTIONS.includes((value ?? "system") as DarkModePreference)
+    ? ((value ?? "system") as DarkModePreference)
+    : "system"
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null)
@@ -26,6 +35,7 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null)
   const [preferredUtcOffset, setPreferredUtcOffset] = useState(0)
   const [preferredCurrencyId, setPreferredCurrencyId] = useState<number | null>(null)
+  const [preferredDarkMode, setPreferredDarkMode] = useState<DarkModePreference>("system")
   const [currencyConversions, setCurrencyConversions] = useState<CurrencyConversion[]>([])
   const [isLoadingConversions, setIsLoadingConversions] = useState(false)
   const [conversionForm, setConversionForm] = useState<{ fromId: number | null; toId: number | null; rate: string }>({
@@ -49,6 +59,7 @@ export default function ProfilePage() {
   const { toast } = useToast()
   const router = useRouter()
   const { currencies, isLoading: isLoadingCurrencies } = useCurrencies()
+  const { setPreference: setThemePreference } = useThemePreference()
   const defaultCurrencyId = useMemo(() => getDefaultCurrencyId(currencies), [currencies])
   const conversionKey = useCallback((fromId: number, toId: number) => `${fromId}-${toId}`, [])
   const [approvalsOpen, setApprovalsOpen] = useState(false)
@@ -93,6 +104,7 @@ export default function ProfilePage() {
         setUser(userData)
         setPreferredUtcOffset(userData.userPreference?.preferredUtcOffset || 0)
         setPreferredCurrencyId(userData.userPreference?.preferredCurrencyId ?? null)
+        setPreferredDarkMode(normalizeDarkPreference(userData.userPreference?.preferredDarkMode))
 
         if (userData.role === "admin") {
           fetchPendingApprovals()
@@ -265,20 +277,29 @@ useEffect(() => {
     }
 
     try {
-      await userApi.updatePreference({
+      const updatedUser = await userApi.updatePreference({
         preferredUtcOffset,
         preferredCurrencyId: currencyIdForSave,
+        preferredDarkMode,
       })
 
-      if (user) {
-        setUser({
+      if (updatedUser) {
+        setUser(updatedUser)
+        setCachedCurrentUser(updatedUser)
+      } else if (user) {
+        const nextUser = {
           ...user,
           userPreference: {
-            preferredUtcOffset: preferredUtcOffset,
+            preferredUtcOffset,
             preferredCurrencyId: currencyIdForSave,
+            preferredDarkMode,
           },
-        })
+        }
+        setUser(nextUser)
+        setCachedCurrentUser(nextUser)
       }
+
+      setThemePreference(preferredDarkMode)
 
       toast({
         title: "Success",
@@ -313,8 +334,11 @@ useEffect(() => {
   const currentCurrencySelection = preferredCurrencyId ?? defaultCurrencyId ?? null
   const baselineCurrencyId = user?.userPreference?.preferredCurrencyId ?? defaultCurrencyId ?? null
   const baselineOffset = user?.userPreference?.preferredUtcOffset ?? 0
+  const baselineDarkMode = normalizeDarkPreference(user?.userPreference?.preferredDarkMode)
   const preferenceChanged =
-    preferredUtcOffset !== baselineOffset || (currentCurrencySelection ?? baselineCurrencyId) !== baselineCurrencyId
+    preferredUtcOffset !== baselineOffset ||
+    currentCurrencySelection !== baselineCurrencyId ||
+    preferredDarkMode !== baselineDarkMode
   const saveDisabled = isSavingPreferences || !preferenceChanged || !currentCurrencySelection
 
   return (
@@ -371,6 +395,25 @@ useEffect(() => {
                   triggerClassName="w-full md:w-64"
                 />
               )}
+            </div>
+            <div className="mt-4 space-y-2">
+              <p className="text-sm text-muted-foreground">Theme</p>
+              <Select
+                value={preferredDarkMode}
+                onValueChange={(value) => setPreferredDarkMode(value as DarkModePreference)}
+              >
+                <SelectTrigger className="w-full md:w-64">
+                  <SelectValue placeholder="Select theme" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DARK_MODE_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option === "system" ? "System" : option.charAt(0).toUpperCase() + option.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">System follows your device appearance setting.</p>
             </div>
           </div>
         </CardContent>

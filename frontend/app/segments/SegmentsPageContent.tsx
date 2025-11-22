@@ -255,7 +255,11 @@ export default function SegmentsPage() {
 
   // After segments load, fetch their connected options in parallel
   useEffect(() => {
-    if (!segments.length || !tripId) return;
+    if (!segments.length || !tripId) {
+      setConnectionsLoading({})
+      if (!segments.length) setConnectedBySegment({})
+      return
+    }
 
     let cancelled = false;
     const loadingFlags: Record<number, boolean> = {};

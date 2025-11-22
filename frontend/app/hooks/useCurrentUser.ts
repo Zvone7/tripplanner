@@ -5,6 +5,7 @@ import { userApi } from "../utils/apiClient"
 
 let cachedUser: User | null = null
 let inflightRequest: Promise<User> | null = null
+const subscribers = new Set<(user: User | null) => void>()
 
 export function useCurrentUser() {
   const [user, setUser] = useState<User | null>(cachedUser)
@@ -50,5 +51,20 @@ export function useCurrentUser() {
     }
   }, [])
 
+  useEffect(() => {
+    const handler = (next: User | null) => {
+      setUser(next)
+    }
+    subscribers.add(handler)
+    return () => {
+      subscribers.delete(handler)
+    }
+  }, [])
+
   return { user, isLoading, error }
+}
+
+export function setCachedCurrentUser(user: User | null) {
+  cachedUser = user
+  subscribers.forEach((cb) => cb(cachedUser))
 }
