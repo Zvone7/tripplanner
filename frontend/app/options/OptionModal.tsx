@@ -36,6 +36,7 @@ import { formatCurrencyAmount, formatConvertedAmount } from "../utils/currency";
 import { optionsApi, segmentsApi } from "../utils/apiClient";
 
 const arraysEqual = (a: number[], b: number[]) => a.length === b.length && a.every((val, idx) => val === b[idx])
+type DiagramSegment = SegmentApi & { segmentType: SegmentType }
 
 interface OptionModalProps {
   isOpen: boolean;
@@ -253,6 +254,16 @@ export default function OptionModal({
       .filter((segment): segment is SegmentApi => Boolean(segment));
   }, [segments, selectedSegments]);
 
+  const selectedConnectedSegments = useMemo(() => {
+    return selectedSegmentEntities
+      .map((segment) => {
+        const segmentType = segmentTypes.find((st) => st.id === segment.segmentTypeId)
+        if (!segmentType) return null
+        return { ...segment, segmentType }
+      })
+      .filter((segment): segment is DiagramSegment => Boolean(segment))
+  }, [selectedSegmentEntities, segmentTypes])
+
   const optionTitleTokens = useMemo(() => {
     const derived = summarizeSegmentsForOption(selectedSegmentEntities);
     return buildOptionTitleTokens({
@@ -419,6 +430,11 @@ export default function OptionModal({
                       })
                     )}
                   </ScrollArea>
+                  {selectedConnectedSegments.length > 0 ? (
+                    <div className="mt-4">
+                      <SegmentDiagram segments={selectedConnectedSegments} />
+                    </div>
+                  ) : null}
                 </div>
               </div>
             )}
@@ -450,4 +466,45 @@ export default function OptionModal({
       )}
     </>
   );
+}
+
+function SegmentDiagram({ segments }: { segments: DiagramSegment[] }) {
+  const sorted = [...segments].sort((a, b) => {
+    if (a.startDateTimeUtc && b.startDateTimeUtc) {
+      return new Date(a.startDateTimeUtc).getTime() - new Date(b.startDateTimeUtc).getTime()
+    }
+    return 0
+  })
+
+  const segmentWidth = sorted.length ? 100 / sorted.length : 100
+
+  return (
+    <div className="mt-2 flex w-full space-x-1 overflow-x-auto py-2">
+      {sorted.map((segment) => {
+        const bgColor = segment.segmentType.color || "#94a3b8"
+        return (
+          <div key={segment.id} className="flex-grow" style={{ width: `${segmentWidth}%`, minWidth: "80px" }}>
+            <div
+              className="relative flex h-12 items-center justify-center overflow-hidden rounded-md"
+              style={{
+                backgroundColor: bgColor,
+                clipPath: "polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%)",
+              }}
+              title={`${segment.segmentType.name} - ${segment.name}`}
+            >
+              <div className="relative z-10 flex h-8 w-8 items-center justify-center">
+                {segment.segmentType.iconSvg ? (
+                  <div
+                    className="h-6 w-6"
+                    dangerouslySetInnerHTML={{ __html: segment.segmentType.iconSvg as string }}
+                    suppressHydrationWarning
+                  />
+                ) : null}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
 }

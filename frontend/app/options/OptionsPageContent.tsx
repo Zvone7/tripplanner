@@ -164,6 +164,12 @@ function CostSummary({
   const splitLabel = (value: ReturnType<typeof convertSplitValue>) =>
     formatCurrencyAmount(value.amount, value.currencyId ?? primaryCurrencyId, currencies);
 
+  const legendEntries = [
+    { key: "Transport", color: "bg-sky-200", value: split.Transport, label: splitLabel(displaySplit.Transport) },
+    { key: "Accommodation", color: "bg-green-200", value: split.Accommodation, label: splitLabel(displaySplit.Accommodation) },
+    { key: "Other", color: "bg-gray-300", value: split.Other, label: splitLabel(displaySplit.Other) },
+  ].filter((entry) => entry.value > 0)
+
   return (
     <div className="rounded-md border p-3 space-y-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -185,18 +191,16 @@ function CostSummary({
           other={split.Other}
         />
         <div className="space-y-2 text-xs text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <span className="inline-block h-2 w-2 rounded-sm bg-sky-200" />
-            Transport ({splitLabel(displaySplit.Transport)})
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-block h-2 w-2 rounded-sm bg-green-200" />
-            Accommodation ({splitLabel(displaySplit.Accommodation)})
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-block h-2 w-2 rounded-sm bg-gray-300" />
-            Other ({splitLabel(displaySplit.Other)})
-          </div>
+          {legendEntries.length === 0 ? (
+            <div className="text-muted-foreground">No categorized costs yet.</div>
+          ) : (
+            legendEntries.map((entry) => (
+              <div key={entry.key} className="flex items-center gap-2">
+                <span className={cn("inline-block h-2 w-2 rounded-sm", entry.color)} />
+                {entry.key} ({entry.label})
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -205,52 +209,9 @@ function CostSummary({
 
 type ConnectedSegment = SegmentApi & { segmentType: SegmentType };
 
-function SegmentDiagram({ segments }: { segments: ConnectedSegment[] }) {
-  const sorted = [...segments].sort((a, b) => {
-    if (a.startDateTimeUtc && b.startDateTimeUtc) {
-      return new Date(a.startDateTimeUtc).getTime() - new Date(b.startDateTimeUtc).getTime();
-    }
-    return 0;
-  });
-
-  const segmentWidth = sorted.length ? 100 / sorted.length : 100;
-
-  return (
-    <div className="flex w-full space-x-1 overflow-x-auto py-2">
-      {sorted.map((segment) => (
-        <div
-          key={segment.id}
-          className="flex-grow relative"
-          style={{ width: `${segmentWidth}%`, minWidth: "80px" }}
-        >
-          <div
-            className="h-12 flex items-center justify-center relative overflow-hidden rounded-md"
-            style={{
-              backgroundColor: segment.segmentType.color,
-              clipPath: "polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%)",
-            }}
-            title={`${segment.segmentType.name} - ${segment.name}`}
-          >
-            <div className="relative z-10 flex items-center justify-center w-8 h-8">
-              {segment.segmentType.iconSvg ? (
-                <div
-                  className="w-6 h-6"
-                  dangerouslySetInnerHTML={{ __html: segment.segmentType.iconSvg as string }}
-                  suppressHydrationWarning
-                />
-              ) : null}
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /* ---------------------------------- Card ---------------------------------- */
 function OptionCard({
   option,
-  connectedSegments,
   onEdit,
   showVisibilityIndicator,
   displayCurrencyId,
@@ -259,7 +220,6 @@ function OptionCard({
   conversions,
 }: {
   option: OptionApi;
-  connectedSegments: ConnectedSegment[];
   onEdit: (option: OptionApi) => void;
   showVisibilityIndicator: boolean;
   displayCurrencyId: number | null;
@@ -329,7 +289,6 @@ function OptionCard({
           currencies={currencies}
           conversions={conversions}
         />
-        <SegmentDiagram segments={connectedSegments} />
       </CardContent>
     </Card>
   );
@@ -635,7 +594,6 @@ export default function OptionsPageContent() {
                 <OptionCard
                   key={option.id}
                   option={option}
-                  connectedSegments={connectedSegments[option.id] || []}
                   onEdit={handleEditOption}
                   showVisibilityIndicator={filterState.showHidden}
                   displayCurrencyId={effectiveDisplayCurrencyId}
