@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 import { Button } from "../components/ui/button";
-import { PlusIcon, ListIcon, EditIcon, EyeOffIcon } from "lucide-react";
+import { PlusIcon, ListIcon, EditIcon, EyeOffIcon, Loader2Icon } from "lucide-react";
 import SegmentModal from "../segments/SegmentModal";
 import { formatDateWithUserOffset, formatWeekday } from "../utils/dateformatters";
 import { OptionBadge } from "../components/OptionBadge";
@@ -43,6 +43,7 @@ function SegmentCard({
   userPreferredOffset,
   onEdit,
   connectedOptions,
+  isLoadingConnections,
   showVisibilityIndicator,
   displayCurrencyId,
   tripCurrencyId,
@@ -54,6 +55,7 @@ function SegmentCard({
   userPreferredOffset: number;
   onEdit: (segment: Segment) => void;
   connectedOptions: OptionRef[];
+  isLoadingConnections: boolean;
   showVisibilityIndicator: boolean;
   displayCurrencyId: number | null;
   tripCurrencyId: number | null;
@@ -112,17 +114,26 @@ function SegmentCard({
             <CardTitle className="text-lg">{segment.name}</CardTitle>
 
             <div className="mt-2 flex flex-wrap gap-1">
-              {connectedOptions?.map((option) => {
-                const optionHidden = (option as any)?.isUiVisible === false;
-                return (
-                  <OptionBadge
-                    key={option.id}
-                    id={option.id}
-                    name={option.name}
-                    isHidden={showVisibilityIndicator && optionHidden}
-                  />
-                );
-              })}
+              {isLoadingConnections ? (
+                <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2Icon className="h-3 w-3 animate-spin" />
+                  Loading options…
+                </span>
+              ) : connectedOptions?.length ? (
+                connectedOptions.map((option) => {
+                  const optionHidden = (option as any)?.isUiVisible === false;
+                  return (
+                    <OptionBadge
+                      key={option.id}
+                      id={option.id}
+                      name={option.name}
+                      isHidden={showVisibilityIndicator && optionHidden}
+                    />
+                  );
+                })
+              ) : (
+                <span className="text-xs text-muted-foreground">No connected options</span>
+              )}
             </div>
 
             <div className="mt-2 text-sm text-muted-foreground space-y-1">
@@ -189,6 +200,7 @@ export default function SegmentsPage() {
   const [tripCurrencyId, setTripCurrencyId] = useState<number | null>(null);
   const [displayCurrencyId, setDisplayCurrencyId] = useState<number | null>(null);
   const [connectedBySegment, setConnectedBySegment] = useState<Record<number, OptionRef[]>>({});
+  const [connectionsLoading, setConnectionsLoading] = useState<Record<number, boolean>>({});
   const [filterState, setFilterState] = useState<SegmentFilterValue>({
     locations: [],
     types: [],
@@ -246,31 +258,30 @@ export default function SegmentsPage() {
     if (!segments.length || !tripId) return;
 
     let cancelled = false;
+    const loadingFlags: Record<number, boolean> = {};
+    segments.forEach((segment) => {
+      loadingFlags[segment.id] = true;
+    });
+    setConnectionsLoading(loadingFlags);
 
-    (async () => {
+    const fetches = segments.map(async (seg) => {
       try {
-        const results = await Promise.allSettled(
-          segments.map(async (seg) => {
-            const options = await segmentsApi.getConnectedOptions(tripId, seg.id);
-            return { segmentId: seg.id, options };
-          })
-        );
-
+        const options = await segmentsApi.getConnectedOptions(tripId, seg.id);
         if (cancelled) return;
-
-        const map: Record<number, OptionRef[]> = {};
-        for (const r of results) {
-          if (r.status === "fulfilled") {
-            map[r.value.segmentId] = r.value.options;
-          } else {
-            console.warn("Connected options fetch failed:", r.reason);
-          }
-        }
-        setConnectedBySegment(map);
-      } catch (e) {
-        console.error("Batch fetch connected options failed:", e);
+        setConnectedBySegment((prev) => ({ ...prev, [seg.id]: options }));
+      } catch (err) {
+        if (!cancelled) console.warn("Connected options fetch failed:", err);
+      } finally {
+        if (cancelled) return;
+        setConnectionsLoading((prev) => {
+          const next = { ...prev };
+          delete next[seg.id];
+          return next;
+        });
       }
-    })();
+    });
+
+    void Promise.allSettled(fetches);
 
     return () => {
       cancelled = true;
@@ -518,6 +529,7 @@ export default function SegmentsPage() {
                     userPreferredOffset={userPreferredOffset}
                     onEdit={handleEditSegment}
                     connectedOptions={connected}
+                    isLoadingConnections={Boolean(connectionsLoading[segment.id])}
                     showVisibilityIndicator={filterState.showHidden}
                     displayCurrencyId={effectiveDisplayCurrencyId}
                     tripCurrencyId={tripCurrencyId}
