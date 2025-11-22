@@ -101,11 +101,13 @@ function SegmentCard({
               {segmentType && (
                 <>
                   {segmentType.iconSvg ? (
-                    <div
-                      dangerouslySetInnerHTML={{ __html: segmentType.iconSvg }}
-                      className="w-6 h-6"
-                      suppressHydrationWarning
-                    />
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary/60 text-secondary-foreground shadow-sm ring-1 ring-black/5 dark:bg-white dark:text-black">
+                      <span
+                        dangerouslySetInnerHTML={{ __html: segmentType.iconSvg }}
+                        className="w-4 h-4"
+                        suppressHydrationWarning
+                      />
+                    </span>
                   ) : null}
                   <span className="text-sm text-muted-foreground">{segmentType.name}</span>
                 </>

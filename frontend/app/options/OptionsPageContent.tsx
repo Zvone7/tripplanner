@@ -78,16 +78,16 @@ function CostPieChart({
   const radius = 32;
   const circumference = 2 * Math.PI * radius;
   const segments = [
-    { label: "Transport", value: transport, color: "#bae6fd" },
-    { label: "Accommodation", value: accommodation, color: "#bbf7d0" },
-    { label: "Other", value: other, color: "#d1d5db" },
+    { label: "Transport", value: transport, color: "hsl(var(--chart-1))" },
+    { label: "Accommodation", value: accommodation, color: "hsl(var(--chart-2))" },
+    { label: "Other", value: other, color: "hsl(var(--chart-3))" },
   ];
 
   let accumulated = 0;
 
   return (
     <svg width="90" height="90" viewBox="0 0 90 90" className="shrink-0">
-      <circle cx="45" cy="45" r={radius} fill="transparent" stroke="#e5e7eb" strokeWidth="14" />
+      <circle cx="45" cy="45" r={radius} fill="transparent" stroke="hsl(var(--muted))" strokeWidth="14" />
       {total > 0 &&
         segments.map((segment) => {
           if (segment.value <= 0) return null;
@@ -165,9 +165,9 @@ function CostSummary({
     formatCurrencyAmount(value.amount, value.currencyId ?? primaryCurrencyId, currencies);
 
   const legendEntries = [
-    { key: "Transport", color: "bg-sky-200", value: split.Transport, label: splitLabel(displaySplit.Transport) },
-    { key: "Accommodation", color: "bg-green-200", value: split.Accommodation, label: splitLabel(displaySplit.Accommodation) },
-    { key: "Other", color: "bg-gray-300", value: split.Other, label: splitLabel(displaySplit.Other) },
+    { key: "Transport", color: "hsl(var(--chart-1))", value: split.Transport, label: splitLabel(displaySplit.Transport) },
+    { key: "Accommodation", color: "hsl(var(--chart-2))", value: split.Accommodation, label: splitLabel(displaySplit.Accommodation) },
+    { key: "Other", color: "hsl(var(--chart-3))", value: split.Other, label: splitLabel(displaySplit.Other) },
   ].filter((entry) => entry.value > 0)
 
   return (
@@ -181,7 +181,7 @@ function CostSummary({
           ) : null}
         </div>
         <div className="text-xs text-muted-foreground">
-          {option.totalDays} {option.totalDays === 1 ? "day" : "days"} at {perDayLabel} per day
+          {option.totalDays} {option.totalDays === 1 ? "day" : "days"} ( {perDayLabel} per day)
         </div>
       </div>
       <div className="flex items-center gap-4">
@@ -196,8 +196,11 @@ function CostSummary({
           ) : (
             legendEntries.map((entry) => (
               <div key={entry.key} className="flex items-center gap-2">
-                <span className={cn("inline-block h-2 w-2 rounded-sm", entry.color)} />
-                {entry.key} ({entry.label})
+                <span
+                  className="inline-block h-2 w-2 rounded-sm ring-1 ring-black/10 dark:ring-white/40"
+                  style={{ backgroundColor: entry.color }}
+                />
+                <span className="text-foreground">{entry.key}</span> ({entry.label})
               </div>
             ))
           )}

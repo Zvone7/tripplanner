@@ -66,10 +66,14 @@ function renderIcon(token: TitleToken) {
   if (!token.iconSvg) return null
   return (
     <span
-      className="inline-flex h-4 w-4"
+      className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-secondary/70 text-secondary-foreground shadow-sm ring-1 ring-black/5 dark:bg-white dark:text-black"
       aria-hidden="true"
-      dangerouslySetInnerHTML={{ __html: token.iconSvg }}
-      suppressHydrationWarning
-    />
+    >
+      <span
+        className="h-3.5 w-3.5"
+        dangerouslySetInnerHTML={{ __html: token.iconSvg }}
+        suppressHydrationWarning
+      />
+    </span>
   )
 }

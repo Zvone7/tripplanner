@@ -374,15 +374,17 @@ useEffect(() => {
             </div>
           </div>
 
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-medium mb-4">Preferences</h3>
+          <div className="border-t pt-6 space-y-4">
+            <h3 className="text-lg font-medium">Preferences</h3>
             <TimezoneSelector
               label="Preferred Timezone"
               value={preferredUtcOffset}
               onChange={setPreferredUtcOffset}
               id="preferred-timezone"
+              layout="stacked"
+              selectClassName="w-full md:w-64"
             />
-            <div className="mt-4 space-y-2">
+            <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Preferred Currency</p>
               {isLoadingCurrencies ? (
                 <Skeleton className="h-10 w-64" />
@@ -396,7 +398,7 @@ useEffect(() => {
                 />
               )}
             </div>
-            <div className="mt-4 space-y-2">
+            <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Theme</p>
               <Select
                 value={preferredDarkMode}

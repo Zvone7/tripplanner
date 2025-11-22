@@ -803,11 +803,17 @@ type SegmentBaseline = {
                 <SelectContent>
                   {segmentTypes.map((type: SegmentType) => (
                     <SelectItem key={type.id} value={type.id.toString()}>
-                      <div className="flex items-center">
+                      <div className="flex items-center gap-2">
                         {type.iconSvg ? (
-                          <div dangerouslySetInnerHTML={{ __html: type.iconSvg as string }} className="w-4 h-4 mr-2" />
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/60 text-secondary-foreground shadow-sm ring-1 ring-black/5 dark:bg-white dark:text-black">
+                            <span
+                              dangerouslySetInnerHTML={{ __html: type.iconSvg as string }}
+                              className="w-4 h-4"
+                              suppressHydrationWarning
+                            />
+                          </span>
                         ) : null}
-                        {type.name}
+                        <span>{type.name}</span>
                       </div>
                     </SelectItem>
                   ))}
