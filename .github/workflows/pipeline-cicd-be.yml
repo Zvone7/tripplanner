@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - release-be-dev
-      - feature/currency
+      - feature/ui-dark-mode
   workflow_dispatch:
     inputs:
       buildNumber:
