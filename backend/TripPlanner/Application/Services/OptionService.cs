@@ -116,6 +116,14 @@ public class OptionService
         if (option == null)
             throw new InvalidDataException($"Option with id {optionId} not found.");
 
+        if (segmentsForOption.Count == 0)
+        {
+            option.TotalCost = 0;
+            option.StartDateTimeUtc = null;
+            option.EndDateTimeUtc = null;
+            return await RecalculateFeDisplayDataAsync(option, segmentsForOption, cancellationToken);
+        }
+
         option.TotalCost = segmentsForOption.Sum(s => s.cost);
         option.StartDateTimeUtc = segmentsForOption.Min(s => s.start_datetime_utc);
         option.EndDateTimeUtc = segmentsForOption.Max(s => s.start_datetime_utc);
