@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { Button } from "../ui/button"
 import { Label } from "../ui/label"
 import { Switch } from "../ui/switch"
@@ -28,6 +28,7 @@ interface SegmentFilterPanelProps {
   minDate?: string
   maxDate?: string
   className?: string
+  toolbarAddon?: ReactNode
 }
 
 export function SegmentFilterPanel({
@@ -40,6 +41,7 @@ export function SegmentFilterPanel({
   minDate,
   maxDate,
   className,
+  toolbarAddon,
 }: SegmentFilterPanelProps) {
   const [open, setOpen] = useState(false)
 
@@ -54,13 +56,15 @@ export function SegmentFilterPanel({
 
   return (
     <div className={cn("space-y-3", className)}>
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-3 sm:flex-nowrap">
+        {toolbarAddon ? <div className="min-w-[160px] sm:min-w-[180px]">{toolbarAddon}</div> : null}
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           size="icon"
           aria-label="Toggle filters"
           onClick={() => setOpen((prev) => !prev)}
+          className={cn("shrink-0", toolbarAddon ? "" : "ml-auto")}
         >
           <SlidersHorizontal
             className={cn("h-5 w-5 transition-transform", open ? "text-primary rotate-90" : "text-muted-foreground")}

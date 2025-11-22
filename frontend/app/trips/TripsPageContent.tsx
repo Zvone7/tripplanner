@@ -8,8 +8,10 @@ import { Button } from "../components/ui/button"
 import { PlusIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, EditIcon, EyeIcon } from "lucide-react"
 import TripModal from "./TripModal"
 import { formatDateStr, formatWeekday } from "../utils/dateformatters"
-import type { Trip, TripSave } from "../types/models"
+import type { Trip, TripSave, Currency } from "../types/models"
 import { tripsApi } from "../utils/apiClient"
+import { useCurrencies } from "../hooks/useCurrencies"
+import { useCurrentUser } from "../hooks/useCurrentUser"
 
 const formatTripDateWithWeekday = (iso: string | null) => {
   if (!iso) return "N/A"
@@ -24,13 +26,18 @@ function TripCard({
   onDelete,
   onViewOptions,
   onViewSegments,
+  currencies,
 }: {
   trip: Trip
   onEdit: (trip: Trip) => void
   onDelete: (tripId: number) => void
   onViewOptions: (tripId: number) => void
   onViewSegments: (tripId: number) => void
+  currencies: Currency[]
 }) {
+  const tripCurrency = currencies.find((currency) => currency.id === trip.currencyId)
+  const currencyLabel = tripCurrency ? `${tripCurrency.symbol} ${tripCurrency.shortName}` : "—"
+
   return (
     <Card
       className="cursor-pointer transition-shadow hover:shadow-sm border"
@@ -51,6 +58,9 @@ function TripCard({
               </div>
               <div>
                 <span className="font-medium">End:</span> {formatTripDateWithWeekday(trip.endTime)}
+              </div>
+              <div>
+                <span className="font-tiny"></span> {currencyLabel}
               </div>
             </div>
           </div>
@@ -101,6 +111,7 @@ function TripSection({
   onDelete,
   onViewOptions,
   onViewSegments,
+  currencies,
 }: {
   title: string
   trips: Trip[]
@@ -110,6 +121,7 @@ function TripSection({
   onDelete: (tripId: number) => void
   onViewOptions: (tripId: number) => void
   onViewSegments: (tripId: number) => void
+  currencies: Currency[]
 }) {
   return (
     <div className="mt-4">
@@ -133,6 +145,7 @@ function TripSection({
               onDelete={onDelete}
               onViewOptions={onViewOptions}
               onViewSegments={onViewSegments}
+              currencies={currencies}
             />
           ))}
         </div>
@@ -152,6 +165,9 @@ export default function TripList() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null)
   const router = useRouter()
+  const { currencies } = useCurrencies()
+  const { user } = useCurrentUser()
+  const preferredCurrencyId = user?.userPreference?.preferredCurrencyId ?? null
 
   const fetchTrips = useCallback(async () => {
     setIsLoading(true)
@@ -245,7 +261,13 @@ export default function TripList() {
 
   return (
     <div>
-      <TripModal isOpen={isModalOpen} onClose={handleCloseModal} onSave={handleSaveTrip} trip={editingTrip} />
+      <TripModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSave={handleSaveTrip}
+        trip={editingTrip}
+        defaultCurrencyId={preferredCurrencyId}
+      />
 
       <Card className="w-full max-w-4xl mx-auto">
         <CardHeader className="flex flex-row items-center justify-between">
@@ -273,6 +295,7 @@ export default function TripList() {
                 onDelete={handleDeleteTrip}
                 onViewOptions={handleViewOptions}
                 onViewSegments={handleViewSegments}
+                currencies={currencies}
               />
 
               {oldTrips.length > 0 && (
@@ -285,6 +308,7 @@ export default function TripList() {
                   onDelete={handleDeleteTrip}
                   onViewOptions={handleViewOptions}
                   onViewSegments={handleViewSegments}
+                  currencies={currencies}
                 />
               )}
             </>

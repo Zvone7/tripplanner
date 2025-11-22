@@ -45,6 +45,7 @@ public class SegmentService
             StartLocationId = s.start_location_id,
             EndLocationId = s.end_location_id,
             IsUiVisible = s.is_ui_visible,
+            CurrencyId = s.currency_id,
         }).ToList();
         await RetrieveLocationsForSegmentsAsync(result, cancellationToken);
         return result;
@@ -68,6 +69,7 @@ public class SegmentService
                 StartLocationId = s.start_location_id,
                 EndLocationId = s.end_location_id,
                 IsUiVisible = s.is_ui_visible,
+                CurrencyId = s.currency_id,
             })
             .OrderBy(s => s.StartDateTimeUtc)
             .ToList();
@@ -96,6 +98,7 @@ public class SegmentService
                 SegmentTypeId = segment.segment_type_id,
                 Comment = segment.comment,
                 IsUiVisible = segment.is_ui_visible,
+                CurrencyId = segment.currency_id,
             };
         if (result != null)
             await RetrieveLocationsForSegmentAsync(result, cancellationToken);
@@ -150,6 +153,7 @@ public class SegmentService
             start_location_id = startLocation?.id,
             end_location_id = endLocation?.id,
             is_ui_visible = segment.IsUiVisible,
+            currency_id = segment.CurrencyId == 0 ? 1 : segment.CurrencyId,
         }, cancellationToken);
     }
 
@@ -157,6 +161,7 @@ public class SegmentService
     {
         try
         {
+            var persistedSegment = await _segmentRepository_.GetAsync(segment.Id, cancellationToken);
             var utcStart = ConvertWithOffset(segment.StartDateTimeUtc, segment.StartDateTimeUtcOffset);
             var utcEnd = ConvertWithOffset(segment.EndDateTimeUtc, segment.EndDateTimeUtcOffset);
             if (segment.StartLocation != null)
@@ -223,6 +228,10 @@ public class SegmentService
                 }
             }
 
+            var currencyId = segment.CurrencyId == 0
+                ? persistedSegment?.currency_id ?? 1
+                : segment.CurrencyId;
+
             await _segmentRepository_.UpdateAsync(new SegmentDbm
             {
                 id = segment.Id,
@@ -238,6 +247,7 @@ public class SegmentService
                 start_location_id = segment.StartLocation?.Id,
                 end_location_id = segment.EndLocation?.Id,
                 is_ui_visible = segment.IsUiVisible,
+                currency_id = currencyId,
             }, cancellationToken);
 
             await UpdateOptionsRelatedBySegmentIdAsync(segment.Id, cancellationToken);

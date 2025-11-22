@@ -45,6 +45,7 @@ public class SegmentRepository
                        "end_datetime_utc_offset, "+
                        "name, " +
                        "cost, " +
+                       "currency_id, " +
                        "segment_type_id, " +
                        "comment, " +
                        "start_location_id, " +
@@ -58,6 +59,7 @@ public class SegmentRepository
                        "@end_datetime_utc_offset, " +
                        "@name, " +
                        "@cost, " +
+                       "@currency_id, " +
                        "@segment_type_id," +
                        "@comment, " +
                        "@start_location_id, " +
@@ -78,6 +80,7 @@ public class SegmentRepository
                        "end_datetime_utc_offset = @end_datetime_utc_offset, " +
                        "name = @name, " +
                        "cost = @cost, " +
+                       "currency_id = @currency_id, " +
                        "segment_type_id = @segment_type_id, " +
                        "comment = @comment, " +
                        "start_location_id = @start_location_id, " +

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 import { Button } from "../components/ui/button";
-import { PlusIcon, ListIcon, EditIcon, EyeOffIcon } from "lucide-react";
+import { PlusIcon, ListIcon, EditIcon, EyeOffIcon, Loader2Icon } from "lucide-react";
 import SegmentModal from "../segments/SegmentModal";
 import { formatDateWithUserOffset, formatWeekday } from "../utils/dateformatters";
 import { OptionBadge } from "../components/OptionBadge";
@@ -13,9 +13,14 @@ import { cn } from "../lib/utils";
 import { SegmentFilterPanel, type SegmentFilterValue } from "../components/filters/SegmentFilterPanel";
 import type { SegmentSortValue } from "../components/sorting/segmentSortTypes";
 import { applySegmentFilters, buildSegmentMetadata } from "../services/segmentFiltering";
+import { CurrencyDropdown } from "../components/CurrencyDropdown";
+import { useCurrencies } from "../hooks/useCurrencies";
+import { useCurrencyConversions } from "../hooks/useCurrencyConversions";
+import { useCurrentUser } from "../hooks/useCurrentUser";
 
-import type { Segment, SegmentType, OptionRef, User, SegmentSave } from "../types/models";
-import { segmentsApi, tripsApi, userApi } from "../utils/apiClient";
+import type { Segment, SegmentType, OptionRef, SegmentSave, Currency, CurrencyConversion } from "../types/models";
+import { formatCurrencyAmount, convertWithFallback } from "../utils/currency";
+import { segmentsApi, tripsApi } from "../utils/apiClient";
 
 const getLocationLabel = (loc: any | null) => {
   if (!loc) return "";
@@ -38,14 +43,24 @@ function SegmentCard({
   userPreferredOffset,
   onEdit,
   connectedOptions,
+  isLoadingConnections,
   showVisibilityIndicator,
+  displayCurrencyId,
+  tripCurrencyId,
+  currencies,
+  conversions,
 }: {
   segment: Segment;
   segmentType: SegmentType | undefined;
   userPreferredOffset: number;
   onEdit: (segment: Segment) => void;
   connectedOptions: OptionRef[];
+  isLoadingConnections: boolean;
   showVisibilityIndicator: boolean;
+  displayCurrencyId: number | null;
+  tripCurrencyId: number | null;
+  currencies: Currency[];
+  conversions: CurrencyConversion[];
 }) {
   const getTimezoneDisplayText = () =>
     userPreferredOffset === 0 ? "UTC" : `UTC${userPreferredOffset >= 0 ? "+" : ""}${userPreferredOffset}`;
@@ -55,6 +70,21 @@ function SegmentCard({
   const endLoc = (segment as any).endLocation ?? null;
 
   const isHidden = segment.isUiVisible === false;
+  const numericCost = Number(segment.cost ?? 0)
+  const desiredCurrencyId = displayCurrencyId ?? tripCurrencyId ?? segment.currencyId ?? null
+  const primaryDisplay = convertWithFallback({
+    amount: numericCost,
+    fromCurrencyId: segment.currencyId ?? null,
+    toCurrencyId: desiredCurrencyId,
+    conversions,
+  })
+  const primaryLabel = formatCurrencyAmount(primaryDisplay.amount, primaryDisplay.currencyId, currencies)
+  const originalLabel = formatCurrencyAmount(numericCost, segment.currencyId, currencies)
+  const showOriginalCost =
+    displayCurrencyId !== null &&
+    segment.currencyId !== null &&
+    segment.currencyId !== undefined &&
+    segment.currencyId !== displayCurrencyId
 
   return (
     <Card
@@ -84,17 +114,26 @@ function SegmentCard({
             <CardTitle className="text-lg">{segment.name}</CardTitle>
 
             <div className="mt-2 flex flex-wrap gap-1">
-              {connectedOptions?.map((option) => {
-                const optionHidden = (option as any)?.isUiVisible === false;
-                return (
-                  <OptionBadge
-                    key={option.id}
-                    id={option.id}
-                    name={option.name}
-                    isHidden={showVisibilityIndicator && optionHidden}
-                  />
-                );
-              })}
+              {isLoadingConnections ? (
+                <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2Icon className="h-3 w-3 animate-spin" />
+                  Loading options…
+                </span>
+              ) : connectedOptions?.length ? (
+                connectedOptions.map((option) => {
+                  const optionHidden = (option as any)?.isUiVisible === false;
+                  return (
+                    <OptionBadge
+                      key={option.id}
+                      id={option.id}
+                      name={option.name}
+                      isHidden={showVisibilityIndicator && optionHidden}
+                    />
+                  );
+                })
+              ) : (
+                <span className="text-xs text-muted-foreground">No connected options</span>
+              )}
             </div>
 
             <div className="mt-2 text-sm text-muted-foreground space-y-1">
@@ -107,10 +146,13 @@ function SegmentCard({
                   {formatSegmentDateWithWeekday(segment.endDateTimeUtc, userPreferredOffset)}
                   {endLoc ? ` (${getLocationLabel(endLoc)})` : ""}
                 </div>
-                <div>${segment.cost.toFixed(2)}</div>
-                <div className="text-xs text-muted-foreground">
-                  Times shown in {getTimezoneDisplayText()}
+                <div className="font-medium text-foreground">
+                  {primaryLabel}
+                  {showOriginalCost ? (
+                    <span className="ml-2 text-xs text-muted-foreground">({originalLabel})</span>
+                  ) : null}
                 </div>
+                <div className="text-xs text-muted-foreground">Times shown in {getTimezoneDisplayText()}</div>
               </div>
             </div>
           </div>
@@ -149,12 +191,16 @@ export default function SegmentsPage() {
   const [segments, setSegments] = useState<Segment[]>([]);
   const [segmentTypes, setSegmentTypes] = useState<SegmentType[]>([]);
   const [userPreferredOffset, setUserPreferredOffset] = useState<number>(0);
+  const [userPreferredCurrencyId, setUserPreferredCurrencyId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSegment, setEditingSegment] = useState<Segment | null | undefined>(null);
   const [tripName, setTripName] = useState<string>("");
+  const [tripCurrencyId, setTripCurrencyId] = useState<number | null>(null);
+  const [displayCurrencyId, setDisplayCurrencyId] = useState<number | null>(null);
   const [connectedBySegment, setConnectedBySegment] = useState<Record<number, OptionRef[]>>({});
+  const [connectionsLoading, setConnectionsLoading] = useState<Record<number, boolean>>({});
   const [filterState, setFilterState] = useState<SegmentFilterValue>({
     locations: [],
     types: [],
@@ -162,29 +208,24 @@ export default function SegmentsPage() {
     showHidden: false,
   });
   const [sortState, setSortState] = useState<SegmentSortValue | null>(null);
+  const { currencies, isLoading: isLoadingCurrencies } = useCurrencies();
+  const { conversions } = useCurrencyConversions();
+  const { user } = useCurrentUser();
 
   const searchParams = useSearchParams();
   const tripId = searchParams.get("tripId");
   const router = useRouter();
-
-  const fetchUserPreferences = useCallback(async () => {
-    try {
-      const userData: User = await userApi.getAccountInfo();
-      setUserPreferredOffset(userData.userPreference?.preferredUtcOffset || 0);
-    } catch (err) {
-      console.error("Error fetching user preferences:", err);
-      setUserPreferredOffset(0);
-    }
-  }, []);
 
   const fetchTripName = useCallback(async () => {
     if (!tripId) return;
     try {
       const data = await tripsApi.getById(tripId);
       setTripName(data.name);
+      setTripCurrencyId(data.currencyId ?? null);
     } catch (err) {
       console.error("Error fetching trip details:", err);
       setTripName("Unknown Trip");
+      setTripCurrencyId(null);
     }
   }, [tripId]);
 
@@ -217,31 +258,30 @@ export default function SegmentsPage() {
     if (!segments.length || !tripId) return;
 
     let cancelled = false;
+    const loadingFlags: Record<number, boolean> = {};
+    segments.forEach((segment) => {
+      loadingFlags[segment.id] = true;
+    });
+    setConnectionsLoading(loadingFlags);
 
-    (async () => {
+    const fetches = segments.map(async (seg) => {
       try {
-        const results = await Promise.allSettled(
-          segments.map(async (seg) => {
-            const options = await segmentsApi.getConnectedOptions(tripId, seg.id);
-            return { segmentId: seg.id, options };
-          })
-        );
-
+        const options = await segmentsApi.getConnectedOptions(tripId, seg.id);
         if (cancelled) return;
-
-        const map: Record<number, OptionRef[]> = {};
-        for (const r of results) {
-          if (r.status === "fulfilled") {
-            map[r.value.segmentId] = r.value.options;
-          } else {
-            console.warn("Connected options fetch failed:", r.reason);
-          }
-        }
-        setConnectedBySegment(map);
-      } catch (e) {
-        console.error("Batch fetch connected options failed:", e);
+        setConnectedBySegment((prev) => ({ ...prev, [seg.id]: options }));
+      } catch (err) {
+        if (!cancelled) console.warn("Connected options fetch failed:", err);
+      } finally {
+        if (cancelled) return;
+        setConnectionsLoading((prev) => {
+          const next = { ...prev };
+          delete next[seg.id];
+          return next;
+        });
       }
-    })();
+    });
+
+    void Promise.allSettled(fetches);
 
     return () => {
       cancelled = true;
@@ -249,11 +289,27 @@ export default function SegmentsPage() {
   }, [segments, tripId]);
 
   useEffect(() => {
-    fetchUserPreferences();
     fetchTripName();
     fetchSegmentTypes();
     fetchSegments();
-  }, [fetchUserPreferences, fetchTripName, fetchSegmentTypes, fetchSegments]);
+  }, [fetchTripName, fetchSegmentTypes, fetchSegments]);
+
+  useEffect(() => {
+    if (!user) return;
+    setUserPreferredOffset(user.userPreference?.preferredUtcOffset ?? 0);
+    setUserPreferredCurrencyId(user.userPreference?.preferredCurrencyId ?? null);
+  }, [user]);
+
+  useEffect(() => {
+    if (displayCurrencyId !== null) return;
+    if (tripCurrencyId) {
+      setDisplayCurrencyId(tripCurrencyId);
+      return;
+    }
+    if (userPreferredCurrencyId) {
+      setDisplayCurrencyId(userPreferredCurrencyId);
+    }
+  }, [displayCurrencyId, tripCurrencyId, userPreferredCurrencyId]);
 
   const handleEditSegment = (segment: Segment) => {
     setEditingSegment(segment);
@@ -398,6 +454,16 @@ export default function SegmentsPage() {
     return list.sort(compare)
   }, [filteredSegments, sortState, segmentTypes])
 
+  const effectiveDisplayCurrencyId = displayCurrencyId ?? tripCurrencyId ?? userPreferredCurrencyId ?? null
+  const selectedCurrencyMeta = useMemo(
+    () => currencies.find((c) => c.id === effectiveDisplayCurrencyId) ?? null,
+    [currencies, effectiveDisplayCurrencyId],
+  )
+  const tripCurrencyMeta = useMemo(
+    () => currencies.find((c) => c.id === (tripCurrencyId ?? undefined)) ?? null,
+    [currencies, tripCurrencyId],
+  )
+
   if (!tripId) {
     return <div>No trip ID provided</div>;
   }
@@ -430,6 +496,17 @@ export default function SegmentsPage() {
           availableTypes={availableSegmentTypes}
           minDate={dateBounds.min}
           maxDate={dateBounds.max}
+          toolbarAddon={
+            <CurrencyDropdown
+              value={effectiveDisplayCurrencyId}
+              onChange={setDisplayCurrencyId}
+              currencies={currencies}
+              placeholder={isLoadingCurrencies ? "Loading currencies..." : "Display currency"}
+              disabled={isLoadingCurrencies}
+              className="w-full sm:w-[180px]"
+              triggerClassName="w-full"
+            />
+          }
         />
 
         {isLoading ? (
@@ -452,7 +529,12 @@ export default function SegmentsPage() {
                     userPreferredOffset={userPreferredOffset}
                     onEdit={handleEditSegment}
                     connectedOptions={connected}
+                    isLoadingConnections={Boolean(connectionsLoading[segment.id])}
                     showVisibilityIndicator={filterState.showHidden}
+                    displayCurrencyId={effectiveDisplayCurrencyId}
+                    tripCurrencyId={tripCurrencyId}
+                    currencies={currencies}
+                    conversions={conversions}
                   />
                 )
               })
@@ -468,6 +550,8 @@ export default function SegmentsPage() {
         segment={editingSegment}
         tripId={Number(tripId)}
         segmentTypes={segmentTypes}
+        tripCurrencyId={tripCurrencyId}
+        displayCurrencyId={effectiveDisplayCurrencyId}
       />
     </Card>
   );

@@ -11,6 +11,8 @@ import type {
   UserPreference,
   LocationOption,
   PendingUser,
+  Currency,
+  CurrencyConversion,
 } from "../types/models"
 
 export type ResponseType = "json" | "text" | "void"
@@ -39,8 +41,15 @@ async function request<T = void>(url: string, options: RequestOptions = {}): Pro
     return text as T
   }
 
-  const data = (await res.json()) as T
-  return data
+  const raw = await res.text()
+  const trimmed = raw.trim()
+  if (!trimmed) return undefined as T
+  try {
+    return JSON.parse(trimmed) as T
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    throw new Error(`Failed to parse JSON response: ${message}`)
+  }
 }
 
 const jsonHeaders = { "Content-Type": "application/json" }
@@ -130,11 +139,11 @@ export const userApi = {
   getPendingApprovals: () => request<PendingUser[]>("/api/user/pendingapprovals"),
   approveUser: (userId: string) =>
     request<void>(`/api/user/approveuser?userIdToApprove=${userId}`, { method: "POST", responseType: "void" }),
-  updatePreference: (preferredUtcOffset: number) =>
+  updatePreference: (payload: { preferredUtcOffset: number; preferredCurrencyId: number }) =>
     request<void>("/api/user/UpdateUserPreference", {
       method: "POST",
       headers: jsonHeaders,
-      body: JSON.stringify({ preferredUtcOffset }),
+      body: JSON.stringify(payload),
       responseType: "void",
     }),
 }
@@ -146,4 +155,16 @@ export const geocodingApi = {
 
 export const locationApi = {
   search: geocodingApi.search,
+}
+
+export const currencyApi = {
+  getCurrencies: () => request<Currency[]>("/api/Currency/GetCurrencies"),
+  getConversions: () => request<CurrencyConversion[]>("/api/Currency/GetConversions"),
+  upsertConversion: (payload: CurrencyConversion) =>
+    request<void>("/api/Currency/UpsertConversion", {
+      method: "PUT",
+      headers: jsonHeaders,
+      body: JSON.stringify(payload),
+      responseType: "void",
+    }),
 }

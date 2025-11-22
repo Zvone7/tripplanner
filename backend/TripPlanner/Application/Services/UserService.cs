@@ -29,7 +29,8 @@ public class UserService
 
         var userPreference = await _userPreferenceRepository.CreateAsync(new UserPreference
             {
-                preferred_utc_offset = 1
+                preferred_utc_offset = 1,
+                preferred_currency_id = 1
             }, created.Id,
             cancellationToken);
 
@@ -119,7 +120,8 @@ public class UserService
             userPreference = new UserPreference
             {
                 app_user_id = userId,
-                preferred_utc_offset = userPreferenceDto.PreferredUtcOffset
+                preferred_utc_offset = userPreferenceDto.PreferredUtcOffset,
+                preferred_currency_id = userPreferenceDto.PreferredCurrencyId == 0 ? 1 : userPreferenceDto.PreferredCurrencyId
             };
             userPreference = await _userPreferenceRepository.CreateAsync(userPreference, userId, cancellationToken);
             user = await GetAsync(userId, cancellationToken);
@@ -131,6 +133,7 @@ public class UserService
         else
         {
             userPreference.preferred_utc_offset = userPreferenceDto.PreferredUtcOffset;
+            userPreference.preferred_currency_id = userPreferenceDto.PreferredCurrencyId == 0 ? 1 : userPreferenceDto.PreferredCurrencyId;
             var updatedPreference = await _userPreferenceRepository.UpdateAsync(userPreference, userId, cancellationToken);
 
             user = await GetAsync(userId, cancellationToken);
