@@ -542,7 +542,7 @@ export default function OptionsPageContent() {
   }
 
   return (
-    <Card className="w-full max-w-5xl mx-auto">
+    <Card className="w-full max-w-6xl mx-auto">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>Options</CardTitle>
