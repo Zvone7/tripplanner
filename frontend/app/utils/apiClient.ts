@@ -13,6 +13,7 @@ import type {
   PendingUser,
   Currency,
   CurrencyConversion,
+  SegmentSuggestion,
 } from "../types/models"
 
 export type ResponseType = "json" | "text" | "void"
@@ -79,6 +80,8 @@ export const tripsApi = {
 export const segmentsApi = {
   getTypes: () => request<SegmentType[]>("/api/Segment/GetSegmentTypes"),
   getByTripId: (tripId: string | number) => request<SegmentApi[]>(`/api/Segment/GetSegmentsByTripId?tripId=${tripId}`),
+  parseBookingLink: (url: string) =>
+    request<SegmentSuggestion>(`/api/Segment/ParseBookingLink?url=${encodeURIComponent(url)}`),
   getConnectedOptions: (tripId: string | number, segmentId: number) =>
     request<OptionRef[]>(`/api/Segment/GetConnectedOptions?tripId=${tripId}&segmentId=${segmentId}`),
   getConnectedSegments: (tripId: string | number, optionId: number) =>

@@ -1,7 +1,12 @@
 using Domain.ActionModels;
 using Domain.DbModels;
 using Domain.Dtos;
+using Domain.Models;
+using Domain.Services;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
+using System.Linq;
 
 namespace Application.Services;
 
@@ -11,6 +16,7 @@ public class SegmentService
     private readonly OptionRepository _optionRepository_;
     private readonly LocationRepository _locationRepository;
     private readonly OptionService _optionService_;
+    private readonly ILocationIqClient _locationIqClient;
     private readonly ILogger<SegmentService> _logger;
 
     public SegmentService(
@@ -18,12 +24,14 @@ public class SegmentService
         OptionRepository optionRepository,
         LocationRepository locationRepository,
         OptionService optionService,
+        ILocationIqClient locationIqClient,
         ILogger<SegmentService> logger)
     {
         _segmentRepository_ = segmentRepository;
         _optionRepository_ = optionRepository;
         _locationRepository = locationRepository;
         _optionService_ = optionService;
+        _locationIqClient = locationIqClient;
         _logger = logger;
     }
 
@@ -369,5 +377,139 @@ public class SegmentService
         }
     }
 
-    #endregion
+    public async Task<SegmentSuggestionDto> ParseBookingLinkAsync(string url, CancellationToken cancellationToken)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        {
+            throw new ArgumentException("Invalid URL provided.");
+        }
+
+        var suggestion = new SegmentSuggestionDto
+        {
+            SourceUrl = url,
+            Name = ExtractNameFromPath(uri),
+            LocationName = ExtractLocationFromPath(uri),
+        };
+
+        var query = QueryHelpers.ParseQuery(uri.Query);
+        var checkIn = query.TryGetValue("checkin", out var checkInValues) ? checkInValues.ToString() : null;
+        var checkOut = query.TryGetValue("checkout", out var checkOutValues) ? checkOutValues.ToString() : null;
+
+        suggestion.StartDateLocal = BuildLocalDateString(checkIn, 15, 0);
+        suggestion.EndDateLocal = BuildLocalDateString(checkOut, 11, 0);
+        suggestion.Cost = TryParsePrice(query, out var currencyCode);
+        suggestion.CurrencyCode = currencyCode;
+
+        await EnrichLocationAsync(suggestion, cancellationToken);
+
+        return suggestion;
+    }
+
+    private static string? ExtractNameFromPath(Uri uri)
+    {
+        var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length == 0) return null;
+        var slug = segments[^1];
+        var htmlIndex = slug.IndexOf(".html", StringComparison.OrdinalIgnoreCase);
+        if (htmlIndex >= 0)
+        {
+            slug = slug[..htmlIndex];
+        }
+        slug = slug.Replace('-', ' ').Trim();
+        if (string.IsNullOrWhiteSpace(slug)) return null;
+        return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(slug);
+    }
+
+    private static string? ExtractLocationFromPath(Uri uri)
+    {
+        var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length < 2) return null;
+        var candidate = segments[^2];
+        candidate = candidate.Replace('-', ' ').Trim();
+        if (string.IsNullOrWhiteSpace(candidate)) return null;
+        return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(candidate);
+    }
+
+    private static string? BuildLocalDateString(string? dateValue, int hour, int minute)
+    {
+        if (string.IsNullOrWhiteSpace(dateValue)) return null;
+        if (!DateTime.TryParse(dateValue, out var dateOnly)) return null;
+        var local = new DateTime(dateOnly.Year, dateOnly.Month, dateOnly.Day, hour, minute, 0, DateTimeKind.Unspecified);
+        return local.ToString("yyyy-MM-ddTHH:mm");
+    }
+
+    private async Task EnrichLocationAsync(SegmentSuggestionDto suggestion, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var query = suggestion.Name ?? suggestion.LocationName;
+            if (string.IsNullOrWhiteSpace(query)) return;
+            var results = await _locationIqClient.ForwardGeocodeAsync(query, 1, null, null, cancellationToken);
+            var best = results.FirstOrDefault();
+            if (best == null) return;
+            var normalized = LocationSearchResult.FromLocationIq(best);
+            suggestion.Location = new LocationDto
+            {
+                Id = 0,
+                Provider = normalized.Provider,
+                ProviderPlaceId = normalized.Provider_Place_Id,
+                Name = normalized.Name,
+                Country = normalized.Country ?? string.Empty,
+                CountryCode = normalized.Country_Code,
+                Latitude = normalized.Lat,
+                Longitude = normalized.Lng
+            };
+            suggestion.LocationName ??= normalized.Formatted;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to geocode booking location");
+        }
+    }
+
+    private static decimal? TryParsePrice(IDictionary<string, Microsoft.Extensions.Primitives.StringValues> query, out string? currencyCode)
+    {
+        currencyCode = GetQueryValue(query, "selected_currency")
+                       ?? GetQueryValue(query, "currency")
+                       ?? GetQueryValue(query, "src_currency");
+
+        var explicitPrice = GetQueryValue(query, "price");
+        if (TryParseDecimal(explicitPrice, out var parsedExplicit))
+        {
+            return parsedExplicit;
+        }
+
+        var blockValue = GetQueryValue(query, "sr_pri_blocks");
+        if (!string.IsNullOrWhiteSpace(blockValue))
+        {
+            var blocks = blockValue.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var block in blocks)
+            {
+                var parts = block.Split('_', StringSplitOptions.RemoveEmptyEntries);
+                var candidate = parts.LastOrDefault();
+                if (TryParseDecimal(candidate, out var raw))
+                {
+                    if (raw >= 1000)
+                    {
+                        raw /= 100m;
+                    }
+                    return raw;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static string? GetQueryValue(IDictionary<string, Microsoft.Extensions.Primitives.StringValues> query, string key)
+    {
+        return query.TryGetValue(key, out var value) ? value.ToString() : null;
+    }
+
+    private static bool TryParseDecimal(string? input, out decimal value)
+    {
+        return decimal.TryParse(input, NumberStyles.AllowDecimalPoint | NumberStyles.AllowThousands,
+            CultureInfo.InvariantCulture, out value);
+    }
+#endregion
 }

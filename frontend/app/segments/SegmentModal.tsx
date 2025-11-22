@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from "../components/ui/alert-dialog"
-import { CopyIcon, SaveIcon, Trash2Icon, EyeOffIcon, SlidersHorizontal, XIcon, AlertTriangle } from "lucide-react"
+import { CopyIcon, SaveIcon, Trash2Icon, EyeOffIcon, SlidersHorizontal, XIcon, AlertTriangle, Link2, Loader2 } from "lucide-react"
 import { toLocationDto, normalizeLocation } from "../lib/mapping"
 import { Collapsible } from "../components/Collapsible"
 import { cn } from "../lib/utils"
@@ -40,6 +40,7 @@ import type {
   LocationOption,
   SegmentType,
   SegmentApi,
+  SegmentSuggestion,
 } from "../types/models"
 
 import { RangeDateTimePicker, type RangeDateTimePickerValue } from "../components/RangeDateTimePicker"
@@ -174,6 +175,8 @@ export default function SegmentModal({
   const [userPreferredCurrencyId, setUserPreferredCurrencyId] = useState<number | null>(null)
   const [isUiVisible, setIsUiVisible] = useState(true)
   const [baselineReady, setBaselineReady] = useState(!segment)
+  const [bookingUrl, setBookingUrl] = useState("")
+  const [isImportingBooking, setIsImportingBooking] = useState(false)
 
   // State for delete confirmation dialog
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -272,6 +275,69 @@ export default function SegmentModal({
   useEffect(() => {
     fetchOptions()
   }, [fetchOptions])
+
+  const applyBookingSuggestion = (suggestion: SegmentSuggestion) => {
+    if (suggestion.name && !name) {
+      setName(suggestion.name)
+    }
+
+    setRange((prev) => ({
+      ...prev,
+      startLocal: suggestion.startDateLocal ?? prev.startLocal,
+      endLocal: suggestion.endDateLocal ?? prev.endLocal,
+    }))
+
+    if (suggestion.location) {
+      const normalized = normalizeLocation(suggestion.location)
+      if (normalized) {
+        setLocRange((prev) => ({ ...prev, start: normalized }))
+        setPrefilledStart(normalized)
+      }
+    } else if (suggestion.locationName) {
+      const manualLocation: LocationOption = {
+        name: suggestion.locationName,
+        provider: "manual",
+        providerPlaceId: suggestion.locationName,
+        lat: 0,
+        lng: 0,
+      }
+      setLocRange((prev) => ({ ...prev, start: manualLocation }))
+      setPrefilledStart(manualLocation)
+    }
+
+    if (typeof suggestion.cost === "number" && Number.isFinite(suggestion.cost)) {
+      setCost((prev) => (prev && prev.trim().length ? prev : suggestion.cost?.toString() ?? prev))
+    }
+
+    if (suggestion.sourceUrl) {
+      setComment((prev) => {
+        const label = suggestion.name ?? "Booking link"
+        const formatted = `Booking: [${label}](${suggestion.sourceUrl})`
+        if (!prev) return formatted
+        if (suggestion.sourceUrl && prev.includes(suggestion.sourceUrl)) return prev
+        return `${prev}\n${formatted}`
+      })
+    }
+  }
+
+  const handleImportBookingLink = async () => {
+    const trimmed = bookingUrl.trim()
+    if (!trimmed) {
+      toast({ title: "Paste a booking link", description: "Provide a booking.com link before importing." })
+      return
+    }
+    try {
+      setIsImportingBooking(true)
+      const suggestion = await segmentsApi.parseBookingLink(trimmed)
+      applyBookingSuggestion(suggestion)
+      toast({ title: "Booking imported", description: "Details were added to the form." })
+    } catch (error) {
+      console.error("Failed to import booking link:", error)
+      toast({ title: "Import failed", description: "Could not extract data from the provided link." })
+    } finally {
+      setIsImportingBooking(false)
+    }
+  }
 
   useEffect(() => {
     setOptionsFilterOpen(false)
@@ -819,6 +885,31 @@ type SegmentBaseline = {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Booking import */}
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label htmlFor="booking-link" className="text-right text-sm">
+                Booking link
+              </Label>
+              <div className="col-span-3 flex flex-col gap-2 sm:flex-row">
+                <Input
+                  id="booking-link"
+                  value={bookingUrl}
+                  onChange={(e) => setBookingUrl(e.target.value)}
+                  placeholder="https://www.booking.com/..."
+                  autoComplete="off"
+                  className="w-full"
+                />
+                <Button type="button" variant="secondary" onClick={handleImportBookingLink} disabled={isImportingBooking}>
+                  {isImportingBooking ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Link2 className="h-4 w-4 mr-1" />
+                  )}
+                  Import
+                </Button>
+              </div>
             </div>
 
             {/* Cost */}

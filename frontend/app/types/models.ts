@@ -46,6 +46,17 @@ export interface OptionRef {
   name: string;
 }
 
+export interface SegmentSuggestion {
+  name?: string;
+  startDateLocal?: string;
+  endDateLocal?: string;
+  locationName?: string;
+  sourceUrl?: string;
+  cost?: number;
+  currencyCode?: string;
+  location?: LocationOption | LocationDto | null;
+}
+
 export interface SegmentApi {
   id: number;
   tripId?: number; // optional if not always returned
