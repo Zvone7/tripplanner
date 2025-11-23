@@ -1138,10 +1138,20 @@ type SegmentBaseline = {
     [shouldPromptOnClose, closeModal],
   )
 
+  const handleDialogInteractOutside = useCallback((event: Event) => {
+    const target = event.target as HTMLElement | null
+    if (target?.closest("[data-dialog-interactive]")) {
+      event.preventDefault()
+    }
+  }, [])
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
-        <DialogContent className="max-w-4xl w-full h-[85vh] p-0 flex flex-col">
+        <DialogContent
+          className="max-w-4xl w-full h-[85vh] p-0 flex flex-col"
+          onInteractOutside={handleDialogInteractOutside}
+        >
           <DialogTitle className="sr-only">{headerName}</DialogTitle>
           <div className="sticky top-0 bg-background border-b px-4 py-3">
             <div className="mb-3 space-y-1">

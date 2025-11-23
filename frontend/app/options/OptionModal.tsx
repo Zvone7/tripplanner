@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import type { ReactNode } from "react";
 import { Dialog, DialogContent, DialogTitle } from "../components/ui/dialog";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -21,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
-import { SaveIcon, Trash2Icon, EyeOffIcon, EyeIcon } from "lucide-react";
+import { SaveIcon, Trash2Icon, EyeOffIcon, EyeIcon, LayersIcon } from "lucide-react";
 import type { SegmentType, SegmentApi, OptionApi, OptionSave, Currency, CurrencyConversion, Segment } from "../types/models";
 import { cn } from "../lib/utils";
 import { TitleTokens } from "../components/TitleTokens";
@@ -413,14 +412,17 @@ export default function OptionModal({
     });
   }, [name, option, selectedSegmentEntities, displayCurrencyId, tripCurrencyId, conversions]);
 
-  const defaultOptionTitle = option ? `Edit Option: ${option.name}` : "Create Option";
+  const defaultOptionTitle = option ? `Edit Option: ${option.name ?? "Option"}` : "Create Option";
   const optionTitleText = tokensToLabel(optionTitleTokens) || defaultOptionTitle;
-  const optionTitleDisplay: ReactNode = optionTitleTokens.length ? (
-    <TitleTokens tokens={optionTitleTokens} />
-  ) : (
-    <span className="inline-flex items-center gap-1">{defaultOptionTitle}</span>
-  );
-  const optionTitleDescription = option ? "Editing existing option" : "Creating new option";
+  const headerTitle = option?.name?.trim() ? option.name.trim() : "New option"
+  const headerSubtitle = option ? "Editing existing option" : "Creating new option"
+
+  const handleDialogInteractOutside = useCallback((event: Event) => {
+    const target = event.target as HTMLElement | null
+    if (target?.closest("[data-dialog-interactive]")) {
+      event.preventDefault()
+    }
+  }, [])
 
   const generalSummaryTitle = useMemo(() => {
     return (
@@ -469,15 +471,21 @@ export default function OptionModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
-        <DialogContent className="max-w-lg w-full p-0 flex flex-col h-[90vh]">
+        <DialogContent
+          className="max-w-lg w-full p-0 flex flex-col h-[90vh]"
+          onInteractOutside={handleDialogInteractOutside}
+        >
           <DialogTitle className="sr-only">{optionTitleText}</DialogTitle>
           <form onSubmit={handleSubmit} className="flex flex-col h-full">
             <div className="border-b bg-background px-4 py-3">
               <div className="mb-3 space-y-1">
-                <h2 className="text-lg font-semibold leading-snug flex flex-wrap gap-x-1 gap-y-0.5">
-                  {optionTitleDisplay}
-                </h2>
-                <p className="text-xs text-muted-foreground">{optionTitleDescription}</p>
+                <div className="flex items-center gap-2 text-lg font-semibold leading-snug">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-secondary/50 text-secondary-foreground shadow-sm">
+                    <LayersIcon className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <span>{headerTitle}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">{headerSubtitle}</p>
               </div>
 
               <div className="flex items-center justify-between gap-2">
