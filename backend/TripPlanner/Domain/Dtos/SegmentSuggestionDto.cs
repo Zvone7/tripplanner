@@ -10,4 +10,5 @@ public class SegmentSuggestionDto
     public decimal? Cost { get; set; }
     public string? CurrencyCode { get; set; }
     public LocationDto? Location { get; set; }
+    public int? SegmentTypeId { get; set; }
 }

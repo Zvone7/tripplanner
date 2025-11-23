@@ -50,6 +50,7 @@ public sealed class BookingLinkParser : IBookingLinkParser
         suggestion.EndDateLocal = BuildLocalDateString(checkOut, 11, 0);
         suggestion.Cost = TryParsePrice(query, out var currencyCode);
         suggestion.CurrencyCode = currencyCode;
+        suggestion.SegmentTypeId = DetermineSegmentTypeId(suggestion.Name);
 
         await EnrichLocationAsync(suggestion, query, countryName, cancellationToken);
 
@@ -205,5 +206,19 @@ public sealed class BookingLinkParser : IBookingLinkParser
     {
         return decimal.TryParse(input, NumberStyles.AllowDecimalPoint | NumberStyles.AllowThousands,
             CultureInfo.InvariantCulture, out value);
+    }
+
+    private static int DetermineSegmentTypeId(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return 9; // default accommodation other
+
+        var normalized = name.ToLowerInvariant();
+        if (normalized.Contains("hostel"))
+            return 7; // hostel
+        if (normalized.Contains("hotel"))
+            return 6; // hotel
+
+        return 9;
     }
 }

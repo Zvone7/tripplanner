@@ -55,6 +55,7 @@ export interface SegmentSuggestion {
   cost?: number;
   currencyCode?: string;
   location?: LocationOption | LocationDto | null;
+  segmentTypeId?: number | null;
 }
 
 export interface SegmentApi {

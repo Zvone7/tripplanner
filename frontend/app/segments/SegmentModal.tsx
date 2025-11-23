@@ -222,6 +222,7 @@ export default function SegmentModal({
   const [showHiddenOptionsFilter, setShowHiddenOptionsFilter] = useState(false)
   const [showDescriptionModal, setShowDescriptionModal] = useState(false)
   const [descriptionDraft, setDescriptionDraft] = useState("")
+  const [showMissingShake, setShowMissingShake] = useState(false)
   const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false)
   const skipClosePromptRef = useRef(false)
 
@@ -239,7 +240,22 @@ export default function SegmentModal({
     if (typeof userPreferredCurrencyId === "number" && userPreferredCurrencyId > 0) return userPreferredCurrencyId
     return defaultCurrencyId ?? null
   }, [displayCurrencyId, tripCurrencyId, userPreferredCurrencyId, defaultCurrencyId])
-  const parsedCost = Number.parseFloat(cost)
+  const parsedCost = useMemo(() => {
+    const trimmed = cost.trim()
+    if (!trimmed) return Number.NaN
+    const normalized = trimmed.replace(",", ".")
+    try {
+      if (/^[0-9+\-*/().\s]+$/.test(normalized)) {
+        // eslint-disable-next-line no-new-func
+        const fn = new Function(`return (${normalized})`)
+        const result = Number(fn())
+        if (Number.isFinite(result)) return result
+      }
+    } catch {
+      // ignore parse errors; fall back to direct parse
+    }
+    return Number.parseFloat(normalized)
+  }, [cost])
   const hasCostValue = Number.isFinite(parsedCost)
   const formattedSegmentCost = useMemo(() => {
     if (!hasCostValue || !currencyId) return null
@@ -443,6 +459,10 @@ export default function SegmentModal({
       }
     }
 
+    if (typeof suggestion.segmentTypeId === "number") {
+      setSegmentTypeId((prev) => prev ?? suggestion.segmentTypeId ?? null)
+    }
+
     if (suggestion.sourceUrl) {
       setComment((prev) => {
         const label = suggestion.name ?? "Booking link"
@@ -500,7 +520,16 @@ export default function SegmentModal({
     }
   }, [showDescriptionModal, comment])
 
+  useEffect(() => {
+    return () => {
+      if (missingShakeTimeoutRef.current) {
+        clearTimeout(missingShakeTimeoutRef.current)
+      }
+    }
+  }, [])
+
   const initialSelectedOptionsRef = useRef<number[] | null>(null)
+  const missingShakeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
 type SegmentBaseline = {
     name: string
@@ -817,6 +846,28 @@ type SegmentBaseline = {
     currencyId,
   ])
 
+  const missingFieldMessages = useMemo(() => {
+    const messages: string[] = []
+    if (segmentTypeId === null) messages.push("Select a segment type")
+    if (!range.startLocal) messages.push("Choose a start date and time")
+    const parsedCost = Number.parseFloat(cost)
+    if (!cost || Number.isNaN(parsedCost)) messages.push("Enter a valid cost amount")
+    if (!currencyId && !isLoadingCurrencies) messages.push("Select a currency")
+    return messages
+  }, [segmentTypeId, range.startLocal, cost, currencyId, isLoadingCurrencies])
+
+  const hasMissingFields = missingFieldMessages.length > 0
+  const triggerMissingFieldsHint = useCallback(() => {
+    if (missingShakeTimeoutRef.current) {
+      clearTimeout(missingShakeTimeoutRef.current)
+    }
+    setShowMissingShake(true)
+    missingShakeTimeoutRef.current = setTimeout(() => {
+      setShowMissingShake(false)
+      missingShakeTimeoutRef.current = null
+    }, 450)
+  }, [])
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
@@ -824,11 +875,18 @@ type SegmentBaseline = {
       if (isSaveDisabled) return
 
       if (segmentTypeId === null) {
+        triggerMissingFieldsHint()
         toast({ title: "Error", description: "Please select a segment type." })
         return
       }
       if (!range.startLocal) {
+        triggerMissingFieldsHint()
         toast({ title: "Error", description: "Please choose a start date and time." })
+        return
+      }
+      if (!cost || Number.isNaN(parsedCost)) {
+        triggerMissingFieldsHint()
+        toast({ title: "Error", description: "Please enter a valid cost amount." })
         return
       }
 
@@ -858,6 +916,7 @@ type SegmentBaseline = {
 
       const currencyIdForSave = currencyId ?? userPreferredCurrencyId ?? tripCurrencyId ?? defaultCurrencyId
       if (!currencyIdForSave) {
+        triggerMissingFieldsHint()
         toast({ title: "Error", description: "Select a currency before saving." })
         return
       }
@@ -869,7 +928,7 @@ type SegmentBaseline = {
         endDateTimeUtc: endIso,
         startDateTimeUtcOffset: range.startOffsetH,
         endDateTimeUtcOffset: effEndOffset,
-        cost: Number.parseFloat(cost),
+        cost: parsedCost,
         currencyId: currencyIdForSave,
         segmentTypeId,
         comment,
@@ -911,20 +970,10 @@ type SegmentBaseline = {
       tripCurrencyId,
       defaultCurrencyId,
       toast,
+      triggerMissingFieldsHint,
+      parsedCost,
     ],
   )
-
-  const missingFieldMessages = useMemo(() => {
-    const messages: string[] = []
-    if (segmentTypeId === null) messages.push("Select a segment type")
-    if (!range.startLocal) messages.push("Choose a start date and time")
-    const parsedCost = Number.parseFloat(cost)
-    if (!cost || Number.isNaN(parsedCost)) messages.push("Enter a valid cost amount")
-    if (!currencyId && !isLoadingCurrencies) messages.push("Select a currency")
-    return messages
-  }, [segmentTypeId, range.startLocal, cost, currencyId, isLoadingCurrencies])
-
-  const hasMissingFields = missingFieldMessages.length > 0
 
   const headerName = (name && name.trim()) || segment?.name || (isCreateMode ? "New segment" : "Segment")
   const headerSubtitle = isCreateMode ? "Creating new segment" : "Editing existing segment"
@@ -999,24 +1048,26 @@ type SegmentBaseline = {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="text-muted-foreground"
-                onClick={() =>
-                  setIsUiVisible((prev) => {
-                    const next = !prev
-                    toast({
-                      title: next ? "Will be shown in list view" : "Won't be shown in list view",
+              {!isCreateMode && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="text-muted-foreground"
+                  onClick={() =>
+                    setIsUiVisible((prev) => {
+                      const next = !prev
+                      toast({
+                        title: next ? "Will be shown in list view" : "Won't be shown in list view",
+                      })
+                      return next
                     })
-                    return next
-                  })
-                }
-                aria-pressed={isUiVisible}
-              >
-                {isUiVisible ? <EyeIcon className="h-4 w-4" /> : <EyeOffIcon className="h-4 w-4" />}
-              </Button>
+                  }
+                  aria-pressed={isUiVisible}
+                >
+                  {isUiVisible ? <EyeIcon className="h-4 w-4" /> : <EyeOffIcon className="h-4 w-4" />}
+                </Button>
+              )}
               {segment && !isDuplicateMode && (
                 <Button type="button" variant="outline" size="sm" onClick={handleDuplicateSegment}>
                   <CopyIcon className="h-4 w-4" />
@@ -1035,9 +1086,14 @@ type SegmentBaseline = {
           </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 relative">
             {hasMissingFields && (
-              <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              <div
+                className={cn(
+                  "flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 sticky top-0 mt-0 z-10",
+                  showMissingShake && "shake-once",
+                )}
+              >
                 <AlertTriangle className="mt-0.5 h-4 w-4" aria-hidden="true" />
                 <div>
                   <p className="font-medium">Missing required details</p>
@@ -1134,12 +1190,11 @@ type SegmentBaseline = {
                   <div className="col-span-3 flex flex-col gap-2 sm:flex-row">
                     <Input
                       id="cost"
-                      type="number"
                       value={cost}
                       onChange={(e) => setCost(e.target.value)}
-                      className="w-full sm:flex-1"
+                      className="w-full sm:flex-1 font-mono"
                       required
-                      step="0.01"
+                      placeholder="e.g. 2600/4 or 150+150"
                       inputMode="decimal"
                     />
                     <CurrencyDropdown
