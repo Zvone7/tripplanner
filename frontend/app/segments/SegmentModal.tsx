@@ -222,6 +222,8 @@ export default function SegmentModal({
   const [showHiddenOptionsFilter, setShowHiddenOptionsFilter] = useState(false)
   const [showDescriptionModal, setShowDescriptionModal] = useState(false)
   const [descriptionDraft, setDescriptionDraft] = useState("")
+  const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false)
+  const skipClosePromptRef = useRef(false)
 
   const selectedSegmentType = useMemo(() => {
     if (segmentTypeId === null) return null
@@ -717,7 +719,7 @@ type SegmentBaseline = {
       })
 
       setShowDeleteConfirm(false)
-      onClose()
+      closeModal()
       // Trigger a refresh if needed - you may need to add a callback prop
       window.location.reload()
     } catch (error) {
@@ -782,6 +784,38 @@ type SegmentBaseline = {
     currencyId,
   ])
   const isSaveDisabled = isCreateMode ? false : (!baselineReady || !hasChanges)
+
+  const createFormTouched = useMemo(() => {
+    if (!isCreateMode) return false
+    return Boolean(
+      (name && name.trim()) ||
+        (cost && cost.trim()) ||
+        (comment && comment.trim()) ||
+        segmentTypeId !== null ||
+        range.startLocal ||
+        range.endLocal ||
+        locRange.start ||
+        locRange.end ||
+        selectedOptions.length > 0 ||
+        (bookingUrl && bookingUrl.trim()) ||
+        isUiVisible === false ||
+        currencyId !== null,
+    )
+  }, [
+    isCreateMode,
+    name,
+    cost,
+    comment,
+    segmentTypeId,
+    range.startLocal,
+    range.endLocal,
+    locRange.start,
+    locRange.end,
+    selectedOptions.length,
+    bookingUrl,
+    isUiVisible,
+    currencyId,
+  ])
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -893,7 +927,7 @@ type SegmentBaseline = {
   const hasMissingFields = missingFieldMessages.length > 0
 
   const headerName = (name && name.trim()) || segment?.name || (isCreateMode ? "New segment" : "Segment")
-  const headerSubtitle = ""
+  const headerSubtitle = isCreateMode ? "Creating new segment" : "Editing existing segment"
   const headerIcon = selectedSegmentType?.iconSvg ? (
     <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
       <span
@@ -910,9 +944,32 @@ type SegmentBaseline = {
 
 
 
+  const shouldPromptOnClose = isCreateMode ? createFormTouched : hasChanges
+
+  const closeModal = useCallback(() => {
+    skipClosePromptRef.current = true
+    onClose()
+  }, [onClose])
+
+  const handleDialogOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) return
+      if (skipClosePromptRef.current) {
+        skipClosePromptRef.current = false
+        return
+      }
+      if (shouldPromptOnClose) {
+        setShowUnsavedConfirm(true)
+      } else {
+        closeModal()
+      }
+    },
+    [shouldPromptOnClose, closeModal],
+  )
+
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="max-w-4xl w-full h-[85vh] p-0 flex flex-col">
           <DialogTitle className="sr-only">{headerName}</DialogTitle>
           <div className="sticky top-0 bg-background border-b px-4 py-3">
@@ -1002,7 +1059,14 @@ type SegmentBaseline = {
                   <Label htmlFor="name" className="text-right text-sm">
                     Nickname
                   </Label>
-                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" required />
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="col-span-3"
+                    required
+                    placeholder="Optional"
+                  />
                 </div>
 
                 <div className="grid grid-cols-4 items-center gap-3">
@@ -1268,6 +1332,26 @@ type SegmentBaseline = {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={showUnsavedConfirm} onOpenChange={setShowUnsavedConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+            <AlertDialogDescription>If you close now, your unsaved edits will be lost.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowUnsavedConfirm(false)}>Continue editing</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowUnsavedConfirm(false)
+                closeModal()
+              }}
+            >
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>

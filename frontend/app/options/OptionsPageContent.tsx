@@ -25,8 +25,12 @@ import type { OptionApi, OptionSave, SegmentApi, SegmentType, Currency, Currency
 
 const formatOptionDateWithWeekday = (iso: string | null) => {
   if (!iso) return "N/A";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "N/A";
   const weekday = formatWeekday(iso);
-  return `${weekday}, ${formatDateStr(iso)}`;
+  const dayMonth = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const timeLabel = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return `${weekday}, ${dayMonth} · ${timeLabel}`;
 };
 
 const formatLocationLabel = (loc: any | null) => {
@@ -578,8 +582,8 @@ export default function OptionsPageContent() {
               currencies={currencies}
               placeholder={isLoadingCurrencies ? "Loading currencies..." : "Display currency"}
               disabled={isLoadingCurrencies}
-              className="w-full sm:w-[180px]"
-              triggerClassName="w-full"
+              className="w-full sm:w-[150px] text-sm"
+              triggerClassName="w-full h-9 text-sm px-3"
             />
           }
         />

@@ -88,6 +88,8 @@ export default function OptionModal({
   const [segmentsFilterOpen, setSegmentsFilterOpen] = useState(false);
   const [showHiddenSegmentsFilter, setShowHiddenSegmentsFilter] = useState(false);
   const resolvedDisplayCurrencyId = displayCurrencyId ?? tripCurrencyId ?? null;
+  const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false)
+  const skipClosePromptRef = useRef(false)
 
   const formatSegmentCost = useCallback(
     (segment: SegmentApi) => {
@@ -215,9 +217,14 @@ export default function OptionModal({
     });
   };
 
+  const closeModal = useCallback(() => {
+    skipClosePromptRef.current = true
+    onClose()
+  }, [onClose])
+
   const handleClose = () => {
-    onClose();
-  };
+    closeModal()
+  }
 
   const handleDelete = async () => {
     if (!option) return;
@@ -249,6 +256,27 @@ export default function OptionModal({
   }, [isEditing, baselineReady, name, isUiVisible, selectedSegments]);
 
   const isSaveDisabled = isEditing ? !hasChanges : false;
+
+  const formatSegmentDateWithWeekday = useCallback((iso?: string | null) => {
+    if (!iso) return "N/A"
+    const date = new Date(iso)
+    if (Number.isNaN(date.getTime())) return "N/A"
+    const weekday = date.toLocaleDateString(undefined, { weekday: "short" })
+    const dayMonth = date.toLocaleDateString(undefined, { month: "short", day: "numeric" })
+    const timeLabel = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
+    return `${weekday}, ${dayMonth} · ${timeLabel}`
+  }, [])
+
+  const createFormTouched = useMemo(() => {
+    if (isEditing) return false
+    return Boolean(
+      (name && name.trim()) ||
+        selectedSegments.length > 0 ||
+        isUiVisible === false,
+    )
+  }, [isEditing, name, selectedSegments.length, isUiVisible])
+
+  const shouldPromptOnClose = isEditing ? hasChanges : createFormTouched
 
   const filteredSegmentsForDisplay = useMemo(() => {
     if (!option) return [];
@@ -299,10 +327,25 @@ export default function OptionModal({
     <span className="inline-flex items-center gap-1">{defaultOptionTitle}</span>
   );
   const optionTitleDescription = option ? "Editing existing option" : "Creating new option";
+  const handleDialogOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) return
+      if (skipClosePromptRef.current) {
+        skipClosePromptRef.current = false
+        return
+      }
+      if (shouldPromptOnClose) {
+        setShowUnsavedConfirm(true)
+      } else {
+        closeModal()
+      }
+    },
+    [shouldPromptOnClose, closeModal],
+  )
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={handleClose}>
+      <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="max-w-lg w-full p-0 flex flex-col">
           <DialogTitle className="sr-only">{optionTitleText}</DialogTitle>
           <form onSubmit={handleSubmit} className="flex flex-col h-full">
@@ -448,6 +491,11 @@ export default function OptionModal({
                               {segmentCostLabel ? (
                                 <div className="text-xs text-muted-foreground mt-0.5">{segmentCostLabel}</div>
                               ) : null}
+                              <div className="text-xs text-muted-foreground mt-1 leading-snug">
+                                {formatSegmentDateWithWeekday(segment.startDateTimeUtc)}
+                                <span className="mx-1 text-muted-foreground">→</span>
+                                {formatSegmentDateWithWeekday(segment.endDateTimeUtc)}
+                              </div>
                             </div>
                             {dimmed && <EyeOffIcon className="h-4 w-4 mt-1" aria-hidden="true" />}
                           </label>
@@ -467,6 +515,28 @@ export default function OptionModal({
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={showUnsavedConfirm} onOpenChange={setShowUnsavedConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved updates. Closing now will discard them.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowUnsavedConfirm(false)}>Continue editing</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowUnsavedConfirm(false)
+                closeModal()
+              }}
+            >
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {option && (
         <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
