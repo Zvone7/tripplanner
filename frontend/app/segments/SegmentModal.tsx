@@ -306,9 +306,10 @@ export default function SegmentModal({
     }
 
     if (typeof suggestion.cost === "number" && Number.isFinite(suggestion.cost)) {
+      const costValue = suggestion.cost
       setCost((prev) => {
         if (prev && prev.trim().length) return prev
-        return suggestion.cost.toString()
+        return costValue.toString()
       })
     }
 
