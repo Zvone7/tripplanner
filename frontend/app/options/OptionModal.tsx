@@ -343,7 +343,6 @@ export default function OptionModal({
     const derived = summarizeSegmentsForOption(selectedSegmentEntities, {
       targetCurrencyId: displayCurrencyId ?? tripCurrencyId ?? null,
       fallbackCurrencyId: tripCurrencyId ?? null,
-      currencies,
       conversions,
     });
     return buildOptionTitleTokens({
@@ -358,7 +357,7 @@ export default function OptionModal({
       endOffset: derived.endOffset ?? (option ? 0 : null),
       totalCost: derived.totalCost ?? option?.totalCost ?? null,
     });
-  }, [name, option, selectedSegmentEntities, displayCurrencyId, tripCurrencyId, currencies, conversions]);
+  }, [name, option, selectedSegmentEntities, displayCurrencyId, tripCurrencyId, conversions]);
 
   const defaultOptionTitle = option ? `Edit Option: ${option.name}` : "Create Option";
   const optionTitleText = tokensToLabel(optionTitleTokens) || defaultOptionTitle;
