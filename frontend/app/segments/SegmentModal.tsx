@@ -614,58 +614,7 @@ type SegmentBaseline = {
     [tripId, toast],
   )
 
-  useEffect(() => {
-    setIsDuplicateMode(false)
-    setOptionsTouched(false)
-
-    if (segment) {
-      segmentBaselineRef.current = buildSegmentBaseline(segment)
-      setBaselineReady(false)
-      initialSelectedOptionsRef.current = null
-      setName(segment.name)
-
-      const sOff = segment.startDateTimeUtcOffset ?? 0
-      const eOff = segment.endDateTimeUtcOffset ?? sOff
-
-      const startLocal = utcIsoToLocalInput(segment.startDateTimeUtc, sOff)
-      const endLocalRaw = utcIsoToLocalInput(segment.endDateTimeUtc, eOff)
-
-      const endIsSame = segment.endDateTimeUtc === segment.startDateTimeUtc && eOff === sOff
-
-      setRange({
-        startLocal,
-        endLocal: endIsSame ? null : endLocalRaw,
-        startOffsetH: sOff,
-        endOffsetH: endIsSame ? null : eOff,
-      })
-
-      setCost(String(segment.cost))
-      setComment(segment.comment || "")
-      setSegmentTypeId(segment.segmentTypeId)
-      setIsUiVisible((segment as any)?.isUiVisible ?? true)
-      setCurrencyId(segment.currencyId ?? null)
-
-      // Prefill locations if backend provides them
-      const startLocRaw = (segment as any)?.startLocation ?? (segment as any)?.startLocation
-      const endLocRaw = (segment as any)?.endLocation ?? (segment as any)?.endLocation
-
-      const startNorm = normalizeLocation(startLocRaw)
-      const endNorm = normalizeLocation(endLocRaw)
-
-      setPrefilledStart(startNorm ?? null)
-      setPrefilledEnd(endNorm ?? null)
-
-      setLocRange({
-        start: startNorm ?? null,
-        end: endNorm ?? null,
-      })
-
-      fetchConnectedOptions(segment.id)
-    }
-  }, [segment, userPreferredOffset, fetchConnectedOptions])
-
-  useEffect(() => {
-    if (segment) return
+  const resetToBlank = useCallback(() => {
     segmentBaselineRef.current = null
     initialSelectedOptionsRef.current = null
     setBaselineReady(true)
@@ -687,7 +636,64 @@ type SegmentBaseline = {
     setCurrencyId(null)
     setTimesOpen(true)
     setLocationsOpen(true)
-  }, [segment?.id, userPreferredOffset])
+    setOptionsTouched(false)
+    setIsDuplicateMode(false)
+    setBookingUrl("")
+    setIsImportingBooking(false)
+  }, [userPreferredOffset])
+
+  useEffect(() => {
+    if (!segment) return
+    setIsDuplicateMode(false)
+    setOptionsTouched(false)
+    segmentBaselineRef.current = buildSegmentBaseline(segment)
+    setBaselineReady(false)
+    initialSelectedOptionsRef.current = null
+    setName(segment.name)
+
+    const sOff = segment.startDateTimeUtcOffset ?? 0
+    const eOff = segment.endDateTimeUtcOffset ?? sOff
+
+    const startLocal = utcIsoToLocalInput(segment.startDateTimeUtc, sOff)
+    const endLocalRaw = utcIsoToLocalInput(segment.endDateTimeUtc, eOff)
+
+    const endIsSame = segment.endDateTimeUtc === segment.startDateTimeUtc && eOff === sOff
+
+    setRange({
+      startLocal,
+      endLocal: endIsSame ? null : endLocalRaw,
+      startOffsetH: sOff,
+      endOffsetH: endIsSame ? null : eOff,
+    })
+
+    setCost(String(segment.cost))
+    setComment(segment.comment || "")
+    setSegmentTypeId(segment.segmentTypeId)
+    setIsUiVisible((segment as any)?.isUiVisible ?? true)
+    setCurrencyId(segment.currencyId ?? null)
+
+    const startLocRaw = (segment as any)?.startLocation ?? (segment as any)?.startLocation
+    const endLocRaw = (segment as any)?.endLocation ?? (segment as any)?.endLocation
+
+    const startNorm = normalizeLocation(startLocRaw)
+    const endNorm = normalizeLocation(endLocRaw)
+
+    setPrefilledStart(startNorm ?? null)
+    setPrefilledEnd(endNorm ?? null)
+
+    setLocRange({
+      start: startNorm ?? null,
+      end: endNorm ?? null,
+    })
+
+    fetchConnectedOptions(segment.id)
+  }, [segment, fetchConnectedOptions])
+
+  useEffect(() => {
+    if (segment) return
+    if (!isOpen) return
+    resetToBlank()
+  }, [segment, isOpen, resetToBlank])
 
   useEffect(() => {
     if (segment) return
