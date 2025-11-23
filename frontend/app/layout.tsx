@@ -6,6 +6,12 @@ import Link from "next/link";
 import { Home } from "lucide-react";
 import { ThemeProvider } from "./providers/ThemeProvider";
 
+const envCode = process.env.NEXT_PUBLIC_ENV_CODE?.toLowerCase()
+const isLocalEnv = !envCode ? process.env.NODE_ENV !== "production" : envCode === "local"
+const isDevEnv = envCode === "dev"
+const iconPath = isLocalEnv ? "/favicon-local.svg" : isDevEnv ? "/favicon-dev.svg" : "/favicon.svg"
+const titlePrefix = isLocalEnv ? "[L] " : isDevEnv ? "[D] " : ""
+
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
@@ -18,8 +24,13 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Trip Planner",
+  title: `${titlePrefix}Trip Planner`,
   description: "Trip planner app",
+  icons: {
+    icon: iconPath,
+    shortcut: iconPath,
+    apple: iconPath,
+  },
 };
 
 export default function RootLayout({
