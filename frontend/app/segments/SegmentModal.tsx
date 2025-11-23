@@ -4,7 +4,7 @@ import type React from "react"
 import type { JSX } from "react"
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import { Dialog, DialogContent, DialogTitle } from "../components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from "../components/ui/alert-dialog"
-import { CopyIcon, SaveIcon, Trash2Icon, EyeOffIcon, SlidersHorizontal, XIcon, AlertTriangle, Link2, Loader2 } from "lucide-react"
+import { CopyIcon, SaveIcon, Trash2Icon, EyeOffIcon, SlidersHorizontal, XIcon, AlertTriangle, Link2, Loader2, Calendar, Globe, Pencil } from "lucide-react"
 import { toLocationDto, normalizeLocation } from "../lib/mapping"
 import { Collapsible } from "../components/Collapsible"
 import { cn } from "../lib/utils"
@@ -133,6 +133,28 @@ const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
   )
 }
 
+const formatLocalDateTimeLabel = (value: string | null) => {
+  if (!value) return ""
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value.replace("T", " ")
+  }
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+const formatLocationSummary = (loc: LocationOption | null) => {
+  if (!loc) return ""
+  if (loc.formatted) return loc.formatted
+  const parts = [loc.name, loc.country].filter(Boolean)
+  return parts.join(", ")
+}
+
 /* ------------------------------- main modal ------------------------------- */
 
 export default function SegmentModal({
@@ -177,16 +199,20 @@ export default function SegmentModal({
   const [baselineReady, setBaselineReady] = useState(!segment)
   const [bookingUrl, setBookingUrl] = useState("")
   const [isImportingBooking, setIsImportingBooking] = useState(false)
+  const isCreateMode = !segment || isDuplicateMode
 
   // State for delete confirmation dialog
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // collapsible toggles
-  const [timesOpen, setTimesOpen] = useState(true)
-  const [locationsOpen, setLocationsOpen] = useState(true)
-  const [additionalOptionsOpen, setAdditionalOptionsOpen] = useState(true)
+  const [generalOpen, setGeneralOpen] = useState(() => !segment)
+  const [timesOpen, setTimesOpen] = useState(() => !segment)
+  const [locationsOpen, setLocationsOpen] = useState(() => !segment)
+  const [connectedOptionsOpen, setConnectedOptionsOpen] = useState(true)
   const [optionsFilterOpen, setOptionsFilterOpen] = useState(false)
   const [showHiddenOptionsFilter, setShowHiddenOptionsFilter] = useState(false)
+  const [showDescriptionModal, setShowDescriptionModal] = useState(false)
+  const [descriptionDraft, setDescriptionDraft] = useState("")
 
   const selectedSegmentType = useMemo(() => {
     if (segmentTypeId === null) return null
@@ -245,6 +271,85 @@ export default function SegmentModal({
     currencies,
     conversions,
   ])
+  const generalCostLabel = useMemo(() => {
+    if (formattedSegmentCost) return formattedSegmentCost
+    if (hasCostValue) return parsedCost.toString()
+    return null
+  }, [formattedSegmentCost, hasCostValue, parsedCost])
+
+  const generalSummaryTitle = useMemo(() => {
+    const displayName = (name && name.trim()) || segment?.name || "New segment"
+    const conversionLabel = userConversionLabel ?? tripConversionLabel ?? null
+    return (
+      <span className="flex items-center gap-2 text-sm">
+        {selectedSegmentType?.iconSvg ? (
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
+            <span
+              className="h-3.5 w-3.5"
+              dangerouslySetInnerHTML={{ __html: selectedSegmentType.iconSvg }}
+              suppressHydrationWarning
+            />
+          </span>
+        ) : (
+          <span className="text-xs font-semibold uppercase text-muted-foreground">SEG</span>
+        )}
+        <span className="font-semibold">{displayName}</span>
+        {generalCostLabel ? (
+          <span className="text-muted-foreground">
+            {generalCostLabel}
+            {conversionLabel ? ` (${conversionLabel})` : null}
+          </span>
+        ) : null}
+      </span>
+    )
+  }, [
+    name,
+    segment?.name,
+    selectedSegmentType,
+    generalCostLabel,
+    userConversionLabel,
+    tripConversionLabel,
+  ])
+
+  const timeSummaryTitle = useMemo(() => {
+    const startLabel = formatLocalDateTimeLabel(range.startLocal)
+    const endLabel = formatLocalDateTimeLabel(range.endLocal)
+    return (
+      <span className="flex items-center gap-2 text-sm">
+        <Calendar className="h-4 w-4 text-muted-foreground" />
+        <span>{startLabel || "Start not set"}</span>
+        {endLabel ? (
+          <>
+            <span className="text-muted-foreground">→</span>
+            <span>{endLabel}</span>
+          </>
+        ) : null}
+      </span>
+    )
+  }, [range.startLocal, range.endLocal])
+
+  const locationSummaryTitle = useMemo(() => {
+    const startLabel = formatLocationSummary(locRange.start)
+    const endLabel = formatLocationSummary(locRange.end)
+    return (
+      <span className="flex items-center gap-2 text-sm">
+        <Globe className="h-4 w-4 text-muted-foreground" />
+        <span>{startLabel || "Start not set"}</span>
+        {endLabel ? (
+          <>
+            <span className="text-muted-foreground">→</span>
+            <span>{endLabel}</span>
+          </>
+        ) : null}
+      </span>
+    )
+  }, [locRange.start, locRange.end])
+
+  const connectedSummaryTitle = useMemo(() => {
+    const count = selectedOptions.length
+    const suffix = count === 1 ? "" : "s"
+    return `Connected with ${count} option${suffix}`
+  }, [selectedOptions.length])
 
   // Fetch user preferences (preferred offset)
   const fetchUserPreferences = useCallback(async () => {
@@ -358,6 +463,24 @@ export default function SegmentModal({
     setOptionsFilterOpen(false)
     setShowHiddenOptionsFilter(false)
   }, [segment?.id, isDuplicateMode])
+
+useEffect(() => {
+  if (isCreateMode) {
+    setGeneralOpen(true)
+    setTimesOpen(true)
+    setLocationsOpen(true)
+  }
+}, [isCreateMode])
+
+  useEffect(() => {
+    setConnectedOptionsOpen(true)
+  }, [segment?.id, isDuplicateMode])
+
+  useEffect(() => {
+    if (showDescriptionModal) {
+      setDescriptionDraft(comment ?? "")
+    }
+  }, [showDescriptionModal, comment])
 
   const initialSelectedOptionsRef = useRef<number[] | null>(null)
 
@@ -495,7 +618,6 @@ type SegmentBaseline = {
 
       setTimesOpen(true)
       setLocationsOpen(true)
-      setAdditionalOptionsOpen(false)
 
       fetchConnectedOptions(segment.id)
     } else {
@@ -521,7 +643,6 @@ type SegmentBaseline = {
 
       setTimesOpen(true)
       setLocationsOpen(true)
-      setAdditionalOptionsOpen(false)
     }
   }, [segment, userPreferredOffset, fetchConnectedOptions])
 
@@ -601,7 +722,6 @@ type SegmentBaseline = {
     return options.filter((option) => option.isUiVisible !== false)
   }, [segment, isDuplicateMode, options, showHiddenOptionsFilter])
 
-  const isCreateMode = !segment || isDuplicateMode
   const hasChanges = useMemo(() => {
     if (isCreateMode) return true
     if (!segment || !baselineReady) return false
@@ -861,152 +981,160 @@ type SegmentBaseline = {
                 </div>
               </div>
             )}
-            {/* Name */}
-            <div className="grid grid-cols-4 items-center gap-3">
-              <Label htmlFor="name" className="text-right text-sm">
-                Nickname
-              </Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" required />
-            </div>
-
-            {/* Type */}
-            <div className="grid grid-cols-4 items-center gap-3">
-              <Label htmlFor="segmentType" className="text-right text-sm">
-                Type
-              </Label>
-              <Select
-                value={segmentTypeId?.toString() || ""}
-                onValueChange={(value) => setSegmentTypeId(Number.parseInt(value))}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {segmentTypes.map((type: SegmentType) => (
-                    <SelectItem key={type.id} value={type.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        {type.iconSvg ? (
-                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/60 text-secondary-foreground shadow-sm ring-1 ring-black/5 dark:bg-white dark:text-black">
-                            <span
-                              dangerouslySetInnerHTML={{ __html: type.iconSvg as string }}
-                              className="w-4 h-4"
-                              suppressHydrationWarning
-                            />
-                          </span>
-                        ) : null}
-                        <span>{type.name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Booking import */}
-            <div className="grid grid-cols-4 items-center gap-3">
-              <Label htmlFor="booking-link" className="text-right text-sm">
-                Booking link
-              </Label>
-              <div className="col-span-3 flex flex-col gap-2 sm:flex-row">
-                <Input
-                  id="booking-link"
-                  value={bookingUrl}
-                  onChange={(e) => setBookingUrl(e.target.value)}
-                  placeholder="https://www.booking.com/..."
-                  autoComplete="off"
-                  className="w-full"
-                />
-                <Button type="button" variant="secondary" onClick={handleImportBookingLink} disabled={isImportingBooking}>
-                  {isImportingBooking ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Link2 className="h-4 w-4 mr-1" />
-                  )}
-                  Import
-                </Button>
-              </div>
-            </div>
-
-            {/* Cost */}
-            <div className="grid grid-cols-4 items-start gap-3">
-              <Label htmlFor="cost" className="text-right text-sm pt-2 sm:pt-0">
-                Cost
-              </Label>
-              <div className="col-span-3 flex flex-col gap-2 sm:flex-row">
-                <Input
-                  id="cost"
-                  type="number"
-                  value={cost}
-                  onChange={(e) => setCost(e.target.value)}
-                  className="w-full sm:flex-1"
-                  required
-                  step="0.01"
-                  inputMode="decimal"
-                />
-                <CurrencyDropdown
-                  value={currencyId}
-                  onChange={setCurrencyId}
-                  currencies={currencies}
-                  placeholder={isLoadingCurrencies ? "Loading..." : "Currency"}
-                  disabled={isLoadingCurrencies}
-                  className="w-full sm:w-[220px]"
-                  triggerClassName="w-full"
-                />
-              </div>
-              {(userConversionLabel || tripConversionLabel) && (
-                <div className="col-span-3 col-start-2 text-xs text-muted-foreground">
-                  {userConversionLabel ? <>≈ {userConversionLabel}</> : null}
-                  {tripConversionLabel ? <span className="ml-1">({tripConversionLabel})</span> : null}
+            <Collapsible
+              title={generalSummaryTitle}
+              open={generalOpen}
+              onToggle={() => setGeneralOpen((open) => !open)}
+            >
+              <div className="space-y-4 pt-4">
+                <div className="grid grid-cols-4 items-center gap-3">
+                  <Label htmlFor="name" className="text-right text-sm">
+                    Nickname
+                  </Label>
+                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" required />
                 </div>
-              )}
-            </div>
 
-            <Collapsible title="Time" open={timesOpen} onToggle={() => setTimesOpen((o) => !o)}>
-              <RangeDateTimePicker
-                id="segment-when"
-                label=""
-                value={range}
-                onChange={setRange}
-                allowDifferentOffsets
-                compact
-              />
-            </Collapsible>
+                <div className="grid grid-cols-4 items-center gap-3">
+                  <Label htmlFor="segmentType" className="text-right text-sm">
+                    Type
+                  </Label>
+                  <Select
+                    value={segmentTypeId?.toString() || ""}
+                    onValueChange={(value) => setSegmentTypeId(Number.parseInt(value))}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {segmentTypes.map((type: SegmentType) => (
+                        <SelectItem key={type.id} value={type.id.toString()}>
+                          <div className="flex items-center gap-2">
+                            {type.iconSvg ? (
+                              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/60 text-secondary-foreground shadow-sm ring-1 ring-black/5 dark:bg-white dark:text-black">
+                                <span
+                                  dangerouslySetInnerHTML={{ __html: type.iconSvg as string }}
+                                  className="w-4 h-4"
+                                  suppressHydrationWarning
+                                />
+                              </span>
+                            ) : null}
+                            <span>{type.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <Collapsible title="Location" open={locationsOpen} onToggle={() => setLocationsOpen((o) => !o)}>
-              <RangeLocationPicker id="segment-where" label="" value={locRange} onChange={setLocRange} compact />
-            </Collapsible>
+                {isCreateMode && (
+                  <div className="grid grid-cols-4 items-center gap-3">
+                    <Label htmlFor="booking-link" className="text-right text-sm">
+                      Booking link
+                    </Label>
+                    <div className="col-span-3 flex flex-col gap-2 sm:flex-row">
+                      <Input
+                        id="booking-link"
+                        value={bookingUrl}
+                        onChange={(e) => setBookingUrl(e.target.value)}
+                        placeholder="https://www.booking.com/..."
+                        autoComplete="off"
+                        className="w-full"
+                      />
+                      <Button type="button" variant="secondary" onClick={handleImportBookingLink} disabled={isImportingBooking}>
+                        {isImportingBooking ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Link2 className="h-4 w-4 mr-1" />
+                        )}
+                        Import
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
-            {/* Comment */}
-            <Collapsible title="More" open={additionalOptionsOpen} onToggle={() => setAdditionalOptionsOpen((o) => !o)}>
-              <div className="grid grid-cols-4 items-start gap-3">
-                <Label htmlFor="comment" className="text-right text-sm pt-2">
-                  Comment
-                </Label>
-                <div className="col-span-3 space-y-2">
-                  <Textarea
-                    id="comment"
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder={`Add notes, links, or other details...
-Use [Link Text](URL) for custom link text
-Or paste URLs directly: https://example.com`}
-                    className="min-h-[120px] text-sm"
-                  />
-                  {comment && (
-                    <div className="p-2 bg-muted rounded-md text-sm">
-                      <div className="text-xs text-muted-foreground mb-1">Preview:</div>
-                      <CommentDisplay text={comment} />
+                <div className="grid grid-cols-4 items-start gap-3">
+                  <Label htmlFor="cost" className="text-right text-sm pt-2 sm:pt-0">
+                    Cost
+                  </Label>
+                  <div className="col-span-3 flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      id="cost"
+                      type="number"
+                      value={cost}
+                      onChange={(e) => setCost(e.target.value)}
+                      className="w-full sm:flex-1"
+                      required
+                      step="0.01"
+                      inputMode="decimal"
+                    />
+                    <CurrencyDropdown
+                      value={currencyId}
+                      onChange={setCurrencyId}
+                      currencies={currencies}
+                      placeholder={isLoadingCurrencies ? "Loading..." : "Currency"}
+                      disabled={isLoadingCurrencies}
+                      className="w-full sm:w-[220px]"
+                      triggerClassName="w-full"
+                    />
+                  </div>
+                  {(userConversionLabel || tripConversionLabel) && (
+                    <div className="col-span-3 col-start-2 text-xs text-muted-foreground">
+                      {userConversionLabel ? <>≈ {userConversionLabel}</> : null}
+                      {tripConversionLabel ? <span className="ml-1">({tripConversionLabel})</span> : null}
                     </div>
                   )}
                 </div>
+
+                <div className="grid grid-cols-4 items-start gap-3">
+                  <Label className="text-right text-sm pt-2">Description & Links</Label>
+                  <div className="col-span-3 space-y-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowDescriptionModal(true)}
+                      className="inline-flex items-center gap-2"
+                    >
+                      <Pencil className="h-4 w-4" />
+                      {comment ? "Edit description" : "Add description"}
+                    </Button>
+                    {comment ? (
+                      <div className="rounded-md border bg-muted/40 p-2 text-sm">
+                        <CommentDisplay text={comment} />
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No description added yet.</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </Collapsible>
 
-            {/* Options (edit only) */}
+            <Collapsible title={timeSummaryTitle} open={timesOpen} onToggle={() => setTimesOpen((o) => !o)}>
+              <div className="pt-4">
+                <RangeDateTimePicker
+                  id="segment-when"
+                  label=""
+                  value={range}
+                  onChange={setRange}
+                  allowDifferentOffsets
+                  compact
+                />
+              </div>
+            </Collapsible>
+
+            <Collapsible title={locationSummaryTitle} open={locationsOpen} onToggle={() => setLocationsOpen((o) => !o)}>
+              <div className="pt-4">
+                <RangeLocationPicker id="segment-where" label="" value={locRange} onChange={setLocRange} compact />
+              </div>
+            </Collapsible>
+
             {segment && !isDuplicateMode && (
-              <div className="grid grid-cols-4 items-start gap-3">
-                <Label className="text-right pt-2 text-sm">Options</Label>
-                <div className="col-span-3">
+              <Collapsible
+                title={connectedSummaryTitle}
+                open={connectedOptionsOpen}
+                onToggle={() => setConnectedOptionsOpen((o) => !o)}
+              >
+                <div className="pt-4">
                   <div className="flex justify-end mb-2">
                     <Button
                       type="button"
@@ -1077,10 +1205,57 @@ Or paste URLs directly: https://example.com`}
                     )}
                   </ScrollArea>
                 </div>
-              </div>
+              </Collapsible>
             )}
           </form>
-</DialogContent>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDescriptionModal} onOpenChange={setShowDescriptionModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Description & links</DialogTitle>
+            <DialogDescription>Add helpful context and link out to external resources.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="segment-description-editor">Description</Label>
+              <Textarea
+                id="segment-description-editor"
+                value={descriptionDraft}
+                onChange={(event) => setDescriptionDraft(event.target.value)}
+                rows={8}
+                placeholder="Write notes here. Use [Title](https://example.com) to add a link."
+              />
+              <p className="text-xs text-muted-foreground">
+                Markdown links are supported. Pasting a raw URL will also render as a clickable link.
+              </p>
+            </div>
+            <div className="space-y-2 rounded-md border bg-muted/40 p-3">
+              <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Preview</p>
+              {descriptionDraft.trim() ? (
+                <CommentDisplay text={descriptionDraft} />
+              ) : (
+                <p className="text-sm text-muted-foreground">Start typing to see how your notes will appear.</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setShowDescriptionModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                const normalized = descriptionDraft.trim()
+                setComment(normalized)
+                setShowDescriptionModal(false)
+              }}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>

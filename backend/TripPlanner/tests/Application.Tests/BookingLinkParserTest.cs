@@ -14,7 +14,8 @@ public class BookingLinkParserTest
     [Test]
     public async Task ParseBookingLink_ShouldNormalizeFieldsAndReturnGeocodedLocation()
     {
-        var parser = BuildParser();
+        var fakeClient = new FakeLocationIqClient();
+        var parser = BuildParser(fakeClient);
 
         var suggestion = await parser.ParseBookingLinkAsync(SampleBookingUrl, CancellationToken.None);
 
@@ -27,6 +28,7 @@ public class BookingLinkParserTest
         suggestion.Location!.Name.Should().Be("Budapest");
         suggestion.Location.Latitude.Should().Be(47.5);
         suggestion.Location.Longitude.Should().Be(19.05);
+        suggestion.LocationName.Should().Be("Budapest, Hungary");
     }
 
     [Test]
@@ -43,14 +45,69 @@ public class BookingLinkParserTest
         suggestion.LocationName.ToLower().Should().Contain("hr");
     }
 
-    private static BookingLinkParser BuildParser()
+    [Test]
+    public async Task ParseBookingLink_ShouldCaptureCurrencyFromQuery()
     {
-        var fakeLocationClient = new FakeLocationIqClient();
-        return new BookingLinkParser(fakeLocationClient, NullLogger<BookingLinkParser>.Instance);
+        var parser = BuildParser();
+        const string url =
+            "https://www.booking.com/hotel/no/oslo-stay.en-us.html?checkin=2025-02-10&checkout=2025-02-12&price=456.78&selected_currency=NOK&ss=Oslo";
+
+        var suggestion = await parser.ParseBookingLinkAsync(url, CancellationToken.None);
+
+        suggestion.Cost.Should().Be(456.78m);
+        suggestion.CurrencyCode.Should().Be("NOK");
+    }
+
+    [Test]
+    public async Task ParseBookingLink_ShouldComposeGeocodeQueryFromAvailableHints()
+    {
+        var fakeClient = new FakeLocationIqClient();
+        var parser = BuildParser(fakeClient);
+        const string url =
+            "https://www.booking.com/hotel/de/sample-property.en-gb.html?checkin=2025-05-01&checkout=2025-05-05&ss=Berlin%20Mitte";
+
+        _ = await parser.ParseBookingLinkAsync(url, CancellationToken.None);
+
+        fakeClient.LastQuery.Should().NotBeNullOrWhiteSpace();
+        fakeClient.LastQuery.Should().Contain("Sample Property");
+        fakeClient.LastQuery.Should().Contain("Berlin Mitte");
+        fakeClient.LastQuery.Should().Contain("Germany");
+    }
+
+    [Test]
+    public async Task ParseBookingLink_ShouldFallbackGracefullyWhenGeocodeReturnsNothing()
+    {
+        var fakeClient = new FakeLocationIqClient(_ => Array.Empty<LocationIqItem>());
+        var parser = BuildParser(fakeClient);
+        const string url =
+            "https://www.booking.com/hotel/hu/budapest-city/the-rose-garden-apartments.en-gb.html?checkin=2026-01-15&checkout=2026-01-18";
+
+        var suggestion = await parser.ParseBookingLinkAsync(url, CancellationToken.None);
+
+        suggestion.Location.Should().BeNull();
+        suggestion.LocationName.Should().Be("Budapest City");
+    }
+
+    private static BookingLinkParser BuildParser(ILocationIqClient? client = null)
+    {
+        var locationClient = client ?? new FakeLocationIqClient();
+        return new BookingLinkParser(locationClient, NullLogger<BookingLinkParser>.Instance);
     }
 
     private sealed class FakeLocationIqClient : ILocationIqClient
     {
+        private readonly Func<string, IReadOnlyList<LocationIqItem>> _resultsFactory;
+
+        public FakeLocationIqClient()
+            : this(_ => DefaultResult) { }
+
+        public FakeLocationIqClient(Func<string, IReadOnlyList<LocationIqItem>> resultsFactory)
+        {
+            _resultsFactory = resultsFactory;
+        }
+
+        public string? LastQuery { get; private set; }
+
         public Task<IReadOnlyList<LocationIqItem>> ForwardGeocodeAsync(
             string query,
             int limit,
@@ -58,7 +115,13 @@ public class BookingLinkParserTest
             string? lang,
             CancellationToken ct = default)
         {
-            var item = new LocationIqItem
+            LastQuery = query;
+            return Task.FromResult(_resultsFactory(query));
+        }
+
+        private static IReadOnlyList<LocationIqItem> DefaultResult => new[]
+        {
+            new LocationIqItem
             {
                 DisplayName = "Budapest, Hungary",
                 Lat = "47.5",
@@ -70,9 +133,7 @@ public class BookingLinkParserTest
                     CountryCode = "hu"
                 },
                 PlaceId = "123456"
-            };
-
-            return Task.FromResult<IReadOnlyList<LocationIqItem>>(new[] { item });
-        }
+            }
+        };
     }
 }

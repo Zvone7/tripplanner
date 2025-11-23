@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 
 export function Collapsible({
@@ -6,7 +7,7 @@ export function Collapsible({
   onToggle,
   children,
 }: {
-  title: string;
+  title: ReactNode;
   open: boolean;
   onToggle: () => void;
   children: React.ReactNode;
