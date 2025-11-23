@@ -417,29 +417,6 @@ export default function OptionModal({
   const headerTitle = option?.name?.trim() ? option.name.trim() : "New option"
   const headerSubtitle = option ? "Editing existing option" : "Creating new option"
 
-  const isDialogInteractiveTarget = useCallback((eventTarget: EventTarget | null) => {
-    const target = eventTarget as HTMLElement | null
-    return Boolean(target?.closest("[data-dialog-interactive]"))
-  }, [])
-
-  const handleDialogInteractOutside = useCallback((event: Event) => {
-    if (isDialogInteractiveTarget(event.target)) {
-      event.preventDefault()
-    }
-  }, [isDialogInteractiveTarget])
-
-  const handleDialogPointerDownOutside = useCallback((event: Event) => {
-    if (isDialogInteractiveTarget(event.target)) {
-      event.preventDefault()
-    }
-  }, [isDialogInteractiveTarget])
-
-  const handleDialogFocusOutside = useCallback((event: Event) => {
-    if (isDialogInteractiveTarget(event.target)) {
-      event.preventDefault()
-    }
-  }, [isDialogInteractiveTarget])
-
   const generalSummaryTitle = useMemo(() => {
     return (
       <div className="flex flex-col gap-1 text-left">
@@ -487,12 +464,7 @@ export default function OptionModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
-        <DialogContent
-          className="max-w-lg w-full p-0 flex flex-col h-[90vh]"
-          onInteractOutside={handleDialogInteractOutside}
-          onPointerDownOutside={handleDialogPointerDownOutside}
-          onFocusOutside={handleDialogFocusOutside}
-        >
+        <DialogContent className="max-w-lg w-full p-0 flex flex-col h-[90vh]">
           <DialogTitle className="sr-only">{optionTitleText}</DialogTitle>
           <form onSubmit={handleSubmit} className="flex flex-col h-full">
             <div className="border-b bg-background px-4 py-3">
