@@ -1029,7 +1029,7 @@ type SegmentBaseline = {
         toast({ title: "Error", description: "Invalid start date/time." })
         return
       }
-      const startIso = utcMsToIso(startUtcMs)
+      const localStartIso = `${rangeStartLocal}:00`
 
       const effEndOffset = rangeEndOffsetH ?? rangeStartOffsetH
       const endLocalUsed = rangeEndLocal ?? rangeStartLocal
@@ -1043,7 +1043,7 @@ type SegmentBaseline = {
         return
       }
 
-      const endIso = utcMsToIso(endUtcMs)
+      const localEndIso = `${endLocalUsed}:00`
 
       const startForSave = locRangeStart ? { ...locRangeStart, id: prefilledStart?.id } : null
       const endForSave = locRangeEnd ? { ...locRangeEnd, id: prefilledEnd?.id } : null
@@ -1058,8 +1058,8 @@ type SegmentBaseline = {
       const payload: SegmentSave = {
         tripId,
         name,
-        startDateTimeUtc: startIso,
-        endDateTimeUtc: endIso,
+        startDateTimeUtc: localStartIso,
+        endDateTimeUtc: localEndIso,
         startDateTimeUtcOffset: rangeStartOffsetH,
         endDateTimeUtcOffset: effEndOffset,
         cost: parsedCost,
