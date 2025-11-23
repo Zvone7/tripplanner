@@ -799,13 +799,14 @@ type SegmentBaseline = {
   }, [isOpen, segment?.id])
 
   useEffect(() => {
+    if (!isDuplicateMode) return
     setOptionFilterState({
       locations: [],
       dateRange: { start: "", end: "" },
       showHidden: false,
     })
     setOptionSortState(null)
-  }, [segment?.id, isDuplicateMode])
+  }, [isDuplicateMode])
 
   useEffect(() => {
     if (segment) return
