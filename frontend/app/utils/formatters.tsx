@@ -1,4 +1,4 @@
-import type { SegmentApi, SegmentType, OptionApi, Currency, CurrencyConversion } from "../types/models"
+import type { SegmentApi, SegmentType, OptionApi, CurrencyConversion } from "../types/models"
 import { formatWeekdayDayMonth } from "./dateformatters"
 import { getStartLocation, getEndLocation } from "./segmentLocations"
 import { convertWithFallback } from "./currency"
@@ -143,7 +143,6 @@ export const tokensToLabel = (tokens: TitleToken[]) => tokens.map((token) => tok
 interface SegmentSummaryCurrencyConfig {
   targetCurrencyId?: number | null
   fallbackCurrencyId?: number | null
-  currencies?: Currency[]
   conversions?: CurrencyConversion[]
 }
 
@@ -167,15 +166,14 @@ export const summarizeSegmentsForOption = (
   const endLabel = getEndLocation(latest as any)?.name ?? ""
   const totalCost = segments.reduce((sum, seg) => {
     const base = Number(seg.cost) || 0
-    if (!currencyConfig?.currencies || !currencyConfig.conversions) {
+    if (!currencyConfig?.conversions) {
       return sum + base
     }
     const converted = convertWithFallback({
       amount: base,
       fromCurrencyId: seg.currencyId ?? null,
       toCurrencyId: currencyConfig.targetCurrencyId ?? currencyConfig.fallbackCurrencyId ?? null,
-      currencies: currencyConfig.currencies,
-      conversions: currencyConfig.conversions,
+      conversions: currencyConfig.conversions ?? [],
     })
     return sum + converted.amount
   }, 0)
