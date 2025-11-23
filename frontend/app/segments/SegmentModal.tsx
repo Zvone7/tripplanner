@@ -73,7 +73,7 @@ const toIsoFromLocalValue = (localValue: string | null, offset?: number | null) 
 /* ------------------------- comment preview helper ------------------------- */
 
 const CommentDisplay: React.FC<{ text: string }> = ({ text }) => {
-  const markdownLinkRegex = /\[([^\]]+)\]$$([^$$]+)\)/g
+  const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
   const urlRegex = /(https?:\/\/[^\s]+)/g
 
   let processedText = text
@@ -464,13 +464,21 @@ export default function SegmentModal({
     setShowHiddenOptionsFilter(false)
   }, [segment?.id, isDuplicateMode])
 
-useEffect(() => {
-  if (isCreateMode) {
-    setGeneralOpen(true)
-    setTimesOpen(true)
-    setLocationsOpen(true)
-  }
-}, [isCreateMode])
+  useEffect(() => {
+    if (isCreateMode) {
+      setGeneralOpen(true)
+      setTimesOpen(true)
+      setLocationsOpen(true)
+    }
+  }, [isCreateMode])
+
+  useEffect(() => {
+    if (!isCreateMode && segment?.id) {
+      setGeneralOpen(false)
+      setTimesOpen(false)
+      setLocationsOpen(false)
+    }
+  }, [isCreateMode, segment?.id])
 
   useEffect(() => {
     setConnectedOptionsOpen(true)
