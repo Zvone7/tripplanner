@@ -148,13 +148,10 @@ const formatLocalDateTimeLabel = (value: string | null) => {
   if (Number.isNaN(date.getTime())) {
     return value.replace("T", " ")
   }
-  return date.toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
+  const weekday = date.toLocaleDateString(undefined, { weekday: "short" })
+  const datePart = date.toLocaleDateString(undefined, { month: "short", day: "numeric" })
+  const timePart = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
+  return `${weekday}, ${datePart} ${timePart}`
 }
 
 const formatLocationSummary = (loc: LocationOption | null) => {
@@ -664,31 +661,33 @@ type SegmentBaseline = {
       })
 
       fetchConnectedOptions(segment.id)
-    } else {
-      segmentBaselineRef.current = null
-      initialSelectedOptionsRef.current = null
-      setBaselineReady(true)
-      setName("")
-      setRange({
-        startLocal: "",
-        endLocal: null,
-        startOffsetH: userPreferredOffset ?? 0,
-        endOffsetH: null,
-      })
-      setPrefilledStart(null)
-      setPrefilledEnd(null)
-      setLocRange({ start: null, end: null })
-      setCost("")
-      setComment("")
-      setSegmentTypeId(null)
-      setSelectedOptions([])
-      setIsUiVisible(true)
-      setCurrencyId(null)
-
-      setTimesOpen(true)
-      setLocationsOpen(true)
     }
   }, [segment, userPreferredOffset, fetchConnectedOptions])
+
+  useEffect(() => {
+    if (segment) return
+    segmentBaselineRef.current = null
+    initialSelectedOptionsRef.current = null
+    setBaselineReady(true)
+    setName("")
+    setRange({
+      startLocal: "",
+      endLocal: null,
+      startOffsetH: userPreferredOffset ?? 0,
+      endOffsetH: null,
+    })
+    setPrefilledStart(null)
+    setPrefilledEnd(null)
+    setLocRange({ start: null, end: null })
+    setCost("")
+    setComment("")
+    setSegmentTypeId(null)
+    setSelectedOptions([])
+    setIsUiVisible(true)
+    setCurrencyId(null)
+    setTimesOpen(true)
+    setLocationsOpen(true)
+  }, [segment?.id, userPreferredOffset])
 
   useEffect(() => {
     if (segment) return
