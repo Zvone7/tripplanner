@@ -87,8 +87,7 @@ const resolveSegmentCost = (segment: Segment, currencyArgs?: SegmentCurrencySort
     amount: base,
     fromCurrencyId: segment.currencyId ?? null,
     toCurrencyId: currencyArgs.targetCurrencyId ?? currencyArgs.fallbackCurrencyId ?? null,
-    currencies: currencyArgs.currencies,
-    conversions: currencyArgs.conversions,
+    conversions: currencyArgs.conversions ?? [],
   })
   return converted.amount
 }
