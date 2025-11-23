@@ -306,7 +306,21 @@ export default function SegmentModal({
     }
 
     if (typeof suggestion.cost === "number" && Number.isFinite(suggestion.cost)) {
-      setCost((prev) => (prev && prev.trim().length ? prev : suggestion.cost?.toString() ?? prev))
+      setCost((prev) => {
+        if (prev && prev.trim().length) return prev
+        return suggestion.cost.toString()
+      })
+    }
+
+    if (suggestion.currencyCode) {
+      const normalizedCode = suggestion.currencyCode.toUpperCase()
+      const matchingCurrency = currencies.find(
+        (currency) =>
+          currency.shortName?.toUpperCase() === normalizedCode || currency.symbol?.toUpperCase() === normalizedCode,
+      )
+      if (matchingCurrency) {
+        setCurrencyId((prev) => prev ?? matchingCurrency.id)
+      }
     }
 
     if (suggestion.sourceUrl) {

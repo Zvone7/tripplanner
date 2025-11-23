@@ -120,6 +120,7 @@ public class Program
         builder.Services.AddScoped<CurrencyService>();
         builder.Services.AddScoped<TripAccessFilterAttribute>();
         builder.Services.AddScoped<ILocationIqClient, LocationIqClient>();
+        builder.Services.AddScoped<IBookingLinkParser, BookingLinkParser>();
         builder.Services.AddHttpClient();
     }
 
