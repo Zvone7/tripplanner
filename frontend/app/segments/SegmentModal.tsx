@@ -49,12 +49,7 @@ import { RangeLocationPicker, type RangeLocationPickerValue } from "../component
 import { useCurrencyConversions } from "../hooks/useCurrencyConversions"
 
 import { localToUtcMs, utcMsToIso, utcIsoToLocalInput } from "../lib/utils"
-import {
-  buildSegmentTitleTokens,
-  buildOptionTitleTokens,
-  buildOptionConfigFromApi,
-  tokensToLabel,
-} from "../utils/formatters"
+import { buildOptionTitleTokens, buildOptionConfigFromApi, tokensToLabel } from "../utils/formatters"
 import { optionsApi, segmentsApi, userApi } from "../utils/apiClient"
 import { getDefaultCurrencyId, useCurrencies } from "../hooks/useCurrencies"
 import { formatCurrencyAmount, formatConvertedAmount } from "../utils/currency"
@@ -281,11 +276,11 @@ export default function SegmentModal({
     const displayName = (name && name.trim()) || segment?.name || "New segment"
     const conversionLabel = userConversionLabel ?? tripConversionLabel ?? null
     return (
-      <span className="flex items-center gap-2 text-sm">
+      <span className="flex items-start gap-3 text-sm">
         {selectedSegmentType?.iconSvg ? (
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
             <span
-              className="h-3.5 w-3.5"
+              className="h-4 w-4"
               dangerouslySetInnerHTML={{ __html: selectedSegmentType.iconSvg }}
               suppressHydrationWarning
             />
@@ -293,13 +288,11 @@ export default function SegmentModal({
         ) : (
           <span className="text-xs font-semibold uppercase text-muted-foreground">SEG</span>
         )}
-        <span className="font-semibold">{displayName}</span>
-        {generalCostLabel ? (
-          <span className="text-muted-foreground">
-            {generalCostLabel}
-            {conversionLabel ? ` (${conversionLabel})` : null}
-          </span>
-        ) : null}
+        <span className="flex flex-col leading-tight">
+          <span className="font-semibold">{displayName}</span>
+          {generalCostLabel ? <span className="text-sm text-foreground">{generalCostLabel}</span> : null}
+          {conversionLabel ? <span className="text-xs text-muted-foreground">{conversionLabel}</span> : null}
+        </span>
       </span>
     )
   }, [
@@ -312,18 +305,23 @@ export default function SegmentModal({
   ])
 
   const timeSummaryTitle = useMemo(() => {
-    const startLabel = formatLocalDateTimeLabel(range.startLocal)
+    const startLabel = formatLocalDateTimeLabel(range.startLocal) || "Start not set"
     const endLabel = formatLocalDateTimeLabel(range.endLocal)
     return (
-      <span className="flex items-center gap-2 text-sm">
+      <span className="flex items-start gap-2 text-sm">
         <Calendar className="h-4 w-4 text-muted-foreground" />
-        <span>{startLabel || "Start not set"}</span>
-        {endLabel ? (
-          <>
-            <span className="text-muted-foreground">→</span>
-            <span>{endLabel}</span>
-          </>
-        ) : null}
+        <span className="flex flex-col leading-tight">
+          <span className="flex items-center gap-2">
+            <span className="w-12 text-[0.65rem] uppercase tracking-wide text-muted-foreground">Start</span>
+            <span>{startLabel}</span>
+          </span>
+          {endLabel ? (
+            <span className="flex items-center gap-2">
+              <span className="w-12 text-[0.65rem] uppercase tracking-wide text-muted-foreground">End</span>
+              <span>{endLabel}</span>
+            </span>
+          ) : null}
+        </span>
       </span>
     )
   }, [range.startLocal, range.endLocal])
@@ -469,20 +467,16 @@ export default function SegmentModal({
       setGeneralOpen(true)
       setTimesOpen(true)
       setLocationsOpen(true)
+      setConnectedOptionsOpen(true)
+      return
     }
-  }, [isCreateMode])
-
-  useEffect(() => {
-    if (!isCreateMode && segment?.id) {
+    if (segment?.id) {
       setGeneralOpen(false)
       setTimesOpen(false)
       setLocationsOpen(false)
+      setConnectedOptionsOpen(false)
     }
   }, [isCreateMode, segment?.id])
-
-  useEffect(() => {
-    setConnectedOptionsOpen(true)
-  }, [segment?.id, isDuplicateMode])
 
   useEffect(() => {
     if (showDescriptionModal) {
@@ -623,9 +617,6 @@ type SegmentBaseline = {
         start: startNorm ?? null,
         end: endNorm ?? null,
       })
-
-      setTimesOpen(true)
-      setLocationsOpen(true)
 
       fetchConnectedOptions(segment.id)
     } else {
@@ -887,35 +878,21 @@ type SegmentBaseline = {
 
   const hasMissingFields = missingFieldMessages.length > 0
 
-  const segmentTitleTokens = useMemo(() => {
-    const startIso = toIsoFromLocalValue(range.startLocal, range.startOffsetH)
-    const endIso = toIsoFromLocalValue(range.endLocal ?? range.startLocal, range.endOffsetH ?? range.startOffsetH)
-    const tokens = buildSegmentTitleTokens({
-      name,
-      fallbackName: segment?.name || "New segment",
-      segmentType: selectedSegmentType,
-      startLocationLabel: locRange.start?.name ?? "",
-      endLocationLabel: locRange.end?.name ?? "",
-      startDateIso: startIso,
-      endDateIso: endIso,
-      startOffset: range.startOffsetH,
-      endOffset: range.endOffsetH ?? range.startOffsetH,
-      cost: null,
-    })
-    if (formattedSegmentCost) {
-      tokens.push({ key: "cost", text: formattedSegmentCost })
-    }
-    return tokens
-  }, [name, segment, selectedSegmentType, locRange, range, formattedSegmentCost])
-
-  const defaultSegmentTitle = isCreateMode ? "Create Segment" : segment ? `Edit Segment: ${segment.name}` : "Edit Segment"
-  const segmentTitleText = tokensToLabel(segmentTitleTokens) || defaultSegmentTitle
-  const segmentTitleDisplay = segmentTitleTokens.length ? (
-    <TitleTokens tokens={segmentTitleTokens} />
+  const headerName = (name && name.trim()) || segment?.name || (isCreateMode ? "New segment" : "Segment")
+  const headerSubtitle = isCreateMode ? "Creating new segment" : "Editing existing segment"
+  const headerIcon = selectedSegmentType?.iconSvg ? (
+    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
+      <span
+        className="h-5 w-5"
+        dangerouslySetInnerHTML={{ __html: selectedSegmentType.iconSvg }}
+        suppressHydrationWarning
+      />
+    </span>
   ) : (
-    <span className="inline-flex items-center gap-1">{defaultSegmentTitle}</span>
+    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground text-xs font-semibold uppercase">
+      SEG
+    </span>
   )
-  const segmentTitleDescription = isCreateMode ? "Creating new segment" : "Editing existing segment"
 
 
 
@@ -923,13 +900,14 @@ type SegmentBaseline = {
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl w-full h-[85vh] p-0 flex flex-col">
-          <DialogTitle className="sr-only">{segmentTitleText}</DialogTitle>
+          <DialogTitle className="sr-only">{headerName}</DialogTitle>
           <div className="sticky top-0 bg-background border-b px-4 py-3">
             <div className="mb-3 space-y-1">
-              <h2 className="text-lg font-semibold leading-snug flex flex-wrap gap-x-1 gap-y-0.5">
-                {segmentTitleDisplay}
-              </h2>
-              <p className="text-xs text-muted-foreground">{segmentTitleDescription}</p>
+              <div className="flex items-center gap-3 text-lg font-semibold leading-snug">
+                {headerIcon}
+                <span>{headerName}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">{headerSubtitle}</p>
             </div>
 
             <div className="flex items-center justify-between gap-2 mb-2">
