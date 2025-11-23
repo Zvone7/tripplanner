@@ -879,7 +879,7 @@ type SegmentBaseline = {
   const hasMissingFields = missingFieldMessages.length > 0
 
   const headerName = (name && name.trim()) || segment?.name || (isCreateMode ? "New segment" : "Segment")
-  const headerSubtitle = isCreateMode ? "Creating new segment" : "Editing existing segment"
+  const headerSubtitle = ""
   const headerIcon = selectedSegmentType?.iconSvg ? (
     <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
       <span
