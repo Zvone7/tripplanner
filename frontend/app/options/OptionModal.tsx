@@ -589,7 +589,7 @@ export default function OptionModal({
                       minDate={segmentFilterMetadata.dateBounds.min}
                       maxDate={segmentFilterMetadata.dateBounds.max}
                     />
-                    <ScrollArea className="max-h-[320px] border rounded-md p-3">
+                    <ScrollArea className="h-[320px] border rounded-md p-3">
                       {filteredSegmentsForDisplay.length === 0 ? (
                         <p className="text-sm text-muted-foreground">No segments available.</p>
                       ) : (
