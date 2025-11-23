@@ -1138,18 +1138,36 @@ type SegmentBaseline = {
     [shouldPromptOnClose, closeModal],
   )
 
-  const handleDialogInteractOutside = useCallback((event: Event) => {
-    const target = event.target as HTMLElement | null
-    if (target?.closest("[data-dialog-interactive]")) {
+  const isDialogInteractiveTarget = useCallback((eventTarget: EventTarget | null) => {
+    const target = eventTarget as HTMLElement | null
+    return Boolean(target?.closest("[data-dialog-interactive]"))
+  }, [])
+
+  const handleDialogPointerDownOutside = useCallback((event: Event) => {
+    if (isDialogInteractiveTarget(event.target)) {
       event.preventDefault()
     }
-  }, [])
+  }, [isDialogInteractiveTarget])
+
+  const handleDialogFocusOutside = useCallback((event: Event) => {
+    if (isDialogInteractiveTarget(event.target)) {
+      event.preventDefault()
+    }
+  }, [isDialogInteractiveTarget])
+
+  const handleDialogInteractOutside = useCallback((event: Event) => {
+    if (isDialogInteractiveTarget(event.target)) {
+      event.preventDefault()
+    }
+  }, [isDialogInteractiveTarget])
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent
           className="max-w-4xl w-full h-[85vh] p-0 flex flex-col"
+          onPointerDownOutside={handleDialogPointerDownOutside}
+          onFocusOutside={handleDialogFocusOutside}
           onInteractOutside={handleDialogInteractOutside}
         >
           <DialogTitle className="sr-only">{headerName}</DialogTitle>

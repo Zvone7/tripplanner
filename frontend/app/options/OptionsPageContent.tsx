@@ -11,7 +11,6 @@ import OptionModal from "./OptionModal";
 import { formatDateStr, formatWeekday } from "../utils/dateformatters";
 import { OptionFilterPanel, type OptionFilterValue } from "../components/filters/OptionFilterPanel";
 import type { SegmentFilterValue } from "../components/filters/SegmentFilterPanel";
-import type { SegmentSortValue } from "../components/sorting/segmentSortTypes";
 import type { OptionSortValue } from "../components/sorting/optionSortTypes";
 import { applyOptionFilters, buildOptionMetadata } from "../services/optionFiltering";
 import { cn } from "../lib/utils";
@@ -545,7 +544,8 @@ export default function OptionsPageContent() {
     [filterState],
   )
 
-  const initialModalSort = useMemo<SegmentSortValue | null>(() => {
+  type ModalSegmentSort = { field: "startDate" | "endDate"; direction: "asc" | "desc" }
+  const initialModalSort = useMemo<ModalSegmentSort | null>(() => {
     if (!sortState) return null
     switch (sortState.field) {
       case "startDate":
