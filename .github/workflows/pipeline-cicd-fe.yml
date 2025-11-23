@@ -5,6 +5,8 @@ on:
     branches:
       - release-fe-dev
       - feature/**
+    paths:
+      - 'frontend/**'
   workflow_dispatch:
     inputs:
       buildNumber:
