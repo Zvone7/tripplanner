@@ -24,7 +24,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from "../components/ui/alert-dialog"
-import { CopyIcon, SaveIcon, Trash2Icon, EyeOffIcon, SlidersHorizontal, XIcon, AlertTriangle, Link2, Loader2, Calendar, Globe, Pencil } from "lucide-react"
+import {
+  CopyIcon,
+  SaveIcon,
+  Trash2Icon,
+  EyeOffIcon,
+  EyeIcon,
+  SlidersHorizontal,
+  XIcon,
+  AlertTriangle,
+  Link2,
+  Loader2,
+  Calendar,
+  Globe,
+  Pencil,
+} from "lucide-react"
 import { toLocationDto, normalizeLocation } from "../lib/mapping"
 import { Collapsible } from "../components/Collapsible"
 import { cn } from "../lib/utils"
@@ -910,47 +924,58 @@ type SegmentBaseline = {
               <p className="text-xs text-muted-foreground">{headerSubtitle}</p>
             </div>
 
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <div className="flex items-center gap-2 text-sm">
-                <Label htmlFor="ui-visible-toggle" className="cursor-pointer">
-                  {isUiVisible ? "UI visible" : "UI hidden"}
-                </Label>
-                <Switch id="ui-visible-toggle" checked={isUiVisible} onCheckedChange={setIsUiVisible} />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                {segment && !isDuplicateMode && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="bg-red-700 hover:bg-red-800 text-white"
-                  >
-                    <Trash2Icon className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-
-              <div className="flex items-center justify-end gap-2">
-                {segment && !isDuplicateMode && (
-                  <Button type="button" variant="outline" size="sm" onClick={handleDuplicateSegment}>
-                    <CopyIcon className="h-4 w-4" />
-                  </Button>
-                )}
-
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1">
+              {segment && !isDuplicateMode ? (
                 <Button
-                  type="submit"
+                  type="button"
+                  variant="outline"
                   size="sm"
-                  className="bg-primary hover:bg-primary/90"
-                  onClick={handleSubmit}
-                  disabled={isSaveDisabled}
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                  onClick={() => setShowDeleteConfirm(true)}
                 >
-                  <SaveIcon className="h-4 w-4" />
+                  <Trash2Icon className="h-4 w-4" />
                 </Button>
-              </div>
+              ) : (
+                <span className="h-9 w-9" aria-hidden />
+              )}
             </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="text-muted-foreground"
+                onClick={() =>
+                  setIsUiVisible((prev) => {
+                    const next = !prev
+                    toast({
+                      title: next ? "Will be shown in list view" : "Won't be shown in list view",
+                    })
+                    return next
+                  })
+                }
+                aria-pressed={isUiVisible}
+              >
+                {isUiVisible ? <EyeIcon className="h-4 w-4" /> : <EyeOffIcon className="h-4 w-4" />}
+              </Button>
+              {segment && !isDuplicateMode && (
+                <Button type="button" variant="outline" size="sm" onClick={handleDuplicateSegment}>
+                  <CopyIcon className="h-4 w-4" />
+                </Button>
+              )}
+              <Button
+                type="submit"
+                size="sm"
+                className="bg-primary hover:bg-primary/90"
+                onClick={handleSubmit}
+                disabled={isSaveDisabled}
+              >
+                <SaveIcon className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
           </div>
 
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">

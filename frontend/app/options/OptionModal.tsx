@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
-import { SaveIcon, Trash2Icon, EyeOffIcon, SlidersHorizontal } from "lucide-react";
+import { SaveIcon, Trash2Icon, EyeOffIcon, EyeIcon, SlidersHorizontal } from "lucide-react";
 import type { SegmentType, SegmentApi, OptionApi, OptionSave, Currency, CurrencyConversion } from "../types/models";
 import { cn } from "../lib/utils";
 import { TitleTokens } from "../components/TitleTokens";
@@ -314,37 +314,51 @@ export default function OptionModal({
                 <p className="text-xs text-muted-foreground">{optionTitleDescription}</p>
               </div>
 
-              <div className="flex items-center gap-2 mb-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <Label htmlFor="option-ui-visible" className="cursor-pointer">
-                    {isUiVisible ? "UI visible" : "UI hidden"}
-                  </Label>
-                  <Switch id="option-ui-visible" checked={isUiVisible} onCheckedChange={setIsUiVisible} />
-                </div>
-              </div>
-
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  {isEditing && (
+                <div className="flex items-center gap-1">
+                  {isEditing ? (
                     <Button
                       type="button"
                       size="sm"
+                      variant="outline"
                       onClick={() => setShowDeleteConfirm(true)}
-                      className="bg-red-700 hover:bg-red-800 text-white"
                       title="Delete option"
+                      className="border-destructive/40 text-destructive hover:bg-destructive/10"
                     >
                       <Trash2Icon className="h-4 w-4" />
                     </Button>
+                  ) : (
+                    <span className="h-9 w-9" aria-hidden />
                   )}
                 </div>
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="bg-primary hover:bg-primary/90"
-                  disabled={isSaveDisabled}
-                >
-                  <SaveIcon className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="text-muted-foreground"
+                    onClick={() =>
+                      setIsUiVisible((prev) => {
+                        const next = !prev
+                        toast({
+                          title: next ? "Will be shown in list view" : "Won't be shown in list view",
+                        })
+                        return next
+                      })
+                    }
+                    aria-pressed={isUiVisible}
+                  >
+                    {isUiVisible ? <EyeIcon className="h-4 w-4" /> : <EyeOffIcon className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="bg-primary hover:bg-primary/90"
+                    disabled={isSaveDisabled}
+                  >
+                    <SaveIcon className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
 
