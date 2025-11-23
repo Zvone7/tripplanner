@@ -12,7 +12,6 @@ import { ScrollArea } from "../components/ui/scroll-area"
 import { Textarea } from "../components/ui/textarea"
 import { toast } from "../components/ui/use-toast"
 import { Checkbox } from "../components/ui/checkbox"
-import { Switch } from "../components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
 import {
   AlertDialog,
@@ -30,7 +29,6 @@ import {
   Trash2Icon,
   EyeOffIcon,
   EyeIcon,
-  SlidersHorizontal,
   XIcon,
   AlertTriangle,
   Link2,
@@ -43,6 +41,8 @@ import { toLocationDto, normalizeLocation } from "../lib/mapping"
 import { Collapsible } from "../components/Collapsible"
 import { cn } from "../lib/utils"
 import { TitleTokens } from "../components/TitleTokens"
+import { OptionFilterPanel, type OptionFilterValue } from "../components/filters/OptionFilterPanel"
+import type { OptionSortValue } from "../components/sorting/optionSortTypes"
 
 // types
 import type {
@@ -68,6 +68,7 @@ import { optionsApi, segmentsApi, userApi } from "../utils/apiClient"
 import { getDefaultCurrencyId, useCurrencies } from "../hooks/useCurrencies"
 import { formatCurrencyAmount, formatConvertedAmount } from "../utils/currency"
 import { CurrencyDropdown } from "../components/CurrencyDropdown"
+import { applyOptionFilters, buildOptionMetadata } from "../services/optionFiltering"
 
 const arraysEqual = (a: number[], b: number[]) => a.length === b.length && a.every((val, idx) => val === b[idx])
 
@@ -215,8 +216,13 @@ export default function SegmentModal({
   const [timesOpen, setTimesOpen] = useState(() => !segment)
   const [locationsOpen, setLocationsOpen] = useState(() => !segment)
   const [connectedOptionsOpen, setConnectedOptionsOpen] = useState(true)
-  const [optionsFilterOpen, setOptionsFilterOpen] = useState(false)
-  const [showHiddenOptionsFilter, setShowHiddenOptionsFilter] = useState(false)
+  const [optionFilterState, setOptionFilterState] = useState<OptionFilterValue>({
+    locations: [],
+    dateRange: { start: "", end: "" },
+    showHidden: false,
+  })
+  const [optionSortState, setOptionSortState] = useState<OptionSortValue | null>(null)
+  const [optionConnections, setOptionConnections] = useState<Record<number, SegmentApi[]>>({})
   const [showDescriptionModal, setShowDescriptionModal] = useState(false)
   const [descriptionDraft, setDescriptionDraft] = useState("")
   const [showMissingShake, setShowMissingShake] = useState(false)
@@ -295,6 +301,10 @@ export default function SegmentModal({
     currencies,
     conversions,
   ])
+  const optionMetadata = useMemo(() => {
+    const flattened = Object.values(optionConnections).flat()
+    return buildOptionMetadata(flattened)
+  }, [optionConnections])
   const generalCostLabel = useMemo(() => {
     if (formattedSegmentCost) return formattedSegmentCost
     if (hasCostValue) return parsedCost.toString()
@@ -337,31 +347,26 @@ export default function SegmentModal({
     const startLabel = formatLocalDateTimeLabel(range.startLocal) || "Start not set"
     const endLabel = formatLocalDateTimeLabel(range.endLocal)
     return (
-      <span className="flex items-start gap-2 text-sm">
+      <span className="flex items-center gap-2 text-sm">
         <Calendar className="h-4 w-4 text-muted-foreground" />
-        <span className="flex flex-col leading-tight">
-          <span className="flex items-center gap-2">
-            <span className="w-12 text-[0.65rem] uppercase tracking-wide text-muted-foreground">Start</span>
-            <span>{startLabel}</span>
-          </span>
-          {endLabel ? (
-            <span className="flex items-center gap-2">
-              <span className="w-12 text-[0.65rem] uppercase tracking-wide text-muted-foreground">End</span>
-              <span>{endLabel}</span>
-            </span>
-          ) : null}
-        </span>
+        <span>{startLabel}</span>
+        {endLabel ? (
+          <>
+            <span className="text-muted-foreground">→</span>
+            <span>{endLabel}</span>
+          </>
+        ) : null}
       </span>
     )
   }, [range.startLocal, range.endLocal])
 
   const locationSummaryTitle = useMemo(() => {
-    const startLabel = formatLocationSummary(locRange.start)
+    const startLabel = formatLocationSummary(locRange.start) || "Start not set"
     const endLabel = formatLocationSummary(locRange.end)
     return (
       <span className="flex items-center gap-2 text-sm">
         <Globe className="h-4 w-4 text-muted-foreground" />
-        <span>{startLabel || "Start not set"}</span>
+        <span>{startLabel}</span>
         {endLabel ? (
           <>
             <span className="text-muted-foreground">→</span>
@@ -491,11 +496,6 @@ export default function SegmentModal({
   }
 
   useEffect(() => {
-    setOptionsFilterOpen(false)
-    setShowHiddenOptionsFilter(false)
-  }, [segment?.id, isDuplicateMode])
-
-  useEffect(() => {
     if (isCreateMode) {
       setGeneralOpen(true)
       setTimesOpen(true)
@@ -593,6 +593,38 @@ type SegmentBaseline = {
   useEffect(() => {
     optionsTouchedRef.current = optionsTouched
   }, [optionsTouched])
+
+  useEffect(() => {
+    if (!tripId || options.length === 0) {
+      setOptionConnections({})
+      return
+    }
+    let cancelled = false
+    const loadConnections = async () => {
+      try {
+        const entries = await Promise.all(
+          options.map(async (option) => {
+            try {
+              const connected = await segmentsApi.getConnectedSegments(tripId, option.id)
+              return [option.id, connected] as const
+            } catch (error) {
+              console.error("Failed to fetch segments for option", option.id, error)
+              return [option.id, []] as const
+            }
+          }),
+        )
+        if (!cancelled) {
+          setOptionConnections(Object.fromEntries(entries))
+        }
+      } catch (error) {
+        if (!cancelled) console.error("Failed to preload option connections", error)
+      }
+    }
+    void loadConnections()
+    return () => {
+      cancelled = true
+    }
+  }, [tripId, options])
 
   const fetchConnectedOptions = useCallback(
     async (segmentId: number) => {
@@ -696,6 +728,15 @@ type SegmentBaseline = {
   }, [segment, isOpen, resetToBlank])
 
   useEffect(() => {
+    setOptionFilterState({
+      locations: [],
+      dateRange: { start: "", end: "" },
+      showHidden: false,
+    })
+    setOptionSortState(null)
+  }, [segment?.id, isDuplicateMode])
+
+  useEffect(() => {
     if (segment) return
     if (currencyId !== null) return
     if (typeof userPreferredCurrencyId === "number" && userPreferredCurrencyId > 0) {
@@ -767,9 +808,8 @@ type SegmentBaseline = {
   
   const filteredOptionsForDisplay = useMemo(() => {
     if (!segment || isDuplicateMode) return []
-    if (showHiddenOptionsFilter) return options
-    return options.filter((option) => option.isUiVisible !== false)
-  }, [segment, isDuplicateMode, options, showHiddenOptionsFilter])
+    return applyOptionFilters(options, optionFilterState, optionSortState, optionConnections)
+  }, [segment, isDuplicateMode, options, optionFilterState, optionSortState, optionConnections])
 
   const hasChanges = useMemo(() => {
     if (isCreateMode) return true
@@ -1110,26 +1150,40 @@ type SegmentBaseline = {
                 </div>
               </div>
             )}
+            {isCreateMode && (
+              <div className="rounded-lg border px-3 py-2 bg-muted/40">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 uppercase tracking-wide">
+                    <span className="text-sm leading-none">B</span>
+                    <span className="sr-only">Booking.com</span>
+                  </div>
+                  <Input
+                    id="booking-link"
+                    value={bookingUrl}
+                    onChange={(e) => setBookingUrl(e.target.value)}
+                    placeholder="booking link…"
+                    autoComplete="off"
+                    className="w-48 text-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleImportBookingLink}
+                    disabled={isImportingBooking}
+                  >
+                    {isImportingBooking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4 mr-1" />}
+                    Import
+                  </Button>
+                </div>
+              </div>
+            )}
             <Collapsible
               title={generalSummaryTitle}
               open={generalOpen}
               onToggle={() => setGeneralOpen((open) => !open)}
             >
               <div className="space-y-4 pt-4">
-                <div className="grid grid-cols-4 items-center gap-3">
-                  <Label htmlFor="name" className="text-right text-sm">
-                    Nickname
-                  </Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="col-span-3"
-                    required
-                    placeholder="Optional"
-                  />
-                </div>
-
                 <div className="grid grid-cols-4 items-center gap-3">
                   <Label htmlFor="segmentType" className="text-right text-sm">
                     Type
@@ -1161,32 +1215,6 @@ type SegmentBaseline = {
                     </SelectContent>
                   </Select>
                 </div>
-
-                {isCreateMode && (
-                  <div className="grid grid-cols-4 items-center gap-3">
-                    <Label htmlFor="booking-link" className="text-right text-sm">
-                      Booking link
-                    </Label>
-                    <div className="col-span-3 flex flex-col gap-2 sm:flex-row">
-                      <Input
-                        id="booking-link"
-                        value={bookingUrl}
-                        onChange={(e) => setBookingUrl(e.target.value)}
-                        placeholder="https://www.booking.com/..."
-                        autoComplete="off"
-                        className="w-full"
-                      />
-                      <Button type="button" variant="secondary" onClick={handleImportBookingLink} disabled={isImportingBooking}>
-                        {isImportingBooking ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Link2 className="h-4 w-4 mr-1" />
-                        )}
-                        Import
-                      </Button>
-                    </div>
-                  </div>
-                )}
 
                 <div className="grid grid-cols-4 items-start gap-3">
                   <Label htmlFor="cost" className="text-right text-sm pt-2 sm:pt-0">
@@ -1241,6 +1269,19 @@ type SegmentBaseline = {
                     )}
                   </div>
                 </div>
+
+                <div className="grid grid-cols-4 items-center gap-3">
+                  <Label htmlFor="name" className="text-right text-sm">
+                    Nickname
+                  </Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="col-span-3"
+                    placeholder="Optional"
+                  />
+                </div>
               </div>
             </Collapsible>
 
@@ -1270,39 +1311,23 @@ type SegmentBaseline = {
                 onToggle={() => setConnectedOptionsOpen((o) => !o)}
               >
                 <div className="pt-4">
-                  <div className="flex justify-end mb-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Toggle option filters"
-                      onClick={() => setOptionsFilterOpen((prev) => !prev)}
-                    >
-                      <SlidersHorizontal
-                        className={cn(
-                          "h-4 w-4 transition-transform",
-                          optionsFilterOpen ? "text-primary rotate-90" : "text-muted-foreground"
-                        )}
-                      />
-                    </Button>
-                  </div>
-                  {optionsFilterOpen && (
-                    <div className="flex items-center justify-end gap-2 mb-3 text-xs text-muted-foreground">
-                      <span>Show hidden</span>
-                      <Switch
-                        checked={showHiddenOptionsFilter}
-                        onCheckedChange={(checked) => setShowHiddenOptionsFilter(Boolean(checked))}
-                        aria-label="Show hidden options"
-                      />
-                    </div>
-                  )}
+                  <OptionFilterPanel
+                    value={optionFilterState}
+                    onChange={setOptionFilterState}
+                    sort={optionSortState}
+                    onSortChange={setOptionSortState}
+                    availableLocations={optionMetadata.locations}
+                    minDate={optionMetadata.dateBounds.min}
+                    maxDate={optionMetadata.dateBounds.max}
+                    className="mb-3"
+                  />
                   <ScrollArea className="h-[150px] border rounded-md p-3">
                     {filteredOptionsForDisplay.length === 0 ? (
                       <p className="text-sm text-muted-foreground">No options available.</p>
                     ) : (
                       filteredOptionsForDisplay.map((option) => {
                         const optionHidden = option.isUiVisible === false
-                        const dimmed = showHiddenOptionsFilter && optionHidden
+                        const dimmed = optionFilterState.showHidden && optionHidden
                         const optionCostLabel = formatOptionCostForDisplay(option)
                         const optionConfig = buildOptionConfigFromApi(option)
                         const tokens = buildOptionTitleTokens({

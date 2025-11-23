@@ -10,7 +10,6 @@ import { Label } from "../components/ui/label";
 import { ScrollArea } from "../components/ui/scroll-area";
 import { toast } from "../components/ui/use-toast";
 import { Checkbox } from "../components/ui/checkbox";
-import { Switch } from "../components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,8 +20,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
-import { SaveIcon, Trash2Icon, EyeOffIcon, EyeIcon, SlidersHorizontal } from "lucide-react";
-import type { SegmentType, SegmentApi, OptionApi, OptionSave, Currency, CurrencyConversion } from "../types/models";
+import { SaveIcon, Trash2Icon, EyeOffIcon, EyeIcon } from "lucide-react";
+import type { SegmentType, SegmentApi, OptionApi, OptionSave, Currency, CurrencyConversion, Segment } from "../types/models";
 import { cn } from "../lib/utils";
 import { TitleTokens } from "../components/TitleTokens";
 import {
@@ -34,6 +33,9 @@ import {
 } from "../utils/formatters";
 import { formatCurrencyAmount, formatConvertedAmount } from "../utils/currency";
 import { optionsApi, segmentsApi } from "../utils/apiClient";
+import { SegmentFilterPanel, type SegmentFilterValue } from "../components/filters/SegmentFilterPanel"
+import type { SegmentSortValue } from "../components/sorting/segmentSortTypes"
+import { applySegmentFilters, buildSegmentMetadata } from "../services/segmentFiltering"
 
 const arraysEqual = (a: number[], b: number[]) => a.length === b.length && a.every((val, idx) => val === b[idx])
 type DiagramSegment = SegmentApi & { segmentType: SegmentType }
@@ -85,8 +87,13 @@ export default function OptionModal({
     option ? { name: option.name ?? "", isUiVisible: option.isUiVisible ?? true } : null,
   );
   const initialSelectedSegmentsRef = useRef<number[] | null>(null);
-  const [segmentsFilterOpen, setSegmentsFilterOpen] = useState(false);
-  const [showHiddenSegmentsFilter, setShowHiddenSegmentsFilter] = useState(false);
+  const [segmentFilterState, setSegmentFilterState] = useState<SegmentFilterValue>({
+    locations: [],
+    types: [],
+    dateRange: { start: "", end: "" },
+    showHidden: false,
+  })
+  const [segmentSortState, setSegmentSortState] = useState<SegmentSortValue | null>(null)
   const resolvedDisplayCurrencyId = displayCurrencyId ?? tripCurrencyId ?? null;
   const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false)
   const skipClosePromptRef = useRef(false)
@@ -167,9 +174,14 @@ export default function OptionModal({
   }, [option, fetchConnectedSegments, fetchSegments, fetchSegmentTypes]);
 
   useEffect(() => {
-    setSegmentsFilterOpen(false);
-    setShowHiddenSegmentsFilter(false);
-  }, [option?.id]);
+    setSegmentFilterState({
+      locations: [],
+      types: [],
+      dateRange: { start: "", end: "" },
+      showHidden: false,
+    })
+    setSegmentSortState(null)
+  }, [option?.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -278,11 +290,35 @@ export default function OptionModal({
 
   const shouldPromptOnClose = isEditing ? hasChanges : createFormTouched
 
+  const segmentFilterMetadata = useMemo(() => {
+    return buildSegmentMetadata((segments as Segment[]) ?? [], segmentTypes)
+  }, [segments, segmentTypes])
+
   const filteredSegmentsForDisplay = useMemo(() => {
-    if (!option) return [];
-    if (showHiddenSegmentsFilter) return segments;
-    return segments.filter((segment) => segment.isUiVisible !== false);
-  }, [option, segments, showHiddenSegmentsFilter]);
+    if (!option) return []
+    return applySegmentFilters(
+      segments as Segment[],
+      segmentFilterState,
+      segmentSortState,
+      segmentTypes,
+      {
+        targetCurrencyId: displayCurrencyId ?? tripCurrencyId ?? null,
+        fallbackCurrencyId: tripCurrencyId ?? null,
+        currencies,
+        conversions,
+      },
+    )
+  }, [
+    option,
+    segments,
+    segmentFilterState,
+    segmentSortState,
+    segmentTypes,
+    displayCurrencyId,
+    tripCurrencyId,
+    currencies,
+    conversions,
+  ])
 
   const selectedSegmentEntities = useMemo(() => {
     if (selectedSegments.length === 0) return [];
@@ -304,7 +340,12 @@ export default function OptionModal({
   }, [selectedSegmentEntities, segmentTypes])
 
   const optionTitleTokens = useMemo(() => {
-    const derived = summarizeSegmentsForOption(selectedSegmentEntities);
+    const derived = summarizeSegmentsForOption(selectedSegmentEntities, {
+      targetCurrencyId: displayCurrencyId ?? tripCurrencyId ?? null,
+      fallbackCurrencyId: tripCurrencyId ?? null,
+      currencies,
+      conversions,
+    });
     return buildOptionTitleTokens({
       name,
       fallbackName: option?.name || "New option",
@@ -317,7 +358,7 @@ export default function OptionModal({
       endOffset: derived.endOffset ?? (option ? 0 : null),
       totalCost: derived.totalCost ?? option?.totalCost ?? null,
     });
-  }, [name, option, selectedSegmentEntities]);
+  }, [name, option, selectedSegmentEntities, displayCurrencyId, tripCurrencyId, currencies, conversions]);
 
   const defaultOptionTitle = option ? `Edit Option: ${option.name}` : "Create Option";
   const optionTitleText = tokensToLabel(optionTitleTokens) || defaultOptionTitle;
@@ -425,32 +466,17 @@ export default function OptionModal({
               <div className="grid grid-cols-4 items-start gap-4">
                 <Label className="text-right pt-2 text-sm">Connected Segments</Label>
                 <div className="col-span-3">
-                  <div className="flex justify-end mb-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Toggle segment filters"
-                      onClick={() => setSegmentsFilterOpen((prev) => !prev)}
-                    >
-                      <SlidersHorizontal
-                        className={cn(
-                          "h-4 w-4 transition-transform",
-                          segmentsFilterOpen ? "text-primary rotate-90" : "text-muted-foreground"
-                        )}
-                      />
-                    </Button>
-                  </div>
-                  {segmentsFilterOpen && (
-                    <div className="flex items-center justify-end gap-2 mb-3 text-xs text-muted-foreground">
-                      <span>Show hidden</span>
-                      <Switch
-                        checked={showHiddenSegmentsFilter}
-                        onCheckedChange={(checked) => setShowHiddenSegmentsFilter(Boolean(checked))}
-                        aria-label="Show hidden segments"
-                      />
-                    </div>
-                  )}
+                  <SegmentFilterPanel
+                    value={segmentFilterState}
+                    onChange={setSegmentFilterState}
+                    sort={segmentSortState}
+                    onSortChange={setSegmentSortState}
+                    availableLocations={segmentFilterMetadata.locations}
+                    availableTypes={segmentFilterMetadata.types}
+                    minDate={segmentFilterMetadata.dateBounds.min}
+                    maxDate={segmentFilterMetadata.dateBounds.max}
+                    className="mb-3"
+                  />
                   <ScrollArea className="h-[300px] border rounded-md p-3">
                     {filteredSegmentsForDisplay.length === 0 ? (
                       <p className="text-sm text-muted-foreground">No segments available.</p>
@@ -465,7 +491,7 @@ export default function OptionModal({
                         });
                         const summaryLabel = tokensToLabel(tokens) || segment.name;
                         const isHiddenSegment = segment.isUiVisible === false;
-                        const dimmed = showHiddenSegmentsFilter && isHiddenSegment;
+                        const dimmed = !segmentFilterState.showHidden && isHiddenSegment;
 
                         return (
                           <label

@@ -387,79 +387,6 @@ export default function SegmentsPage() {
     }
   }, [segments])
 
-  const filteredSegments = useMemo(() => {
-    const startDate = filterState.dateRange.start ? new Date(filterState.dateRange.start) : null
-    if (startDate) startDate.setHours(0, 0, 0, 0)
-    const endDate = filterState.dateRange.end ? new Date(filterState.dateRange.end) : null
-    if (endDate) endDate.setHours(23, 59, 59, 999)
-
-    return segments.filter((segment) => {
-      if (!filterState.showHidden && segment.isUiVisible === false) return false
-
-      const startLoc = (segment as any).startLocation ?? null
-      const endLoc = (segment as any).endLocation ?? null
-      const startLabel = getLocationLabel(startLoc)
-      const endLabel = getLocationLabel(endLoc)
-
-      if (filterState.locations.length > 0 && !filterState.locations.some((loc) => loc === startLabel || loc === endLabel)) {
-        return false
-      }
-
-      if (filterState.types.length > 0 && !filterState.types.includes(segment.segmentTypeId.toString())) {
-        return false
-      }
-
-      if (startDate || endDate) {
-        const segmentStart = new Date(segment.startDateTimeUtc)
-        const segmentEnd = new Date(segment.endDateTimeUtc)
-        if (startDate && segmentStart < startDate && segmentEnd < startDate) return false
-        if (endDate && segmentStart > endDate && segmentEnd > endDate) return false
-      }
-
-      return true
-    })
-  }, [segments, filterState])
-
-  const sortedSegments = useMemo(() => {
-    const typeNameMap = new Map(segmentTypes.map((t) => [t.id, t.name ?? ""]))
-    const list = [...filteredSegments]
-    const compare = (a: Segment, b: Segment) => {
-      if (!sortState) {
-        const diff = new Date(a.startDateTimeUtc).getTime() - new Date(b.startDateTimeUtc).getTime()
-        if (diff !== 0) return diff
-        return a.name.localeCompare(b.name)
-      }
-
-      const dir = sortState.direction === "asc" ? 1 : -1
-
-      switch (sortState.field) {
-        case "startDate":
-          return dir * (new Date(a.startDateTimeUtc).getTime() - new Date(b.startDateTimeUtc).getTime())
-        case "endDate":
-          return dir * (new Date(a.endDateTimeUtc).getTime() - new Date(b.endDateTimeUtc).getTime())
-        case "segmentType": {
-          const nameA = typeNameMap.get(a.segmentTypeId) ?? ""
-          const nameB = typeNameMap.get(b.segmentTypeId) ?? ""
-          return dir * nameA.localeCompare(nameB)
-        }
-        case "startLocation": {
-          const nameA = getLocationLabel((a as any).startLocation ?? (a as any).startLocation ?? null)
-          const nameB = getLocationLabel((b as any).startLocation ?? (b as any).startLocation ?? null)
-          return dir * nameA.localeCompare(nameB)
-        }
-        case "endLocation": {
-          const nameA = getLocationLabel((a as any).endLocation ?? (a as any).endLocation ?? null)
-          const nameB = getLocationLabel((b as any).endLocation ?? (b as any).endLocation ?? null)
-          return dir * nameA.localeCompare(nameB)
-        }
-        default:
-          return 0
-      }
-    }
-
-    return list.sort(compare)
-  }, [filteredSegments, sortState, segmentTypes])
-
   const effectiveDisplayCurrencyId = displayCurrencyId ?? tripCurrencyId ?? userPreferredCurrencyId ?? null
   const selectedCurrencyMeta = useMemo(
     () => currencies.find((c) => c.id === effectiveDisplayCurrencyId) ?? null,
@@ -469,6 +396,27 @@ export default function SegmentsPage() {
     () => currencies.find((c) => c.id === (tripCurrencyId ?? undefined)) ?? null,
     [currencies, tripCurrencyId],
   )
+
+  const filteredSegments = useMemo(() => {
+    return applySegmentFilters(segments, filterState, sortState, segmentTypes, {
+      targetCurrencyId: effectiveDisplayCurrencyId,
+      fallbackCurrencyId: tripCurrencyId ?? userPreferredCurrencyId ?? null,
+      currencies,
+      conversions,
+    })
+  }, [
+    segments,
+    filterState,
+    sortState,
+    segmentTypes,
+    effectiveDisplayCurrencyId,
+    tripCurrencyId,
+    userPreferredCurrencyId,
+    currencies,
+    conversions,
+  ])
+
+  const sortedSegments = filteredSegments
 
   if (!tripId) {
     return <div>No trip ID provided</div>;
