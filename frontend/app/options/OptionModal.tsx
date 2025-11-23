@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
-import { SaveIcon, Trash2Icon, EyeOffIcon, EyeIcon, LayersIcon } from "lucide-react";
+import { SaveIcon, Trash2Icon, EyeOffIcon, EyeIcon, LayersIcon, Loader2 } from "lucide-react";
 import type { SegmentType, SegmentApi, OptionApi, OptionSave, Currency, CurrencyConversion, Segment } from "../types/models";
 import { cn } from "../lib/utils";
 import { TitleTokens } from "../components/TitleTokens";
@@ -87,6 +87,7 @@ export default function OptionModal({
   const [isUiVisible, setIsUiVisible] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [baselineReady, setBaselineReady] = useState(!option);
+  const [isSaving, setIsSaving] = useState(false);
   const [generalOpen, setGeneralOpen] = useState(!option)
   const [connectionsOpen, setConnectionsOpen] = useState(Boolean(option))
   const optionBaselineRef = useRef<{ name: string; isUiVisible: boolean } | null>(
@@ -236,7 +237,7 @@ export default function OptionModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSaveDisabled) return;
+    if (isSaveDisabled || isSaving) return;
 
     const payload: OptionSave = {
       name,
@@ -248,13 +249,21 @@ export default function OptionModal({
       isUiVisible,
     };
 
-    await onSave(payload);
+    setIsSaving(true)
+    try {
+      await onSave(payload);
 
-    if (option) {
-      await handleUpdateConnectedSegments();
+      if (option) {
+        await handleUpdateConnectedSegments();
+      } else {
+        handleClose();
+      }
+    } catch (error) {
+      console.error("Error saving option:", error)
+      toast({ title: "Error", description: "Failed to save option. Please try again." })
+    } finally {
+      setIsSaving(false)
     }
-
-    handleClose();
   };
 
   const handleUpdateConnectedSegments = async () => {
@@ -518,9 +527,9 @@ export default function OptionModal({
                     type="submit"
                     size="sm"
                     className="bg-primary hover:bg-primary/90"
-                    disabled={isSaveDisabled}
+                    disabled={isSaveDisabled || isSaving}
                   >
-                    <SaveIcon className="h-4 w-4" />
+                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <SaveIcon className="h-4 w-4" />}
                   </Button>
                 </div>
               </div>

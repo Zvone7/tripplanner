@@ -192,6 +192,12 @@ export default function SegmentModal({
     start: null,
     end: null,
   })
+  const rangeStartLocal = range.startLocal
+  const rangeEndLocal = range.endLocal
+  const rangeStartOffsetH = range.startOffsetH
+  const rangeEndOffsetH = range.endOffsetH
+  const locRangeStart = locRange.start
+  const locRangeEnd = locRange.end
 
   const [cost, setCost] = useState("")
   const [comment, setComment] = useState("")
@@ -209,6 +215,7 @@ export default function SegmentModal({
   const [baselineReady, setBaselineReady] = useState(!segment)
   const [bookingUrl, setBookingUrl] = useState("")
   const [isImportingBooking, setIsImportingBooking] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const isCreateMode = !segment || isDuplicateMode
 
   // State for delete confirmation dialog
@@ -898,16 +905,16 @@ type SegmentBaseline = {
     if (baseline.isUiVisible !== isUiVisible) return true
     if ((baseline.currencyId ?? null) !== (currencyId ?? null)) return true
 
-    if (baseline.startLocal !== range.startLocal) return true
-    if ((baseline.endLocal ?? null) !== (range.endLocal ?? null)) return true
-    if (baseline.startOffsetH !== range.startOffsetH) return true
-    if ((baseline.endOffsetH ?? null) !== (range.endOffsetH ?? null)) return true
+    if (baseline.startLocal !== rangeStartLocal) return true
+    if ((baseline.endLocal ?? null) !== (rangeEndLocal ?? null)) return true
+    if (baseline.startOffsetH !== rangeStartOffsetH) return true
+    if ((baseline.endOffsetH ?? null) !== (rangeEndOffsetH ?? null)) return true
 
-    const currentStartSig = JSON.stringify(locRange.start ?? null)
+    const currentStartSig = JSON.stringify(locRangeStart ?? null)
     const baselineStartSig = JSON.stringify(baseline.startLocation ?? null)
     if (currentStartSig !== baselineStartSig) return true
 
-    const currentEndSig = JSON.stringify(locRange.end ?? null)
+    const currentEndSig = JSON.stringify(locRangeEnd ?? null)
     const baselineEndSig = JSON.stringify(baseline.endLocation ?? null)
     if (currentEndSig !== baselineEndSig) return true
 
@@ -924,8 +931,12 @@ type SegmentBaseline = {
     comment,
     segmentTypeId,
     isUiVisible,
-    range,
-    locRange,
+    rangeStartLocal,
+    rangeEndLocal,
+    rangeStartOffsetH,
+    rangeEndOffsetH,
+    locRangeStart,
+    locRangeEnd,
     selectedOptions,
     currencyId,
   ])
@@ -938,10 +949,10 @@ type SegmentBaseline = {
         (cost && cost.trim()) ||
         (comment && comment.trim()) ||
         segmentTypeId !== null ||
-        range.startLocal ||
-        range.endLocal ||
-        locRange.start ||
-        locRange.end ||
+        rangeStartLocal ||
+        rangeEndLocal ||
+        locRangeStart ||
+        locRangeEnd ||
         selectedOptions.length > 0 ||
         (bookingUrl && bookingUrl.trim()) ||
         isUiVisible === false ||
@@ -953,10 +964,10 @@ type SegmentBaseline = {
     cost,
     comment,
     segmentTypeId,
-    range.startLocal,
-    range.endLocal,
-    locRange.start,
-    locRange.end,
+    rangeStartLocal,
+    rangeEndLocal,
+    locRangeStart,
+    locRangeEnd,
     selectedOptions.length,
     bookingUrl,
     isUiVisible,
@@ -966,12 +977,12 @@ type SegmentBaseline = {
   const missingFieldMessages = useMemo(() => {
     const messages: string[] = []
     if (segmentTypeId === null) messages.push("Select a segment type")
-    if (!range.startLocal) messages.push("Choose a start date and time")
+    if (!rangeStartLocal) messages.push("Choose a start date and time")
     const parsedCost = Number.parseFloat(cost)
     if (!cost || Number.isNaN(parsedCost)) messages.push("Enter a valid cost amount")
     if (!currencyId && !isLoadingCurrencies) messages.push("Select a currency")
     return messages
-  }, [segmentTypeId, range.startLocal, cost, currencyId, isLoadingCurrencies])
+  }, [segmentTypeId, rangeStartLocal, cost, currencyId, isLoadingCurrencies])
 
   const hasMissingFields = missingFieldMessages.length > 0
   const triggerMissingFieldsHint = useCallback(() => {
@@ -995,14 +1006,14 @@ type SegmentBaseline = {
     async (e: React.FormEvent) => {
       e.preventDefault()
 
-      if (isSaveDisabled) return
+      if (isSaveDisabled || isSaving) return
 
       if (segmentTypeId === null) {
         triggerMissingFieldsHint()
         toast({ title: "Error", description: "Please select a segment type." })
         return
       }
-      if (!range.startLocal) {
+      if (!rangeStartLocal) {
         triggerMissingFieldsHint()
         toast({ title: "Error", description: "Please choose a start date and time." })
         return
@@ -1013,15 +1024,15 @@ type SegmentBaseline = {
         return
       }
 
-      const startUtcMs = localToUtcMs(range.startLocal, range.startOffsetH)
+      const startUtcMs = localToUtcMs(rangeStartLocal, rangeStartOffsetH)
       if (!Number.isFinite(startUtcMs)) {
         toast({ title: "Error", description: "Invalid start date/time." })
         return
       }
       const startIso = utcMsToIso(startUtcMs)
 
-      const effEndOffset = range.endOffsetH ?? range.startOffsetH
-      const endLocalUsed = range.endLocal ?? range.startLocal
+      const effEndOffset = rangeEndOffsetH ?? rangeStartOffsetH
+      const endLocalUsed = rangeEndLocal ?? rangeStartLocal
       const endUtcMs = localToUtcMs(endLocalUsed, effEndOffset)
       if (!Number.isFinite(endUtcMs)) {
         toast({ title: "Error", description: "Invalid end date/time." })
@@ -1034,8 +1045,8 @@ type SegmentBaseline = {
 
       const endIso = utcMsToIso(endUtcMs)
 
-      const startForSave = locRange.start ? { ...locRange.start, id: prefilledStart?.id } : null
-      const endForSave = locRange.end ? { ...locRange.end, id: prefilledEnd?.id } : null
+      const startForSave = locRangeStart ? { ...locRangeStart, id: prefilledStart?.id } : null
+      const endForSave = locRangeEnd ? { ...locRangeEnd, id: prefilledEnd?.id } : null
 
       const currencyIdForSave = currencyId ?? userPreferredCurrencyId ?? tripCurrencyId ?? defaultCurrencyId
       if (!currencyIdForSave) {
@@ -1049,7 +1060,7 @@ type SegmentBaseline = {
         name,
         startDateTimeUtc: startIso,
         endDateTimeUtc: endIso,
-        startDateTimeUtcOffset: range.startOffsetH,
+        startDateTimeUtcOffset: rangeStartOffsetH,
         endDateTimeUtcOffset: effEndOffset,
         cost: parsedCost,
         currencyId: currencyIdForSave,
@@ -1063,17 +1074,23 @@ type SegmentBaseline = {
       const isUpdate = !!segment && !isDuplicateMode
       const optionIds = selectedOptions.map(Number)
 
+      setIsSaving(true)
       try {
         if (isUpdate && segment) await handleUpdateConnectedOptions(optionIds)
         await onSave(payload, isUpdate, segment?.id)
       } catch (err) {
         console.error("Save flow failed:", err)
         toast({ title: "Error", description: "Failed to save segment." })
+      } finally {
+        setIsSaving(false)
       }
     },
     [
       segmentTypeId,
-      range,
+      range.startLocal,
+      range.endLocal,
+      range.startOffsetH,
+      range.endOffsetH,
       tripId,
       name,
       cost,
@@ -1082,11 +1099,13 @@ type SegmentBaseline = {
       isDuplicateMode,
       onSave,
       selectedOptions,
-      locRange,
+      locRangeStart,
+      locRangeEnd,
       prefilledStart,
       prefilledEnd,
       isUiVisible,
       isSaveDisabled,
+      isSaving,
       handleUpdateConnectedOptions,
       currencyId,
       userPreferredCurrencyId,
@@ -1143,73 +1162,73 @@ type SegmentBaseline = {
     <>
       <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="max-w-4xl w-full h-[85vh] p-0 flex flex-col">
-          <DialogTitle className="sr-only">{headerName}</DialogTitle>
-          <div className="sticky top-0 bg-background border-b px-4 py-3">
-            <div className="mb-3 space-y-1">
-              <div className="flex items-center gap-3 text-lg font-semibold leading-snug">
-                {headerIcon}
-                <span>{headerName}</span>
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
+            <div className="sticky top-0 bg-background border-b px-4 py-3 z-10">
+              <DialogTitle className="sr-only">{headerName}</DialogTitle>
+              <div className="mb-3 space-y-1">
+                <div className="flex items-center gap-3 text-lg font-semibold leading-snug">
+                  {headerIcon}
+                  <span>{headerName}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">{headerSubtitle}</p>
               </div>
-              <p className="text-xs text-muted-foreground">{headerSubtitle}</p>
+
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1">
+                  {segment && !isDuplicateMode ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                      onClick={() => setShowDeleteConfirm(true)}
+                    >
+                      <Trash2Icon className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <span className="h-9 w-9" aria-hidden />
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {!isCreateMode && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="text-muted-foreground"
+                      onClick={() =>
+                        setIsUiVisible((prev) => {
+                          const next = !prev
+                          toast({
+                            title: next ? "Will be shown in list view" : "Won't be shown in list view",
+                          })
+                          return next
+                        })
+                      }
+                      aria-pressed={isUiVisible}
+                    >
+                      {isUiVisible ? <EyeIcon className="h-4 w-4" /> : <EyeOffIcon className="h-4 w-4" />}
+                    </Button>
+                  )}
+                  {segment && !isDuplicateMode && (
+                    <Button type="button" variant="outline" size="sm" onClick={handleDuplicateSegment}>
+                      <CopyIcon className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="bg-primary hover:bg-primary/90"
+                    disabled={isSaveDisabled || isSaving}
+                  >
+                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <SaveIcon className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
             </div>
 
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1">
-              {segment && !isDuplicateMode ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="border-destructive/40 text-destructive hover:bg-destructive/10"
-                  onClick={() => setShowDeleteConfirm(true)}
-                >
-                  <Trash2Icon className="h-4 w-4" />
-                </Button>
-              ) : (
-                <span className="h-9 w-9" aria-hidden />
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              {!isCreateMode && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="text-muted-foreground"
-                  onClick={() =>
-                    setIsUiVisible((prev) => {
-                      const next = !prev
-                      toast({
-                        title: next ? "Will be shown in list view" : "Won't be shown in list view",
-                      })
-                      return next
-                    })
-                  }
-                  aria-pressed={isUiVisible}
-                >
-                  {isUiVisible ? <EyeIcon className="h-4 w-4" /> : <EyeOffIcon className="h-4 w-4" />}
-                </Button>
-              )}
-              {segment && !isDuplicateMode && (
-                <Button type="button" variant="outline" size="sm" onClick={handleDuplicateSegment}>
-                  <CopyIcon className="h-4 w-4" />
-                </Button>
-              )}
-              <Button
-                type="submit"
-                size="sm"
-                className="bg-primary hover:bg-primary/90"
-                onClick={handleSubmit}
-                disabled={isSaveDisabled}
-              >
-                <SaveIcon className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 relative">
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 relative">
             {hasMissingFields && (
               <div
                 className={cn(
@@ -1445,6 +1464,7 @@ type SegmentBaseline = {
                 </div>
               </Collapsible>
             )}
+            </div>
           </form>
         </DialogContent>
       </Dialog>
