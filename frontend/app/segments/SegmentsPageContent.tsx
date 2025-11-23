@@ -18,7 +18,16 @@ import { useCurrencies } from "../hooks/useCurrencies";
 import { useCurrencyConversions } from "../hooks/useCurrencyConversions";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 
-import type { Segment, SegmentType, OptionRef, SegmentSave, Currency, CurrencyConversion } from "../types/models";
+import type {
+  Segment,
+  SegmentType,
+  OptionRef,
+  SegmentSave,
+  Currency,
+  CurrencyConversion,
+  OptionFilterPreset,
+  SimpleOptionSortValue,
+} from "../types/models";
 import { formatCurrencyAmount, convertWithFallback } from "../utils/currency";
 import { segmentsApi, tripsApi } from "../utils/apiClient";
 
@@ -418,6 +427,23 @@ export default function SegmentsPage() {
 
   const sortedSegments = filteredSegments
 
+  const optionModalFilters = useMemo<OptionFilterPreset>(
+    () => ({
+      locations: [...filterState.locations],
+      dateRange: { ...filterState.dateRange },
+      showHidden: filterState.showHidden,
+    }),
+    [filterState],
+  )
+
+  const optionModalSort = useMemo<SimpleOptionSortValue | null>(() => {
+    if (!sortState) return null
+    if (sortState.field === "startDate" || sortState.field === "endDate") {
+      return { field: sortState.field, direction: sortState.direction }
+    }
+    return null
+  }, [sortState])
+
   if (!tripId) {
     return <div>No trip ID provided</div>;
   }
@@ -506,6 +532,8 @@ export default function SegmentsPage() {
         segmentTypes={segmentTypes}
         tripCurrencyId={tripCurrencyId}
         displayCurrencyId={effectiveDisplayCurrencyId}
+        initialOptionFilters={optionModalFilters}
+        initialOptionSort={optionModalSort}
       />
     </Card>
   );

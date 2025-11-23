@@ -173,6 +173,8 @@ export default function SegmentModal({
   segmentTypes,
   tripCurrencyId,
   displayCurrencyId,
+  initialOptionFilters,
+  initialOptionSort,
 }: SegmentModalProps) {
   const [name, setName] = useState("")
   const [range, setRange] = useState<RangeDateTimePickerValue>({
@@ -196,6 +198,7 @@ export default function SegmentModal({
   const [currencyId, setCurrencyId] = useState<number | null>(null)
   const [segmentTypeId, setSegmentTypeId] = useState<number | null>(null)
   const [options, setOptions] = useState<OptionApi[]>([])
+  const [tripSegments, setTripSegments] = useState<SegmentApi[]>([])
   const [selectedOptions, setSelectedOptions] = useState<number[]>([])
   const [optionsTouched, setOptionsTouched] = useState(false)
   const optionsTouchedRef = useRef(optionsTouched)
@@ -228,6 +231,17 @@ export default function SegmentModal({
   const [showMissingShake, setShowMissingShake] = useState(false)
   const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false)
   const skipClosePromptRef = useRef(false)
+  const tripSegmentsById = useMemo(() => {
+    const map = new Map<number, SegmentApi>()
+    tripSegments.forEach((segment) => {
+      if (segment?.id) {
+        map.set(segment.id, segment)
+      }
+    })
+    return map
+  }, [tripSegments])
+  const latestOptionFiltersRef = useRef(initialOptionFilters)
+  const latestOptionSortRef = useRef(initialOptionSort)
 
   const selectedSegmentType = useMemo(() => {
     if (segmentTypeId === null) return null
@@ -303,8 +317,9 @@ export default function SegmentModal({
   ])
   const optionMetadata = useMemo(() => {
     const flattened = Object.values(optionConnections).flat()
-    return buildOptionMetadata(flattened)
-  }, [optionConnections])
+    const source = flattened.length ? flattened : tripSegments
+    return buildOptionMetadata(source)
+  }, [optionConnections, tripSegments])
   const generalCostLabel = useMemo(() => {
     if (formattedSegmentCost) return formattedSegmentCost
     if (hasCostValue) return parsedCost.toString()
@@ -408,6 +423,22 @@ export default function SegmentModal({
       toast({ title: "Error", description: "Failed to fetch options. Please try again." })
     }
   }, [tripId, toast])
+
+  useEffect(() => {
+    let active = true
+    const loadSegments = async () => {
+      try {
+        const data = await segmentsApi.getByTripId(tripId)
+        if (active) setTripSegments(data)
+      } catch (error) {
+        console.error("Error fetching trip segments:", error)
+      }
+    }
+    loadSegments()
+    return () => {
+      active = false
+    }
+  }, [tripId])
 
   useEffect(() => {
     fetchOptions()
@@ -600,13 +631,21 @@ type SegmentBaseline = {
       return
     }
     let cancelled = false
+    const hydrateSegment = (segment: SegmentApi) => {
+      const fallback = tripSegmentsById.get(segment.id)
+      return {
+        ...segment,
+        startLocation: segment.startLocation ?? fallback?.startLocation ?? null,
+        endLocation: segment.endLocation ?? fallback?.endLocation ?? null,
+      }
+    }
     const loadConnections = async () => {
       try {
         const entries = await Promise.all(
           options.map(async (option) => {
             try {
               const connected = await segmentsApi.getConnectedSegments(tripId, option.id)
-              return [option.id, connected] as const
+              return [option.id, connected.map(hydrateSegment)] as const
             } catch (error) {
               console.error("Failed to fetch segments for option", option.id, error)
               return [option.id, []] as const
@@ -624,7 +663,7 @@ type SegmentBaseline = {
     return () => {
       cancelled = true
     }
-  }, [tripId, options])
+  }, [tripId, options, tripSegmentsById])
 
   const fetchConnectedOptions = useCallback(
     async (segmentId: number) => {
@@ -726,6 +765,38 @@ type SegmentBaseline = {
     if (!isOpen) return
     resetToBlank()
   }, [segment, isOpen, resetToBlank])
+
+  const prevOpenRef = useRef<boolean>(isOpen)
+  const prevSegmentIdRef = useRef<number | null>(segment?.id ?? null)
+  useEffect(() => {
+    const prevOpen = prevOpenRef.current
+    const prevSegmentId = prevSegmentIdRef.current
+    prevOpenRef.current = isOpen
+    prevSegmentIdRef.current = segment?.id ?? null
+    const justOpened = isOpen && !prevOpen
+    const segmentChanged = isOpen && prevSegmentId !== (segment?.id ?? null)
+    if (!justOpened && !segmentChanged) return
+    const presetFilters = latestOptionFiltersRef.current
+    if (presetFilters) {
+      setOptionFilterState({
+        locations: [...presetFilters.locations],
+        dateRange: { ...presetFilters.dateRange },
+        showHidden: presetFilters.showHidden,
+      })
+    } else {
+      setOptionFilterState({
+        locations: [],
+        dateRange: { start: "", end: "" },
+        showHidden: false,
+      })
+    }
+    const presetSort = latestOptionSortRef.current
+    if (presetSort === null) {
+      setOptionSortState(null)
+    } else if (presetSort) {
+      setOptionSortState({ field: presetSort.field, direction: presetSort.direction })
+    }
+  }, [isOpen, segment?.id])
 
   useEffect(() => {
     setOptionFilterState({
@@ -912,6 +983,12 @@ type SegmentBaseline = {
       missingShakeTimeoutRef.current = null
     }, 450)
   }, [])
+  useEffect(() => {
+    latestOptionFiltersRef.current = initialOptionFilters
+  }, [initialOptionFilters])
+  useEffect(() => {
+    latestOptionSortRef.current = initialOptionSort
+  }, [initialOptionSort])
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {

@@ -96,7 +96,20 @@ export interface SegmentModalProps {
   segmentTypes: SegmentType[];
   tripCurrencyId?: number | null;
   displayCurrencyId?: number | null;
+  initialOptionFilters?: OptionFilterPreset;
+  initialOptionSort?: SimpleOptionSortValue | null;
 }
+
+export interface OptionFilterPreset {
+  locations: string[];
+  dateRange: { start: string; end: string };
+  showHidden: boolean;
+}
+
+export type SimpleOptionSortValue = {
+  field: "startDate" | "endDate" | "totalCost" | "totalDays";
+  direction: "asc" | "desc";
+};
 
 /* -----------------------------------------------------------------------------
  * Trip types

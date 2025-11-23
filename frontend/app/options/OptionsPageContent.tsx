@@ -10,6 +10,8 @@ import { PlusIcon, LayoutIcon, EditIcon, EyeOffIcon } from "lucide-react";
 import OptionModal from "./OptionModal";
 import { formatDateStr, formatWeekday } from "../utils/dateformatters";
 import { OptionFilterPanel, type OptionFilterValue } from "../components/filters/OptionFilterPanel";
+import type { SegmentFilterValue } from "../components/filters/SegmentFilterPanel";
+import type { SegmentSortValue } from "../components/sorting/segmentSortTypes";
 import type { OptionSortValue } from "../components/sorting/optionSortTypes";
 import { applyOptionFilters, buildOptionMetadata } from "../services/optionFiltering";
 import { cn } from "../lib/utils";
@@ -533,6 +535,28 @@ export default function OptionsPageContent() {
     [options, filterState, sortState, connectedSegments],
   )
 
+  const initialModalFilters = useMemo<SegmentFilterValue>(
+    () => ({
+      locations: [...filterState.locations],
+      types: [],
+      dateRange: { ...filterState.dateRange },
+      showHidden: filterState.showHidden,
+    }),
+    [filterState],
+  )
+
+  const initialModalSort = useMemo<SegmentSortValue | null>(() => {
+    if (!sortState) return null
+    switch (sortState.field) {
+      case "startDate":
+        return { field: "startDate", direction: sortState.direction }
+      case "endDate":
+        return { field: "endDate", direction: sortState.direction }
+      default:
+        return null
+    }
+  }, [sortState])
+
   const effectiveDisplayCurrencyId = displayCurrencyId ?? tripCurrencyId ?? userPreferredCurrencyId ?? null
   const selectedCurrencyMeta = useMemo(
     () => currencies.find((c) => c.id === effectiveDisplayCurrencyId) ?? null,
@@ -625,6 +649,8 @@ export default function OptionsPageContent() {
         displayCurrencyId={effectiveDisplayCurrencyId}
         currencies={currencies}
         conversions={conversions}
+        initialSegmentFilters={initialModalFilters}
+        initialSegmentSort={initialModalSort}
       />
     </Card>
   );

@@ -24,7 +24,7 @@ export function MultiSelect({ options, selected, onChange, placeholder = "Select
   const [open, setOpen] = React.useState(false)
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={false} zIndex="z-[90]">
       <PopoverTrigger asChild>
         <Button
           variant="outline"

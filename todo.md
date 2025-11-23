@@ -20,8 +20,7 @@ backend: implement languageExt on backend so that the results returned from endp
 
 ---------- 20x
 
-- Investigate possible booking.com integration/parsing pasting dat
-
+- Investigate possible booking.com integration
 
 
 - Investigate possible google flights/skyscanner integration
