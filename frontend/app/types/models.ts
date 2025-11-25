@@ -51,10 +51,14 @@ export interface SegmentSuggestion {
   startDateLocal?: string;
   endDateLocal?: string;
   locationName?: string;
+  startLocationName?: string;
+  endLocationName?: string;
   sourceUrl?: string;
   cost?: number;
   currencyCode?: string;
   location?: LocationOption | LocationDto | null;
+  startLocation?: LocationOption | LocationDto | null;
+  endLocation?: LocationOption | LocationDto | null;
   segmentTypeId?: number | null;
 }
 

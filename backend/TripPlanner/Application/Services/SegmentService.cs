@@ -15,6 +15,7 @@ public class SegmentService
     private readonly LocationRepository _locationRepository;
     private readonly OptionService _optionService_;
     private readonly IBookingLinkParser _bookingLinkParser;
+    private readonly IGoogleFlightsLinkParser _googleFlightsLinkParser;
     private readonly ILogger<SegmentService> _logger;
 
     public SegmentService(
@@ -23,6 +24,7 @@ public class SegmentService
         LocationRepository locationRepository,
         OptionService optionService,
         IBookingLinkParser bookingLinkParser,
+        IGoogleFlightsLinkParser googleFlightsLinkParser,
         ILogger<SegmentService> logger)
     {
         _segmentRepository_ = segmentRepository;
@@ -30,6 +32,7 @@ public class SegmentService
         _locationRepository = locationRepository;
         _optionService_ = optionService;
         _bookingLinkParser = bookingLinkParser;
+        _googleFlightsLinkParser = googleFlightsLinkParser;
         _logger = logger;
     }
 
@@ -378,6 +381,11 @@ public class SegmentService
     public Task<SegmentSuggestionDto> ParseBookingLinkAsync(string url, CancellationToken cancellationToken)
     {
         return _bookingLinkParser.ParseBookingLinkAsync(url, cancellationToken);
+    }
+
+    public Task<SegmentSuggestionDto> ParseFlightsLinkAsync(string url, CancellationToken cancellationToken)
+    {
+        return _googleFlightsLinkParser.ParseFlightsLinkAsync(url, cancellationToken);
     }
 
 #endregion

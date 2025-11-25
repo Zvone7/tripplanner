@@ -53,6 +53,8 @@ public sealed class BookingLinkParser : IBookingLinkParser
         suggestion.SegmentTypeId = DetermineSegmentTypeId(suggestion.Name);
 
         await EnrichLocationAsync(suggestion, query, countryName, cancellationToken);
+        suggestion.StartLocation ??= suggestion.Location;
+        suggestion.StartLocationName ??= suggestion.LocationName;
 
         return suggestion;
     }
@@ -90,18 +92,10 @@ public sealed class BookingLinkParser : IBookingLinkParser
             if (best == null) return;
 
             var normalized = LocationSearchResult.FromLocationIq(best);
-            suggestion.Location = new LocationDto
-            {
-                Id = 0,
-                Provider = normalized.Provider,
-                ProviderPlaceId = normalized.Provider_Place_Id,
-                Name = normalized.Name,
-                Country = normalized.Country ?? string.Empty,
-                CountryCode = normalized.Country_Code,
-                Latitude = normalized.Lat,
-                Longitude = normalized.Lng,
-            };
+            suggestion.Location = ToLocationDto(normalized);
+            suggestion.StartLocation ??= suggestion.Location;
             suggestion.LocationName ??= normalized.Formatted;
+            suggestion.StartLocationName ??= suggestion.LocationName;
         }
         catch (Exception ex)
         {
@@ -220,5 +214,20 @@ public sealed class BookingLinkParser : IBookingLinkParser
             return 6; // hotel
 
         return 9;
+    }
+
+    private static LocationDto ToLocationDto(LocationSearchResult normalized)
+    {
+        return new LocationDto
+        {
+            Id = 0,
+            Provider = normalized.Provider,
+            ProviderPlaceId = normalized.Provider_Place_Id,
+            Name = normalized.Name,
+            Country = normalized.Country ?? string.Empty,
+            CountryCode = normalized.Country_Code,
+            Latitude = normalized.Lat,
+            Longitude = normalized.Lng,
+        };
     }
 }

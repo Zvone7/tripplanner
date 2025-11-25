@@ -93,4 +93,11 @@ public class SegmentController : ControllerBase
         var result = await _segmentService_.ParseBookingLinkAsync(url, cancellationToken);
         return Ok(result);
     }
+
+    [HttpGet("ParseFlightsLink")]
+    public async Task<ActionResult<SegmentSuggestionDto>> ParseFlightsLink([FromQuery] string url, CancellationToken cancellationToken)
+    {
+        var result = await _segmentService_.ParseFlightsLinkAsync(url, cancellationToken);
+        return Ok(result);
+    }
 }

@@ -26,6 +26,8 @@ public class BookingLinkParserTest
         suggestion.CurrencyCode.Should().BeNull(); // no explicit currency in url
         suggestion.Location.Should().NotBeNull();
         suggestion.Location!.Name.Should().Be("Budapest");
+        suggestion.StartLocation.Should().NotBeNull();
+        suggestion.StartLocation!.Name.Should().Be("Budapest");
         suggestion.Location.Latitude.Should().Be(47.5);
         suggestion.Location.Longitude.Should().Be(19.05);
         suggestion.LocationName.Should().Be("Budapest, Hungary");

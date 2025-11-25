@@ -82,6 +82,8 @@ export const segmentsApi = {
   getByTripId: (tripId: string | number) => request<SegmentApi[]>(`/api/Segment/GetSegmentsByTripId?tripId=${tripId}`),
   parseBookingLink: (url: string) =>
     request<SegmentSuggestion>(`/api/Segment/ParseBookingLink?url=${encodeURIComponent(url)}`),
+  parseFlightsLink: (url: string) =>
+    request<SegmentSuggestion>(`/api/Segment/ParseFlightsLink?url=${encodeURIComponent(url)}`),
   getConnectedOptions: (tripId: string | number, segmentId: number) =>
     request<OptionRef[]>(`/api/Segment/GetConnectedOptions?tripId=${tripId}&segmentId=${segmentId}`),
   getConnectedSegments: (tripId: string | number, optionId: number) =>

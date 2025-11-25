@@ -36,6 +36,7 @@ import {
   Calendar,
   Globe,
   Pencil,
+  Plane,
 } from "lucide-react"
 import { toLocationDto, normalizeLocation } from "../lib/mapping"
 import { Collapsible } from "../components/Collapsible"
@@ -62,7 +63,7 @@ import { RangeDateTimePicker, type RangeDateTimePickerValue } from "../component
 import { RangeLocationPicker, type RangeLocationPickerValue } from "../components/RangeLocationPicker"
 import { useCurrencyConversions } from "../hooks/useCurrencyConversions"
 
-import { localToUtcMs, utcMsToIso, utcIsoToLocalInput } from "../lib/utils"
+import { localToUtcMs, utcMsToIso, utcIsoToLocalInput, formatLocalWithPreferredOffset, normalizeOffsetHours } from "../lib/utils"
 import { buildOptionTitleTokens, buildOptionConfigFromApi, tokensToLabel } from "../utils/formatters"
 import { optionsApi, segmentsApi, userApi } from "../utils/apiClient"
 import { getDefaultCurrencyId, useCurrencies } from "../hooks/useCurrencies"
@@ -160,6 +161,18 @@ const formatLocationSummary = (loc: LocationOption | null) => {
   if (loc.formatted) return loc.formatted
   const parts = [loc.name, loc.country].filter(Boolean)
   return parts.join(", ")
+}
+
+const isGoogleFlightsLink = (url: string) => {
+  try {
+    const parsed = new URL(url)
+    return (
+      parsed.hostname.includes("google.") &&
+      parsed.pathname.toLowerCase().includes("/travel/flights")
+    )
+  } catch {
+    return false
+  }
 }
 
 /* ------------------------------- main modal ------------------------------- */
@@ -366,8 +379,13 @@ export default function SegmentModal({
   ])
 
   const timeSummaryTitle = useMemo(() => {
-    const startLabel = formatLocalDateTimeLabel(range.startLocal) || "Start not set"
-    const endLabel = formatLocalDateTimeLabel(range.endLocal)
+    const startLabel =
+      formatLocalWithPreferredOffset(range.startLocal, range.startOffsetH, range.startOffsetH) || "Start not set"
+    const endLabel = formatLocalWithPreferredOffset(
+      range.endLocal,
+      range.endOffsetH ?? range.startOffsetH,
+      range.endOffsetH ?? range.startOffsetH,
+    )
     return (
       <span className="flex items-center gap-2 text-sm">
         <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -380,7 +398,7 @@ export default function SegmentModal({
         ) : null}
       </span>
     )
-  }, [range.startLocal, range.endLocal])
+  }, [range.startLocal, range.endLocal, range.startOffsetH, range.endOffsetH, userPreferredOffset])
 
   const locationSummaryTitle = useMemo(() => {
     const startLabel = formatLocationSummary(locRange.start) || "Start not set"
@@ -462,22 +480,42 @@ export default function SegmentModal({
       endLocal: suggestion.endDateLocal ?? prev.endLocal,
     }))
 
-    if (suggestion.location) {
-      const normalized = normalizeLocation(suggestion.location)
+    const startLocation = suggestion.startLocation ?? suggestion.location
+    if (startLocation) {
+      const normalized = normalizeLocation(startLocation)
       if (normalized) {
         setLocRange((prev) => ({ ...prev, start: normalized }))
         setPrefilledStart(normalized)
       }
-    } else if (suggestion.locationName) {
+    } else if (suggestion.startLocationName || suggestion.locationName) {
+      const startName = suggestion.startLocationName ?? suggestion.locationName
       const manualLocation: LocationOption = {
-        name: suggestion.locationName,
+        name: startName ?? "",
         provider: "manual",
-        providerPlaceId: suggestion.locationName,
+        providerPlaceId: startName ?? "",
         lat: 0,
         lng: 0,
       }
       setLocRange((prev) => ({ ...prev, start: manualLocation }))
       setPrefilledStart(manualLocation)
+    }
+
+    if (suggestion.endLocation) {
+      const normalizedEnd = normalizeLocation(suggestion.endLocation)
+      if (normalizedEnd) {
+        setLocRange((prev) => ({ ...prev, end: normalizedEnd }))
+        setPrefilledEnd(normalizedEnd)
+      }
+    } else if (suggestion.endLocationName) {
+      const manualEnd: LocationOption = {
+        name: suggestion.endLocationName,
+        provider: "manual",
+        providerPlaceId: suggestion.endLocationName,
+        lat: 0,
+        lng: 0,
+      }
+      setLocRange((prev) => ({ ...prev, end: manualEnd }))
+      setPrefilledEnd(manualEnd)
     }
 
     if (typeof suggestion.cost === "number" && Number.isFinite(suggestion.cost)) {
@@ -505,8 +543,8 @@ export default function SegmentModal({
 
     if (suggestion.sourceUrl) {
       setComment((prev) => {
-        const label = suggestion.name ?? "Booking link"
-        const formatted = `Booking: [${label}](${suggestion.sourceUrl})`
+        const label = suggestion.name ?? "Imported link"
+        const formatted = `Link: [${label}](${suggestion.sourceUrl})`
         if (!prev) return formatted
         if (suggestion.sourceUrl && prev.includes(suggestion.sourceUrl)) return prev
         return `${prev}\n${formatted}`
@@ -517,14 +555,16 @@ export default function SegmentModal({
   const handleImportBookingLink = async () => {
     const trimmed = bookingUrl.trim()
     if (!trimmed) {
-      toast({ title: "Paste a booking link", description: "Provide a booking.com link before importing." })
+      toast({ title: "Paste a link", description: "Provide a Booking.com or Google Flights link before importing." })
       return
     }
     try {
       setIsImportingBooking(true)
-      const suggestion = await segmentsApi.parseBookingLink(trimmed)
+      const suggestion = isGoogleFlightsLink(trimmed)
+        ? await segmentsApi.parseFlightsLink(trimmed)
+        : await segmentsApi.parseBookingLink(trimmed)
       applyBookingSuggestion(suggestion)
-      toast({ title: "Booking imported", description: "Details were added to the form." })
+      toast({ title: "Link imported", description: "Details were added to the form." })
     } catch (error) {
       console.error("Failed to import booking link:", error)
       toast({ title: "Import failed", description: "Could not extract data from the provided link." })
@@ -583,9 +623,14 @@ type SegmentBaseline = {
 
   const segmentBaselineRef = useRef<SegmentBaseline | null>(null)
 
-  const buildSegmentBaseline = (segmentData: SegmentApi): SegmentBaseline => {
-    const sOff = segmentData.startDateTimeUtcOffset ?? 0
-    const eOff = segmentData.endDateTimeUtcOffset ?? sOff
+  const buildSegmentBaseline = (
+    segmentData: SegmentApi,
+    displayOffsets?: { startOffsetH: number; endOffsetH: number | null },
+  ): SegmentBaseline => {
+    const rawSOff = normalizeOffsetHours(segmentData.startDateTimeUtcOffset ?? 0)
+    const rawEOff = normalizeOffsetHours(segmentData.endDateTimeUtcOffset ?? rawSOff)
+    const sOff = displayOffsets?.startOffsetH ?? rawSOff
+    const eOff = displayOffsets?.endOffsetH ?? rawEOff
     const startLocalVal = utcIsoToLocalInput(segmentData.startDateTimeUtc, sOff)
     const endLocalRaw = utcIsoToLocalInput(segmentData.endDateTimeUtc, eOff)
     const endIsSame = segmentData.endDateTimeUtc === segmentData.startDateTimeUtc && eOff === sOff
@@ -697,10 +742,11 @@ type SegmentBaseline = {
     initialSelectedOptionsRef.current = null
     setBaselineReady(true)
     setName("")
+    const normalizedPreferred = normalizeOffsetHours(userPreferredOffset ?? 0)
     setRange({
       startLocal: "",
       endLocal: null,
-      startOffsetH: userPreferredOffset ?? 0,
+      startOffsetH: normalizedPreferred,
       endOffsetH: null,
     })
     setPrefilledStart(null)
@@ -724,24 +770,29 @@ type SegmentBaseline = {
     if (!segment) return
     setIsDuplicateMode(false)
     setOptionsTouched(false)
-    segmentBaselineRef.current = buildSegmentBaseline(segment)
+    const sOffRaw = normalizeOffsetHours(segment.startDateTimeUtcOffset ?? 0)
+    const eOffRaw = normalizeOffsetHours(segment.endDateTimeUtcOffset ?? sOffRaw)
+    const displayStartOffset = sOffRaw
+    const displayEndOffset = eOffRaw
+
+    segmentBaselineRef.current = buildSegmentBaseline(segment, {
+      startOffsetH: displayStartOffset,
+      endOffsetH: displayEndOffset,
+    })
     setBaselineReady(false)
     initialSelectedOptionsRef.current = null
     setName(segment.name)
 
-    const sOff = segment.startDateTimeUtcOffset ?? 0
-    const eOff = segment.endDateTimeUtcOffset ?? sOff
+    const startLocal = utcIsoToLocalInput(segment.startDateTimeUtc, displayStartOffset)
+    const endLocalRaw = utcIsoToLocalInput(segment.endDateTimeUtc, displayEndOffset)
 
-    const startLocal = utcIsoToLocalInput(segment.startDateTimeUtc, sOff)
-    const endLocalRaw = utcIsoToLocalInput(segment.endDateTimeUtc, eOff)
-
-    const endIsSame = segment.endDateTimeUtc === segment.startDateTimeUtc && eOff === sOff
+    const endIsSame = segment.endDateTimeUtc === segment.startDateTimeUtc && eOffRaw === sOffRaw
 
     setRange({
       startLocal,
       endLocal: endIsSame ? null : endLocalRaw,
-      startOffsetH: sOff,
-      endOffsetH: endIsSame ? null : eOff,
+      startOffsetH: displayStartOffset,
+      endOffsetH: endIsSame ? null : displayEndOffset,
     })
 
     setCost(String(segment.cost))
@@ -1161,8 +1212,8 @@ type SegmentBaseline = {
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
-        <DialogContent className="max-w-4xl w-full h-[85vh] p-0 flex flex-col">
-          <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
+        <DialogContent className="max-w-4xl w-full h-[85vh] p-0 flex flex-col overflow-hidden" style={{ display: "flex" }}>
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
             <div className="sticky top-0 bg-background border-b px-4 py-3 z-10">
               <DialogTitle className="sr-only">{headerName}</DialogTitle>
               <div className="mb-3 space-y-1">
@@ -1228,7 +1279,7 @@ type SegmentBaseline = {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 relative">
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 relative min-h-0">
             {hasMissingFields && (
               <div
                 className={cn(
@@ -1247,34 +1298,38 @@ type SegmentBaseline = {
                 </div>
               </div>
             )}
-            {isCreateMode && (
-              <div className="rounded-lg border px-3 py-2 bg-muted/40">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 uppercase tracking-wide">
-                    <span className="text-sm leading-none">B</span>
-                    <span className="sr-only">Booking.com</span>
+            <div className="rounded-lg border px-2 py-2 bg-muted/30">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 uppercase tracking-wide">
+                    <span className="leading-none">Booking.com</span>
                   </div>
-                  <Input
-                    id="booking-link"
-                    value={bookingUrl}
-                    onChange={(e) => setBookingUrl(e.target.value)}
-                    placeholder="booking link…"
-                    autoComplete="off"
-                    className="w-48 text-sm"
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleImportBookingLink}
-                    disabled={isImportingBooking}
-                  >
-                    {isImportingBooking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4 mr-1" />}
-                    Import
-                  </Button>
+                  <div className="flex items-center gap-1 rounded border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700 uppercase tracking-wide">
+                    <Plane className="h-3 w-3" aria-hidden="true" />
+                    <span className="leading-none">Google Flights</span>
+                  </div>
                 </div>
+                <Input
+                  id="booking-link"
+                  value={bookingUrl}
+                  onChange={(e) => setBookingUrl(e.target.value)}
+                  placeholder="booking or flights link…"
+                  autoComplete="off"
+                  className="w-64 text-xs"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleImportBookingLink}
+                  disabled={isImportingBooking}
+                  className="h-8 px-2 text-xs"
+                >
+                  {isImportingBooking ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3 mr-1" />}
+                  Import
+                </Button>
               </div>
-            )}
+            </div>
             <Collapsible
               title={generalSummaryTitle}
               open={generalOpen}
